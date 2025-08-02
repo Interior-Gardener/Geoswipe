@@ -40,3 +40,11 @@ cd ..
 npm install
 npm run start
 ```
+
+
+# open new terminal for gesture 
+```bash
+cd geoswipe
+cd gesture-control
+python detect.py
+```

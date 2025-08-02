@@ -1,0 +1,18 @@
+# Root
+node_modules/
+.env
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+gesture-control/venv/
+gesture-control/.env
+
+# Vite/Frontend
+client/dist/
+client/.vite/
+client/node_modules/
+
+# System
+*.log

@@ -13,8 +13,7 @@
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/yourusername/geo-gesture-game.git
-cd geo-gesture-game
+git clone https://github.com/Interior-Gardener/Geoswipe.git
 ```
 
 # Install Python dependencies

@@ -187,3 +187,34 @@
     padding: 1.5rem 1rem;
   }
 }
+
+/* Sleek Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background: rgba(0, 0, 0, 0.85); /* Dark semi-transparent background */
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+.header .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav-links a {
+  margin-left: 25px;
+  text-decoration: none;
+  color: white;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #00c2ff; /* Accent hover color */
+}

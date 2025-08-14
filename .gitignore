@@ -16,3 +16,6 @@ client/node_modules/
 
 # System
 *.log
+
+#venv 
+gesture-control/geovenv

@@ -5,7 +5,7 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import earcut from 'earcut';
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3000");
+const socket = io("http://localhost:3000"); //backend 
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { createRenderer, createCamera, updateLoadingProgressBar } from './earth/core-utils';

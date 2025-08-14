@@ -1,9 +1,20 @@
-import React from 'react'
-import './LandingPage.css'
+import React from 'react';
+import './LandingPage.css';
 
 const LandingPage = ({ onStart }) => {
   return (
     <div className="landing-page">
+
+      {/* Sleek Themed Header */}
+      <header className="header">
+        <div className="logo">🌐 GeoSwipe</div>
+        <nav className="nav-links">
+          <a href="#features">Features</a>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </header>
+
       <div className="landing-content">
         <div className="hero-section">
           <h1 className="title">GeoSwipe</h1>
@@ -13,32 +24,26 @@ const LandingPage = ({ onStart }) => {
             explore geographical features, and experience Earth in stunning 3D visualization 
             powered by cutting-edge web technologies.
           </p>
-          <button className="start-button" onClick={onStart}>
-            <span className="button-text">Start Exploration</span>
-            <div className="button-glow"></div>
-          </button>
         </div>
         
-        <div className="features">
-          <div className="feature">
+        <div className="features" id="features">
+          {/* Interactive Globe - Clickable */}
+          <div className="feature clickable" onClick={onStart} style={{ cursor: 'pointer' }}>
             <div className="feature-icon">🌍</div>
             <h3>Interactive Globe</h3>
             <p>Rotate, zoom, and explore Earth with smooth 3D interactions</p>
           </div>
+
+          {/* Heritage Mode */}
           <div className="feature">
-            <div className="feature-icon">🗺️</div>
-            <h3>Country Details</h3>
-            <p>Click on any country to discover detailed information</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">🌟</div>
-            <h3>Real-time Rendering</h3>
-            <p>Experience high-quality graphics with WebGL technology</p>
+            <div className="feature-icon">🏛️</div>
+            <h3>Heritage Mode</h3>
+            <p>Explore cultural heritage sites from around the globe</p>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LandingPage
+export default LandingPage;

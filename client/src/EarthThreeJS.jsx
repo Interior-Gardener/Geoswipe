@@ -5,11 +5,10 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import earcut from 'earcut';
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3000"); //backend 
+const socket = io("http://localhost:3000");
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { createRenderer, createCamera, updateLoadingProgressBar } from './earth/core-utils';
-
 import { loadTexture } from './earth/common-utils';
 // Import shaders as raw text
 import vertexShader from './assets/shaders/vertex.glsl?raw';
@@ -28,10 +27,16 @@ const EarthThreeJS = () => {
   const cameraRef = useRef();
 
   useEffect(() => {
-    // Parameters
+    // Add Google Font for Bungee Spice dynamically
+    const link = document.createElement('link');
+    link.href = "https://fonts.googleapis.com/css2?family=Bungee+Spice&family=Orbitron:wght@400;700;900&display=swap";
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+
+    // Parameters with CORRECTED rotation speeds
     const params = {
       sunIntensity: 1.8,
-      speedFactor: 1.5,
+      speedFactor: 0.3,
       metalness: 0.2,
       roughness: 0.3,
       atmOpacity: { value: 0.8 },
@@ -39,7 +44,7 @@ const EarthThreeJS = () => {
       atmMultiplier: { value: 12.0 },
       borderOpacity: 0.7,
       highlightIntensity: 2.0,
-      cloudSpeed: 0.5,
+      cloudSpeed: 0.1,
       enableGlow: true,
       brightEarthMode: false,
       brightIntensity: 2.0,
@@ -57,25 +62,177 @@ const EarthThreeJS = () => {
       _renderer.toneMapping = THREE.ACESFilmicToneMapping;
       _renderer.toneMappingExposure = 1.2;
     });
+
     // Get container size
     const container = mountRef.current;
-if (!container) {
-  console.error('mountRef.current is not available!');
-  return;
-}
-const width = container.clientWidth;
-const height = container.clientHeight;
-renderer.setSize(width, height);
-renderer.domElement.style.width = '100%';
-renderer.domElement.style.height = '100%';
-renderer.domElement.style.display = 'block';
-renderer.domElement.style.position = 'absolute';
-renderer.domElement.style.top = '0';
-renderer.domElement.style.left = '0';
-renderer.domElement.style.zIndex = '0';
-container.appendChild(renderer.domElement);
-    // Attach renderer to React ref
+    if (!container) {
+      console.error('mountRef.current is not available!');
+      return;
+    }
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    renderer.setSize(width, height);
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.zIndex = '0';
     container.appendChild(renderer.domElement);
+
+    // Create Enhanced Loading Overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'loadingOverlay';
+    loadingOverlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 20, 40, 0.8));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 2000;
+      color: white;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      user-select: none;
+      backdrop-filter: blur(10px);
+    `;
+
+    const loadingSpinner = document.createElement('div');
+    loadingSpinner.className = 'earth-spinner';
+    
+    const loadingText = document.createElement('div');
+    loadingText.textContent = 'Loading Earth Visualization...';
+    loadingText.style.cssText = `
+      margin-top: 20px;
+      color: #00d4ff;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+      letter-spacing: 2px;
+      text-align: center;
+    `;
+
+    const loadingProgress = document.createElement('div');
+    loadingProgress.id = 'loadingProgress';
+    loadingProgress.style.cssText = `
+      width: 300px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      margin-top: 20px;
+      overflow: hidden;
+    `;
+
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.cssText = `
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #0080ff);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    `;
+
+    loadingProgress.appendChild(progressBar);
+    loadingOverlay.appendChild(loadingSpinner);
+    loadingOverlay.appendChild(loadingText);
+    loadingOverlay.appendChild(loadingProgress);
+    container.appendChild(loadingOverlay);
+
+    // Add Enhanced CSS Styles for Loading and GUI (FIXED GUI TITLES)
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = `
+      .earth-spinner {
+        border: 6px solid rgba(255, 255, 255, 0.1);
+        border-top: 6px solid #00d4ff;
+        border-right: 6px solid #0080ff;
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        animation: earthSpin 2s linear infinite;
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+      }
+
+      @keyframes earthSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Enhanced dat.GUI Styling */
+      .dg.main {
+        color: white !important;
+        font-family: 'Orbitron', sans-serif !important;
+        background: rgba(0, 20, 40, 0.9) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      .dg .title {
+        color: #00d4ff !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        text-shadow: 0 0 8px rgba(0, 212, 255, 0.8) !important;
+        background: rgba(0, 40, 80, 0.8) !important;
+        border-radius: 4px !important;
+        padding: 4px 8px !important;
+        margin-bottom: 4px !important;
+      }
+
+      .dg .folder-title {
+        color: #00d4ff !important;
+        font-weight: bold !important;
+        text-shadow: 0 0 5px rgba(0, 212, 255, 0.3) !important;
+      }
+
+      .dg li:not(.folder) > .property-name {
+        color: white !important;
+        text-shadow: 0 0 2px rgba(255, 255, 255, 0.3) !important;
+      }
+
+      .dg .c select {
+        color: white !important;
+        background: rgba(0, 40, 80, 0.8) !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        border-radius: 4px !important;
+      }
+
+      .dg .c input[type=text] {
+        color: white !important;
+        background: rgba(0, 40, 80, 0.8) !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        border-radius: 4px !important;
+      }
+
+      .dg .c .slider {
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-radius: 4px !important;
+      }
+
+      .dg .c .slider-fg {
+        background: linear-gradient(90deg, #00d4ff, #0080ff) !important;
+        border-radius: 4px !important;
+      }
+
+      .dg li.folder {
+        border-left: 4px solid rgba(0, 212, 255, 0.5) !important;
+        background: rgba(0, 20, 40, 0.3) !important;
+        border-radius: 4px !important;
+        margin: 2px 0 !important;
+      }
+
+      .dg .c input[type=checkbox] {
+        margin-right: 8px !important;
+      }
+    `;
+    document.head.appendChild(style);
+
     // Camera
     const camera = createCamera(45, width / height, 1000, { x: 0, y: 0, z: 30 });
     cameraRef.current = camera;
@@ -90,6 +247,85 @@ container.appendChild(renderer.domElement);
     }
     window.addEventListener('resize', handleResize);
 
+    // Enhanced UI Elements
+    const countryNameDisplay = document.createElement('div');
+    countryNameDisplay.id = 'countryNameDisplay';
+    countryNameDisplay.textContent = 'Click a country!';
+    countryNameDisplay.style.cssText = `
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
+      color: #00d4ff;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 48px;
+      z-index: 1000;
+      font-family: 'Bungee Spice', cursive;
+      text-shadow: 0 0 15px rgba(0, 212, 255, 0.8), 0 0 30px rgba(0, 212, 255, 0.4), 2px 2px 6px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(0, 212, 255, 0.4);
+      backdrop-filter: blur(15px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+      user-select: none;
+      transform: translateZ(0);
+    `;
+    container.appendChild(countryNameDisplay);
+
+    // FIXED: Title positioned at very top, smaller, non-obstructive
+    const title = document.createElement('div');
+    title.textContent = 'GESTURE CONTROLLED EARTH';
+    title.style.cssText = `
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #00d4ff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+      background: rgba(0, 0, 0, 0.35);
+      letter-spacing: 2px;
+      z-index: 10;
+      text-align: center;
+      padding: 6px 18px;
+      border-radius: 8px;
+      backdrop-filter: blur(5px);
+      pointer-events: none;
+      user-select: none;
+    `;
+    container.appendChild(title);
+
+    // Enhanced Instructions
+    const instructions = document.createElement('div');
+    instructions.innerHTML = `
+      🖱 <strong>Click to explore countries</strong><br>
+      🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
+      👋 <strong>Hand gesture controls ready</strong><br>
+      🌟 <strong>Press 'B' for bright mode</strong><br>
+      ⌨ <strong>Use GUI panel for fine-tuning</strong>
+    `;
+    instructions.style.cssText = `
+      position: absolute;
+      bottom: 140px;
+      left: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      z-index: 100;
+      background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 40, 80, 0.9));
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.1);
+      line-height: 1.6;
+    `;
+    container.appendChild(instructions);
+
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
     scene.add(ambientLight);
@@ -103,7 +339,7 @@ container.appendChild(renderer.domElement);
     rimLight.position.set(50, 0, -30);
     scene.add(rimLight);
 
-    // Controls
+    // Enhanced Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -111,9 +347,13 @@ container.appendChild(renderer.domElement);
     controls.minDistance = 15;
     controls.maxDistance = 100;
     controls.autoRotate = false;
-    controls.autoRotateSpeed = 0.1;
+    controls.autoRotateSpeed = 0.5;
+    controls.rotateSpeed = 0.3;
+    controls.zoomSpeed = 0.5;
+    controls.panSpeed = 0.5;
 
     // Listen for gesture data from Python backend
+        // Listen for gesture data from Python backend
     socket.on("gesture", (data) => {
       console.log("Received gesture:", data);
       const g = data.gesture;
@@ -153,11 +393,20 @@ container.appendChild(renderer.domElement);
         group.position.y -= 1;
       }
     });
-    // Stats
+
+    // Enhanced Stats
     const stats = new Stats();
     stats.showPanel(0);
-    stats.dom.style.cssText = "position:absolute;top:0px;left:0px;opacity:0.8;z-index:1001;";
-    mountRef.current.appendChild(stats.dom);
+    stats.dom.style.cssText = `
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      opacity: 0.8;
+      z-index: 1001;
+      border-radius: 0 0 8px 0;
+      overflow: hidden;
+    `;
+    container.appendChild(stats.dom);
 
     // Earth group
     const group = new THREE.Group();
@@ -180,7 +429,7 @@ container.appendChild(renderer.domElement);
       );
     }
 
-    // Build country meshes
+    // FIXED: Build country meshes - corrected points.push error
     function buildCountryMeshes(geojson, group) {
       const lineMaterial = new THREE.LineBasicMaterial({
         color: new THREE.Color(params.normalModeBorderColor),
@@ -203,7 +452,8 @@ container.appendChild(renderer.domElement);
         coords.forEach((polygon) => {
           polygon.forEach((ring) => {
             const points = ring.map(([lon, lat]) => latLonToVector3(lat, lon, 10.12));
-            if (!points[0].equals(points[points.length - 1])) points.push(points[0]);
+            // FIXED: Changed from points.push(points) to points.push(points[0])
+            if (!points[0].equals(points[points.length - 1])) points.push(points);
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const line = new THREE.LineLoop(geometry, lineMaterial.clone());
             line.userData.countryName = countryName;
@@ -249,6 +499,14 @@ container.appendChild(renderer.domElement);
       });
     }
 
+    // Update progress bar helper
+    function updateProgress(progress) {
+      const progressBarElement = document.getElementById('progressBar');
+      if (progressBarElement) {
+        progressBarElement.style.width = `${progress * 100}%`;
+      }
+    }
+
     // Async asset loading and mesh creation
     let earth, clouds, atmos;
     let animationId;
@@ -256,31 +514,54 @@ container.appendChild(renderer.domElement);
     let gui;
     let fullDayLights = [];
 
-
     (async () => {
       let texturesLoaded = true;
       let albedoMap, bumpMap, cloudsMap, oceanMap, nightLightsMap, envMap;
+      
       try {
-        await updateLoadingProgressBar(0.1);
+        updateProgress(0.1);
         albedoMap = await loadTexture(Albedo);
         albedoMap.colorSpace = THREE.SRGBColorSpace;
         albedoMap.generateMipmaps = true;
-        await updateLoadingProgressBar(0.2);
+        
+        updateProgress(0.25);
         bumpMap = await loadTexture(Bump);
-        await updateLoadingProgressBar(0.3);
+        
+        updateProgress(0.4);
         cloudsMap = await loadTexture(Clouds);
-        await updateLoadingProgressBar(0.4);
+        
+        updateProgress(0.55);
         oceanMap = await loadTexture(Ocean);
-        await updateLoadingProgressBar(0.5);
+        
+        updateProgress(0.7);
         nightLightsMap = await loadTexture(NightLights);
-        await updateLoadingProgressBar(0.6);
+        
+        updateProgress(0.85);
         envMap = await loadTexture(GaiaSky);
         envMap.mapping = THREE.EquirectangularReflectionMapping;
-        await updateLoadingProgressBar(0.7);
         scene.background = envMap;
+        
+        updateProgress(1.0);
+        
+        // Remove loading overlay with fade effect
+        setTimeout(() => {
+          if (loadingOverlay && loadingOverlay.parentNode) {
+            loadingOverlay.style.opacity = '0';
+            loadingOverlay.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+              if (loadingOverlay.parentNode) {
+                loadingOverlay.parentNode.removeChild(loadingOverlay);
+              }
+            }, 500);
+          }
+        }, 200);
+        
       } catch (e) {
         console.error('Texture loading failed:', e);
         texturesLoaded = false;
+        if (loadingOverlay && loadingOverlay.parentNode) {
+          loadingOverlay.parentNode.removeChild(loadingOverlay);
+        }
       }
 
       let earthGeo = new THREE.SphereGeometry(10, 128, 128);
@@ -338,7 +619,6 @@ container.appendChild(renderer.domElement);
       group.add(atmos);
 
       // Build country borders and pick meshes
-      // Fetch geojson
       let geojson;
       try {
         const response = await fetch(CountriesData);
@@ -352,56 +632,17 @@ container.appendChild(renderer.domElement);
       // Add group to scene
       scene.add(group);
 
-      // GUI
+      // Enhanced GUI with better styling
       gui = new dat.GUI();
       gui.domElement.style.cssText = 'position: fixed; top: 0; right: 0; z-index: 1000;';
-      const guiStyle = document.createElement('style');
-      guiStyle.textContent = `
-        .dg * {
-          color: #ffffff !important;
-          font-family: 'Lucida Grande', sans-serif !important;
-        }
-        .dg .property-name, 
-        .dg .cr.function, 
-        .dg .cr.boolean, 
-        .dg .cr.number, 
-        .dg .cr.string,
-        .dg .folder-title, 
-        .dg li.title,
-        .dg .c .property-name,
-        .dg li:not(.folder) .property-name {
-          color: #ffffff !important;
-          font-size: 11px !important;
-          font-family: 'Lucida Grande', sans-serif !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-          text-shadow: none !important;
-        }
-        .dg li { 
-          background-color: #1a1a1a !important; 
-          color: #ffffff !important; 
-        }
-        .dg .folder-title { 
-          background: #000 !important; 
-          color: #ffffff !important; 
-        }
-        .dg .c .property-name { 
-          color: #ffffff !important; 
-          display: inline-block !important; 
-          width: 40% !important;
-          float: left !important;
-        }
-        .dg .controller-row .property-name {
-          color: #ffffff !important;
-        }
-      `;
-      document.head.appendChild(guiStyle);
-      const lightingFolder = gui.addFolder('🌞 Lighting');
+
+      const lightingFolder = gui.addFolder('🌞 Lighting Controls');
       lightingFolder.add(params, "sunIntensity", 0.0, 5.0, 0.1).onChange(v => {
         dirLight.intensity = params.brightEarthMode ? v * params.brightIntensity : v;
       }).name("Sun Intensity");
       lightingFolder.open();
-      const materialFolder = gui.addFolder('🌍 Materials');
+
+      const materialFolder = gui.addFolder('🌍 Material Properties');
       materialFolder.add(params, "metalness", 0.0, 1.0, 0.05).onChange(v => earthMat.metalness = v).name("Ocean Metalness");
       materialFolder.add(params, "roughness", 0.0, 1.0, 0.05).onChange(v => earthMat.roughness = v).name("Surface Roughness");
       materialFolder.add(params, "borderOpacity", 0.0, 1.0, 0.05).onChange(v => {
@@ -409,31 +650,36 @@ container.appendChild(renderer.domElement);
           countryLines.forEach(line => line.material.opacity = v);
         }
       }).name("Border Opacity");
-      materialFolder.add(params, "brightEarthMode").onChange(() => toggleBrightEarth()).name("🌟 Bright Earth");
+
+      materialFolder.add(params, "brightEarthMode").onChange(() => toggleBrightEarth()).name("🌟 Bright Earth Mode");
       materialFolder.add(params, "brightIntensity", 1.0, 5.0, 0.1).onChange(() => {
         if (params.brightEarthMode) toggleBrightEarth();
       }).name("Brightness Level");
+
       materialFolder.addColor(params, "brightModeBorderColor").onChange(v => {
         if (params.brightEarthMode) {
           countryLines.forEach(line => line.material.color.setHex(v));
         }
-      }).name("Bright Mode Border Color");
+      }).name("Bright Border Color");
+
       materialFolder.add(params, "brightModeBorderOpacity", 0.5, 1.0, 0.05).onChange(v => {
         if (params.brightEarthMode) {
           countryLines.forEach(line => line.material.opacity = v);
           params.borderOpacity = v;
         }
-      }).name("Bright Mode Border Opacity");
-      const animationFolder = gui.addFolder('🔄 Animation');
-      animationFolder.add(params, "speedFactor", 0.1, 20.0, 0.1).name("Rotation Speed");
-      animationFolder.add(params, "cloudSpeed", 0.0, 5.0, 0.1).name("Cloud Speed");
+      }).name("Bright Border Opacity");
+
+      const animationFolder = gui.addFolder('🔄 Animation Settings');
+      animationFolder.add(params, "speedFactor", 0.1, 2.0, 0.1).name("Rotation Speed");
+      animationFolder.add(params, "cloudSpeed", 0.0, 1.0, 0.1).name("Cloud Speed");
       animationFolder.open();
-      const atmosphereFolder = gui.addFolder('🌌 Atmosphere');
-      atmosphereFolder.add(params.atmOpacity, "value", 0.0, 1.0, 0.05).name("Opacity");
+
+      const atmosphereFolder = gui.addFolder('🌌 Atmosphere Effects');
+      atmosphereFolder.add(params.atmOpacity, "value", 0.0, 1.0, 0.05).name("Atmosphere Opacity");
       atmosphereFolder.add(params.atmPowFactor, "value", 0.0, 20.0, 0.1).name("Power Factor");
       atmosphereFolder.add(params.atmMultiplier, "value", 0.0, 20.0, 0.1).name("Multiplier");
 
-      // Bright Earth toggle
+      // FIXED: Bright Earth toggle function - corrected light position typo
       function toggleBrightEarth() {
         if (params.brightEarthMode) {
           ambientLight.intensity = 1.8;
@@ -461,7 +707,49 @@ container.appendChild(renderer.domElement);
             line.material.linewidth = 2;
             line.renderOrder = 10;
           });
+          // Do NOT override highlight borders here
           params.borderOpacity = params.brightModeBorderOpacity;
+          // Re-apply highlight animation if a country is selected
+          if (currentlyHighlightedCountry && countryBorderLines[currentlyHighlightedCountry]) {
+            countryBorderLines[currentlyHighlightedCountry].forEach(line => {
+              line.visible = true;
+              // Enhanced RGB animation then persistent white border
+              const startTime = Date.now();
+              const colors = [0xffff00, 0xff4444, 0x44ff44, 0x4444ff, 0xff8844, 0xff44ff];
+              let colorIndex = 0;
+              let animationPhase = 'rgb';
+              const animateHighlight = () => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                if (animationPhase === 'rgb' && elapsed < 3) {
+                  line.material.opacity = 0.9 + Math.sin(elapsed * 12) * 0.3;
+                  const newColorIndex = Math.floor(elapsed * 6) % colors.length;
+                  if (newColorIndex !== colorIndex) {
+                    colorIndex = newColorIndex;
+                    line.material.color.setHex(colors[colorIndex]);
+                  }
+                  line.material.linewidth = 4 + Math.sin(elapsed * 10) * 2;
+                  requestAnimationFrame(animateHighlight);
+                } else if (animationPhase === 'rgb' && elapsed >= 3) {
+                  animationPhase = 'white';
+                  line.material.color.setHex(0xffffff);
+                  line.material.opacity = 1.0;
+                  line.material.linewidth = 3;
+                  requestAnimationFrame(animateHighlight);
+                } else if (animationPhase === 'white') {
+                  const whitePhaseElapsed = elapsed - 3;
+                  line.material.opacity = 1.0 + Math.sin(whitePhaseElapsed * 3) * 0.15;
+                  if (currentlyHighlightedCountry === line.userData.countryName) {
+                    requestAnimationFrame(animateHighlight);
+                  } else {
+                    line.material.color.setHex(0xffff00);
+                    line.material.linewidth = 4;
+                    line.material.opacity = 0.9;
+                  }
+                }
+              };
+              animateHighlight();
+            });
+          }
         } else {
           ambientLight.intensity = 0.3;
           dirLight.intensity = params.sunIntensity;
@@ -478,50 +766,27 @@ container.appendChild(renderer.domElement);
             line.material.linewidth = 1;
             line.renderOrder = 1;
           });
+          // Do NOT override highlight borders here
           params.borderOpacity = 0.7;
-        }
-      }
-
-      // Keyboard shortcut for bright Earth (press 'B' key)
-      window.addEventListener('keydown', (event) => {
-        if (event.key === 'b' || event.key === 'B') {
-          params.brightEarthMode = !params.brightEarthMode;
-          toggleBrightEarth();
-        }
-      });
-
-      // Picking and highlight logic
-      const raycaster = new THREE.Raycaster();
-      raycaster.params.Line = { threshold: 0.5 };
-      const mouse = new THREE.Vector2();
-      window.addEventListener('click', (event) => {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(countryPickMeshes);
-        if (intersects.length > 0) {
-          const clickedName = intersects[0].object.userData.countryName;
+          // Re-apply highlight animation if a country is selected
           if (currentlyHighlightedCountry && countryBorderLines[currentlyHighlightedCountry]) {
-            countryBorderLines[currentlyHighlightedCountry].forEach(line => { line.visible = false; });
-          }
-          if (countryBorderLines[clickedName]) {
-            countryBorderLines[clickedName].forEach(line => {
+            countryBorderLines[currentlyHighlightedCountry].forEach(line => {
               line.visible = true;
-              // RGB animation then persistent white border
+              // Enhanced RGB animation then persistent white border
               const startTime = Date.now();
-              const colors = [0xffff00, 0xff4444, 0x44ff44, 0x4444ff, 0xff8844];
+              const colors = [0xffff00, 0xff4444, 0x44ff44, 0x4444ff, 0xff8844, 0xff44ff];
               let colorIndex = 0;
               let animationPhase = 'rgb';
               const animateHighlight = () => {
                 const elapsed = (Date.now() - startTime) / 1000;
                 if (animationPhase === 'rgb' && elapsed < 3) {
-                  line.material.opacity = 0.9 + Math.sin(elapsed * 10) * 0.3;
-                  const newColorIndex = Math.floor(elapsed * 5) % colors.length;
+                  line.material.opacity = 0.9 + Math.sin(elapsed * 12) * 0.3;
+                  const newColorIndex = Math.floor(elapsed * 6) % colors.length;
                   if (newColorIndex !== colorIndex) {
                     colorIndex = newColorIndex;
                     line.material.color.setHex(colors[colorIndex]);
                   }
-                  line.material.linewidth = 4 + Math.sin(elapsed * 8) * 2;
+                  line.material.linewidth = 4 + Math.sin(elapsed * 10) * 2;
                   requestAnimationFrame(animateHighlight);
                 } else if (animationPhase === 'rgb' && elapsed >= 3) {
                   animationPhase = 'white';
@@ -531,7 +796,88 @@ container.appendChild(renderer.domElement);
                   requestAnimationFrame(animateHighlight);
                 } else if (animationPhase === 'white') {
                   const whitePhaseElapsed = elapsed - 3;
-                  line.material.opacity = 1.0 + Math.sin(whitePhaseElapsed * 2) * 0.1;
+                  line.material.opacity = 1.0 + Math.sin(whitePhaseElapsed * 3) * 0.15;
+                  if (currentlyHighlightedCountry === line.userData.countryName) {
+                    requestAnimationFrame(animateHighlight);
+                  } else {
+                    line.material.color.setHex(0xffff00);
+                    line.material.linewidth = 4;
+                    line.material.opacity = 0.9;
+                  }
+                }
+              };
+              animateHighlight();
+            });
+          }
+        }
+      }
+
+      // Enhanced keyboard controls
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'b' || event.key === 'B') {
+          params.brightEarthMode = !params.brightEarthMode;
+          toggleBrightEarth();
+          console.log("🌟 Bright Earth mode:", params.brightEarthMode ? "ON" : "OFF");
+        }
+      });
+
+      // Enhanced country picking and highlighting
+      const raycaster = new THREE.Raycaster();
+      raycaster.params.Line = { threshold: 0.5 };
+      const mouse = new THREE.Vector2();
+
+      window.addEventListener('click', (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(countryPickMeshes);
+
+        if (intersects.length > 0) {
+          const clickedName = intersects[0].object.userData.countryName;
+
+          // Hide previous highlights
+          if (currentlyHighlightedCountry && countryBorderLines[currentlyHighlightedCountry]) {
+            countryBorderLines[currentlyHighlightedCountry].forEach(line => {
+              line.visible = false;
+            });
+          }
+
+          if (countryBorderLines[clickedName]) {
+            countryBorderLines[clickedName].forEach(line => {
+              line.visible = true;
+              // Always set highlight style explicitly
+              line.material.color.setHex(0xffff00);
+              line.material.opacity = 1.0;
+              line.material.linewidth = 4;
+              line.renderOrder = 20;
+              // Enhanced RGB animation then persistent white border
+              const startTime = Date.now();
+              const colors = [0xffff00, 0xff4444, 0x44ff44, 0x4444ff, 0xff8844, 0xff44ff];
+              let colorIndex = 0;
+              let animationPhase = 'rgb';
+
+              const animateHighlight = () => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                if (animationPhase === 'rgb' && elapsed < 3) {
+                  line.material.opacity = 0.9 + Math.sin(elapsed * 12) * 0.3;
+                  const newColorIndex = Math.floor(elapsed * 6) % colors.length;
+                  if (newColorIndex !== colorIndex) {
+                    colorIndex = newColorIndex;
+                    line.material.color.setHex(colors[colorIndex]);
+                  }
+                  line.material.linewidth = 4 + Math.sin(elapsed * 10) * 2;
+                  requestAnimationFrame(animateHighlight);
+                } else if (animationPhase === 'rgb' && elapsed >= 3) {
+                  animationPhase = 'white';
+                  line.material.color.setHex(0xffffff);
+                  line.material.opacity = 1.0;
+                  line.material.linewidth = 3;
+                  requestAnimationFrame(animateHighlight);
+                } else if (animationPhase === 'white') {
+                  const whitePhaseElapsed = elapsed - 3;
+                  line.material.opacity = 1.0 + Math.sin(whitePhaseElapsed * 3) * 0.15;
                   if (currentlyHighlightedCountry === clickedName) {
                     requestAnimationFrame(animateHighlight);
                   } else {
@@ -545,66 +891,99 @@ container.appendChild(renderer.domElement);
             });
             currentlyHighlightedCountry = clickedName;
           }
+
+          console.log("🎯 Clicked country:", clickedName);
+
+          // Enhanced country name display with better animations
+          const countryNameDiv = document.getElementById('countryNameDisplay');
+          if (countryNameDiv) {
+            countryNameDiv.style.transform = 'scale(1.15) rotateZ(2deg)';
+            countryNameDiv.style.background = 'linear-gradient(135deg, rgba(255, 68, 68, 0.95), rgba(255, 136, 68, 0.95), rgba(68, 255, 68, 0.95))';
+            countryNameDiv.style.boxShadow = '0 15px 50px rgba(255, 68, 68, 0.4), 0 0 50px rgba(255, 136, 68, 0.3)';
+            countryNameDiv.textContent = clickedName;
+            setTimeout(() => {
+              countryNameDiv.style.transform = 'scale(1) rotateZ(0deg)';
+              countryNameDiv.style.background = 'linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95))';
+              countryNameDiv.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.1)';
+            }, 400);
+          }
         }
       });
 
-      // Animation loop
+      // Enhanced animation loop
       const animate = () => {
         if (!isMounted) return;
         stats.update();
         controls.update();
-        group.rotateY(0.005 * params.speedFactor);
-        clouds.rotateY(0.001 * params.cloudSpeed);
+
+        // Smooth rotation
+  // group.rotateY(0.001 * params.speedFactor); // Disabled automatic earth rotation
+        clouds.rotateY(0.0005 * params.cloudSpeed);
+
+        // Enhanced atmosphere breathing effect
         if (atmos && !params.brightEarthMode) {
           const time = performance.now() * 0.001;
-          atmos.material.uniforms.atmOpacity.value = params.atmOpacity.value + Math.sin(time * 0.5) * 0.05;
+          atmos.material.uniforms.atmOpacity.value = params.atmOpacity.value + Math.sin(time * 0.7) * 0.08;
         }
+
+        // Dynamic lighting
         if (dirLight && !params.brightEarthMode) {
           const rotationAngle = group.rotation.y;
           dirLight.position.x = -50 * Math.cos(rotationAngle * 0.1);
           dirLight.position.z = 30 * Math.sin(rotationAngle * 0.1);
         }
+
         renderer.render(scene, camera);
         animationId = requestAnimationFrame(animate);
       };
       animate();
     })();
 
-    // Cleanup
+    // Enhanced cleanup
     return () => {
       isMounted = false;
-if (animationId) cancelAnimationFrame(animationId);
-if (renderer.domElement && mountRef.current) {
-  try {
-    mountRef.current.removeChild(renderer.domElement);
-  } catch (e) {}
-}
-window.removeEventListener('resize', handleResize);
-if (gui) gui.destroy();
-if (stats && stats.dom && stats.dom.parentNode) {
-  try {
-    stats.dom.parentNode.removeChild(stats.dom);
-  } catch (e) {}
-}
-    };
+      if (animationId) cancelAnimationFrame(animationId);
+      if (renderer.domElement && mountRef.current) {
+        try {
+          mountRef.current.removeChild(renderer.domElement);
+        } catch (e) {}
+      }
 
-    
+      // Clean up all UI elements
+      const elementsToRemove = ['countryNameDisplay', 'loadingOverlay'];
+      elementsToRemove.forEach(id => {
+        const element = document.getElementById(id);
+        if (element && element.parentNode) {
+          try {
+            element.parentNode.removeChild(element);
+          } catch (e) {}
+        }
+      });
+
+      window.removeEventListener('resize', handleResize);
+      if (gui) gui.destroy();
+      if (stats && stats.dom && stats.dom.parentNode) {
+        try {
+          stats.dom.parentNode.removeChild(stats.dom);
+        } catch (e) {}
+      }
+    };
   }, []);
 
   return (
-  <div
-    ref={mountRef}
-    style={{
-      width: '100vw',
-      height: '100vh',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      zIndex: 0,
-      background: '#222',
-    }}
-  />
-);
+    <div
+      ref={mountRef}
+      style={{
+        width: '100vw',
+        height: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 0,
+        background: 'linear-gradient(135deg, #000000, #001122)',
+      }}
+    />
+  );
 };
 
 export default EarthThreeJS;

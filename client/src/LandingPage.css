@@ -42,7 +42,7 @@
   margin: 0 0 1rem 0;
   background: linear-gradient(45deg, #64b5f6, #42a5f5, #2196f3);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* -webkit-text-fill-color: transparent; Removed to fix blur/fade issue */
   background-clip: text;
   text-shadow: 0 0 30px rgba(33, 150, 243, 0.5);
   animation: titleGlow 3s ease-in-out infinite alternate;

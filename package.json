@@ -13,6 +13,7 @@
   "dependencies": {
     "dat.gui": "^0.7.9",
     "earcut": "^3.0.2",
+    "mongoose": "^8.17.1",
     "react-router-dom": "^7.8.0",
     "three": "^0.179.1"
   }

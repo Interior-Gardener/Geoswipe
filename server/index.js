@@ -75,7 +75,7 @@ io.on('connection', (socket) => {
 
   socket.on('gesture', (data) => {
     console.log("Gesture from Python:", data);
-    io.emit('gesture-from-server', data); // Forward to frontend
+    io.emit('gesture', data); // Forward to frontend
   });
 
   socket.on('disconnect', () => {

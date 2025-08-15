@@ -113,20 +113,44 @@ container.appendChild(renderer.domElement);
     controls.autoRotate = false;
     controls.autoRotateSpeed = 0.1;
 
-    // ...existing code...
-
     // Listen for gesture data from Python backend
-    socket.on("gesture-from-server", (data) => {
+    socket.on("gesture", (data) => {
+      console.log("Received gesture:", data);
       const g = data.gesture;
-      // Adjust camera or earth rotation based on gesture
+      // Pinch: scale globe down (shrink)
       if (g === "pinch") {
-        camera.position.z -= 10; // Zoom in
-      } else if (g === "open_palm") {
-        camera.position.z += 10; // Zoom out
-      } else if (g === "pointing") {
-        group.rotation.y += 0.1; // Rotate right
-      } else if (g === "fist") {
-        group.rotation.y -= 0.1; // Rotate left
+        group.scale.multiplyScalar(0.95); // Shrink globe
+      }
+      // Zoom: scale globe up (enlarge)
+      else if (g === "zoom") {
+        group.scale.multiplyScalar(1.05); // Enlarge globe
+      }
+      // Open palm: tap/select country (simulate click at center)
+      else if (g === "open_palm") {
+        const event = new MouseEvent('click', {
+          clientX: window.innerWidth / 2,
+          clientY: window.innerHeight / 2
+        });
+        window.dispatchEvent(event);
+      }
+      // Rotate right
+      else if (g === "rotate_right") {
+        group.rotation.y += 0.1;
+        // Clamp/wrap rotation to avoid overflow
+        if (group.rotation.y > Math.PI) group.rotation.y -= 2 * Math.PI;
+      }
+      // Rotate left
+      else if (g === "rotate_left") {
+        group.rotation.y -= 0.1;
+        if (group.rotation.y < -Math.PI) group.rotation.y += 2 * Math.PI;
+      }
+      // Thumbs up: move globe up
+      else if (g === "thumbs_up") {
+        group.position.y += 1;
+      }
+      // Thumbs down: move globe down
+      else if (g === "thumbs_down") {
+        group.position.y -= 1;
       }
     });
     // Stats

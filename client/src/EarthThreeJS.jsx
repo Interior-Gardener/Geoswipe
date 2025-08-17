@@ -386,11 +386,15 @@ const EarthThreeJS = () => {
       }
       // Thumbs up: move globe up
       else if (g === "thumbs_up") {
-        group.position.y += 1;
+        // Rotate globe towards the Arctic (north pole)
+        group.rotation.x -= 0.1;
+        if (group.rotation.x < -Math.PI) group.rotation.x -= 2 * Math.PI;
       }
       // Thumbs down: move globe down
       else if (g === "thumbs_down") {
-        group.position.y -= 1;
+        // Rotate globe towards the Antarctic (south pole)
+        group.rotation.x += 0.1;
+        if (group.rotation.x > Math.PI) group.rotation.x += 2 * Math.PI;
       }
     });
 

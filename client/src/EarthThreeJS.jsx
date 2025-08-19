@@ -475,15 +475,23 @@ const EarthThreeJS = () => {
             group.add(highlightLine);
             countryBorderLines[countryName].push(highlightLine);
           });
-          // Pick mesh
+          // Pick mesh with improved accuracy
           const ringVec3 = polygon[0].map(([lon, lat]) => latLonToVector3(lat, lon, 1));
           const center = new THREE.Vector3();
           ringVec3.forEach((v) => center.add(v));
+          center.divideScalar(ringVec3.length); // Properly calculate center
           center.normalize();
           const zAxis = center.clone();
           const xAxis = new THREE.Vector3(0, 1, 0).cross(zAxis).normalize();
           const yAxis = zAxis.clone().cross(xAxis).normalize();
-          const projected2D = ringVec3.map((v) => [v.dot(xAxis), v.dot(yAxis)]).flat();
+          
+          // Project points to 2D plane with proper scaling
+          const projected2D = [];
+          const scale = 10.0; // Scale factor for better triangulation
+          ringVec3.forEach((v) => {
+            projected2D.push(v.dot(xAxis) * scale, v.dot(yAxis) * scale);
+          });
+          
           const indices = earcut(projected2D);
           let pickVertices = [];
           indices.forEach((i) => {
@@ -825,21 +833,33 @@ const EarthThreeJS = () => {
         }
       });
 
-      // Enhanced country picking and highlighting
+      // Enhanced country picking and highlighting with improved accuracy
       const raycaster = new THREE.Raycaster();
-      raycaster.params.Line = { threshold: 0.5 };
+      raycaster.params.Line = { threshold: 0.2 }; // Reduced threshold for more precise picking
+      raycaster.params.Points = { threshold: 0.2 };
       const mouse = new THREE.Vector2();
 
       window.addEventListener('click', (event) => {
+        // Ignore if clicked outside the renderer
+        if (event.target !== renderer.domElement) return;
+
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(countryPickMeshes);
+        const intersects = raycaster.intersectObjects(countryPickMeshes)
+          .filter(intersect => {
+            // Only accept intersections that are close to the earth's surface
+            const distance = intersect.point.length();
+            return Math.abs(distance - 10.3) < 0.5; // Check if point is near the picking mesh radius (10.3)
+          })
+          .sort((a, b) => a.distance - b.distance); // Sort by distance to get closest intersection
 
         if (intersects.length > 0) {
           const clickedName = intersects[0].object.userData.countryName;
+          // Ignore if clicked on water (check if the intersection point is too far from any country)
+          if (!clickedName) return;
 
           // Hide previous highlights
           if (currentlyHighlightedCountry && countryBorderLines[currentlyHighlightedCountry]) {

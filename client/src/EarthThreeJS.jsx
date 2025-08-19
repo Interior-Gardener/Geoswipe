@@ -365,13 +365,19 @@ const EarthThreeJS = () => {
       else if (g === "zoom") {
         group.scale.multiplyScalar(1.05); // Enlarge globe
       }
-      // Open palm: tap/select country (simulate click at center)
+      // Open palm: tap/select country (simulate click at center of renderer)
       else if (g === "open_palm") {
-        const event = new MouseEvent('click', {
-          clientX: window.innerWidth / 2,
-          clientY: window.innerHeight / 2
-        });
-        window.dispatchEvent(event);
+        if (renderer && renderer.domElement) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const event = new MouseEvent('click', {
+            clientX: centerX,
+            clientY: centerY,
+            bubbles: true
+          });
+          renderer.domElement.dispatchEvent(event);
+        }
       }
       // Rotate right
       else if (g === "rotate_right") {
@@ -840,25 +846,27 @@ const EarthThreeJS = () => {
       const mouse = new THREE.Vector2();
 
       window.addEventListener('click', (event) => {
-        // Ignore if clicked outside the renderer
-        if (event.target !== renderer.domElement) return;
+        // Accept clicks on renderer or its parent container
+        if (event.target !== renderer.domElement && event.target !== container) return;
 
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
+        // Increase threshold for more reliable picking
+        raycaster.params.Line = { threshold: 0.5 };
+        raycaster.params.Points = { threshold: 0.5 };
         const intersects = raycaster.intersectObjects(countryPickMeshes)
           .filter(intersect => {
-            // Only accept intersections that are close to the earth's surface
+            // Accept intersections near the picking mesh radius (10.3)
             const distance = intersect.point.length();
-            return Math.abs(distance - 10.3) < 0.5; // Check if point is near the picking mesh radius (10.3)
+            return Math.abs(distance - 10.3) < 1.0;
           })
-          .sort((a, b) => a.distance - b.distance); // Sort by distance to get closest intersection
+          .sort((a, b) => a.distance - b.distance);
 
         if (intersects.length > 0) {
           const clickedName = intersects[0].object.userData.countryName;
-          // Ignore if clicked on water (check if the intersection point is too far from any country)
           if (!clickedName) return;
 
           // Hide previous highlights
@@ -871,12 +879,10 @@ const EarthThreeJS = () => {
           if (countryBorderLines[clickedName]) {
             countryBorderLines[clickedName].forEach(line => {
               line.visible = true;
-              // Always set highlight style explicitly
               line.material.color.setHex(0xffff00);
               line.material.opacity = 1.0;
               line.material.linewidth = 4;
               line.renderOrder = 20;
-              // Enhanced RGB animation then persistent white border
               const startTime = Date.now();
               const colors = [0xffff00, 0xff4444, 0x44ff44, 0x4444ff, 0xff8844, 0xff44ff];
               let colorIndex = 0;

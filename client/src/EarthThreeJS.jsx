@@ -22,7 +22,7 @@ const NightLights = '/assets/night_lights_modified.png';
 const GaiaSky = '/assets/Gaia_EDR3_darkened.png';
 const CountriesData = '/assets/countrieslite.geo.json';
 
-const EarthThreeJS = () => {
+const EarthThreeJS = ({ setSelectedCountry }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
 
@@ -937,6 +937,7 @@ const EarthThreeJS = () => {
               countryNameDiv.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.1)';
             }, 400);
           }
+          setSelectedCountry(clickedName);
         }
       });
 

@@ -1,7 +1,14 @@
 import React from 'react';
 import './LandingPage.css';
+import { useNavigate } from 'react-router-dom';
 
-const LandingPage = ({ onStart }) => {
+const LandingPage = () => {
+  const navigate = useNavigate();
+
+  const handleStartExploration = () => {
+    navigate("/explore");
+  };
+
   return (
     <div className="landing-page">
 
@@ -28,7 +35,7 @@ const LandingPage = ({ onStart }) => {
         
         <div className="features" id="features">
           {/* Interactive Globe - Clickable */}
-          <div className="feature clickable" onClick={onStart} style={{ cursor: 'pointer' }}>
+          <div className="feature clickable" onClick={handleStartExploration} style={{ cursor: 'pointer' }}>
             <div className="feature-icon">🌍</div>
             <h3>Interactive Globe</h3>
             <p>Rotate, zoom, and explore Earth with smooth 3D interactions</p>

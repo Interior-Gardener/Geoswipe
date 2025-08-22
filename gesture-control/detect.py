@@ -64,9 +64,12 @@ def classify_gesture(landmarks):
     # Pinch: thumb and index close, others closed
     if np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) < 0.04 and not any(fingers[1:]):
         return "pinch"
-    # Zoom: thumb and index far apart, others closed
-    if np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) > 0.12 and not any(fingers[1:]):
+    # Zoom: thumb extended AND index finger open, others closed, thumb and index far apart
+    if thumb_extended and fingers[0] and not any(fingers[1:]) and np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) > 0.12:
         return "zoom"
+    # Index finger pointing: only index finger open, others closed, thumb NOT extended
+    if fingers[0] and not any(fingers[1:]) and not thumb_extended:
+        return "index_point"
     # Open palm: all fingers open, thumb not closed
     thumb_closed = np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) < 0.08
     if all(fingers) and not thumb_closed:
@@ -83,6 +86,9 @@ STABLE_THRESHOLD = 7  # Increase for more strictness
 
 # Initialize webcam capture
 cap = cv2.VideoCapture(0)
+
+last_gesture = None
+gesture_count = 0
 
 while True:
     success, frame = cap.read()
@@ -103,9 +109,18 @@ while True:
             if connected and gesture_count >= STABLE_THRESHOLD and gesture != "unknown":
                 print("Emitting gesture:", gesture)
                 sio.emit('gesture', {'gesture': gesture})
+            # Emit index finger position for browser cursor ONLY when pointing
+            if connected and gesture == "index_point":
+                index_tip = hand_landmarks.landmark[8]
+                x_norm = index_tip.x
+                y_norm = index_tip.y
+                sio.emit('cursor', {'x': x_norm, 'y': y_norm})
     else:
         last_gesture = None
         gesture_count = 0
+        # Clear cursor when no hand is detected
+        if connected:
+            sio.emit('cursor', {'x': None, 'y': None})
 
     cv2.imshow("Hand Gesture", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):

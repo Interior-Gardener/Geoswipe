@@ -64,12 +64,14 @@ def classify_gesture(landmarks):
     # Pinch: thumb and index close, others closed
     if np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) < 0.04 and not any(fingers[1:]):
         return "pinch"
-    # Zoom: thumb extended AND index finger open, others closed, thumb and index far apart
-    if thumb_extended and fingers[0] and not any(fingers[1:]) and np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) > 0.12:
-        return "zoom"
-    # Index finger pointing: only index finger open, others closed, thumb NOT extended
+    # Index finger pointing: only index finger open, others closed, thumb NOT extended (PRIORITIZED)
     if fingers[0] and not any(fingers[1:]) and not thumb_extended:
         return "index_point"
+    # Zoom: thumb extended AND index finger open, others closed, thumb and index far apart, BOTH clearly extended
+    if (thumb_extended and fingers[0] and not any(fingers[1:]) and 
+        np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) > 0.15 and
+        thumb_tip.y < index_tip.y):  # Additional constraint: thumb should be higher than index for zoom
+        return "zoom"
     # Open palm: all fingers open, thumb not closed
     thumb_closed = np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) < 0.08
     if all(fingers) and not thumb_closed:

@@ -1005,6 +1005,11 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
     return () => {
       isMounted = false;
       if (animationId) cancelAnimationFrame(animationId);
+      
+      // Clean up socket listeners to prevent memory leaks
+      socket.off("cursor");
+      socket.off("gesture");
+      
       if (renderer.domElement && mountRef.current) {
         try {
           mountRef.current.removeChild(renderer.domElement);

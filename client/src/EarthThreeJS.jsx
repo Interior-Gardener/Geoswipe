@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import * as dat from 'dat.gui';
 import Stats from 'three/examples/jsm/libs/stats.module';
@@ -25,6 +25,7 @@ const CountriesData = '/assets/countrieslite.geo.json';
 const EarthThreeJS = ({ setSelectedCountry }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
+  const [cursorPos, setCursorPos] = useState({ x: null, y: null });
 
   useEffect(() => {
     // Add Google Font for Bungee Spice dynamically
@@ -303,7 +304,9 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
     instructions.innerHTML = `
       🖱 <strong>Click to explore countries</strong><br>
       🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
-      👋 <strong>Hand gesture controls ready</strong><br>
+      👋 <strong>Hand gestures: Point finger to move cursor</strong><br>
+      ✋ <strong>Open palm clicks where blue dot points</strong><br>
+      🤏 <strong>Pinch/Zoom with scale limits (0.3x - 3.0x)</strong><br>
       🌟 <strong>Press 'B' for bright mode</strong><br>
       ⌨ <strong>Use GUI panel for fine-tuning</strong>
     `;
@@ -352,56 +355,27 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
     controls.zoomSpeed = 0.5;
     controls.panSpeed = 0.5;
 
-    // Listen for gesture data from Python backend
-        // Listen for gesture data from Python backend
-    socket.on("gesture", (data) => {
-      console.log("Received gesture:", data);
-      const g = data.gesture;
-      // Pinch: scale globe down (shrink)
-      if (g === "pinch") {
-        group.scale.multiplyScalar(0.95); // Shrink globe
+    // Remove any existing socket listeners to prevent duplicates
+    socket.off("cursor");
+    socket.off("gesture");
+
+    // Listen for cursor position from backend
+    socket.on("cursor", (data) => {
+      const container = mountRef.current;
+      if (!container) return;
+      
+      // Handle clearing cursor when data.x or data.y is None/null
+      if (data.x === null || data.y === null) {
+        setCursorPos({ x: null, y: null });
+        return;
       }
-      // Zoom: scale globe up (enlarge)
-      else if (g === "zoom") {
-        group.scale.multiplyScalar(1.05); // Enlarge globe
-      }
-      // Open palm: tap/select country (simulate click at center of renderer)
-      else if (g === "open_palm") {
-        if (renderer && renderer.domElement) {
-          const rect = renderer.domElement.getBoundingClientRect();
-          const centerX = rect.left + rect.width / 2;
-          const centerY = rect.top + rect.height / 2;
-          const event = new MouseEvent('click', {
-            clientX: centerX,
-            clientY: centerY,
-            bubbles: true
-          });
-          renderer.domElement.dispatchEvent(event);
-        }
-      }
-      // Rotate right
-      else if (g === "rotate_right") {
-        group.rotation.y += 0.1;
-        // Clamp/wrap rotation to avoid overflow
-        if (group.rotation.y > Math.PI) group.rotation.y -= 2 * Math.PI;
-      }
-      // Rotate left
-      else if (g === "rotate_left") {
-        group.rotation.y -= 0.1;
-        if (group.rotation.y < -Math.PI) group.rotation.y += 2 * Math.PI;
-      }
-      // Thumbs up: move globe up
-      else if (g === "thumbs_up") {
-        // Rotate globe towards the Arctic (north pole)
-        group.rotation.x -= 0.1;
-        if (group.rotation.x < -Math.PI) group.rotation.x -= 2 * Math.PI;
-      }
-      // Thumbs down: move globe down
-      else if (g === "thumbs_down") {
-        // Rotate globe towards the Antarctic (south pole)
-        group.rotation.x += 0.1;
-        if (group.rotation.x > Math.PI) group.rotation.x += 2 * Math.PI;
-      }
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      // Clamp and map normalized coordinates to screen
+      let x = Math.min(Math.max(data.x, 0), 1) * width;
+      let y = Math.min(Math.max(data.y, 0), 1) * height;
+      setCursorPos({ x, y });
     });
 
     // Enhanced Stats
@@ -463,7 +437,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
           polygon.forEach((ring) => {
             const points = ring.map(([lon, lat]) => latLonToVector3(lat, lon, 10.12));
             // FIXED: Changed from points.push(points) to points.push(points[0])
-            if (!points[0].equals(points[points.length - 1])) points.push(points);
+            if (!points[0].equals(points[points.length - 1])) points.push(points[0]);
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const line = new THREE.LineLoop(geometry, lineMaterial.clone());
             line.userData.countryName = countryName;
@@ -649,6 +623,63 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
 
       // Add group to scene
       scene.add(group);
+
+      // Listen for gesture data from Python backend (moved here so 'group' is accessible)
+      socket.on("gesture", (data) => {
+        console.log("Received gesture:", data);
+        const g = data.gesture;
+        // Pinch: scale globe down (shrink) with minimum limit
+        if (g === "pinch") {
+          const newScale = group.scale.x * 0.95;
+          if (newScale >= 0.3) { // Minimum scale limit
+            group.scale.multiplyScalar(0.95);
+          }
+        }
+        // Zoom: scale globe up (enlarge) with maximum limit
+        else if (g === "zoom") {
+          const newScale = group.scale.x * 1.05;
+          if (newScale <= 3.0) { // Maximum scale limit
+            group.scale.multiplyScalar(1.05);
+          }
+        }
+        // Open palm: tap/select country at cursor dot position
+        else if (g === "open_palm") {
+          if (renderer && renderer.domElement && cursorPos.x !== null && cursorPos.y !== null) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const clickX = rect.left + cursorPos.x;
+            const clickY = rect.top + cursorPos.y;
+            const event = new MouseEvent('click', {
+              clientX: clickX,
+              clientY: clickY,
+              bubbles: true
+            });
+            renderer.domElement.dispatchEvent(event);
+          }
+        }
+        // Rotate right
+        else if (g === "rotate_right") {
+          group.rotation.y += 0.1;
+          // Clamp/wrap rotation to avoid overflow
+          if (group.rotation.y > Math.PI) group.rotation.y -= 2 * Math.PI;
+        }
+        // Rotate left
+        else if (g === "rotate_left") {
+          group.rotation.y -= 0.1;
+          if (group.rotation.y < -Math.PI) group.rotation.y += 2 * Math.PI;
+        }
+        // Thumbs up: move globe up
+        else if (g === "thumbs_up") {
+          // Rotate globe towards the Arctic (north pole)
+          group.rotation.x -= 0.1;
+          if (group.rotation.x < -Math.PI) group.rotation.x -= 2 * Math.PI;
+        }
+        // Thumbs down: move globe down
+        else if (g === "thumbs_down") {
+          // Rotate globe towards the Antarctic (south pole)
+          group.rotation.x += 0.1;
+          if (group.rotation.x > Math.PI) group.rotation.x += 2 * Math.PI;
+        }
+      });
 
       // Enhanced GUI with better styling
       gui = new dat.GUI();
@@ -1013,7 +1044,26 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
         zIndex: 0,
         background: 'linear-gradient(135deg, #000000, #001122)',
       }}
-    />
+    >
+      {/* Render gesture-controlled cursor dot */}
+      {cursorPos.x !== null && cursorPos.y !== null && (
+        <div
+          style={{
+            position: 'absolute',
+            left: cursorPos.x - 12,
+            top: cursorPos.y - 12,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'rgba(0,212,255,0.8)',
+            boxShadow: '0 0 16px 4px #00d4ff',
+            pointerEvents: 'none',
+            zIndex: 2001,
+            border: '2px solid #fff',
+          }}
+        />
+      )}
+    </div>
   );
 };
 

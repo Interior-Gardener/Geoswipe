@@ -78,6 +78,11 @@ io.on('connection', (socket) => {
     io.emit('gesture', data); // Forward to frontend
   });
 
+  socket.on('cursor', (data) => {
+    // Forward index finger position to all clients
+    io.emit('cursor', data);
+  });
+
   socket.on('disconnect', () => {
     console.log("Frontend disconnected");
   });

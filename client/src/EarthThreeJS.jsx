@@ -25,9 +25,13 @@ const CountriesData = '/assets/countrieslite.geo.json';
 const EarthThreeJS = ({ setSelectedCountry }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
-  const [cursorPos, setCursorPos] = useState({ x: null, y: null });
+  const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
+  const cursorPosRef = useRef({ x: 400, y: 300 }); // Ref to store current cursor position for gesture handlers
 
   useEffect(() => {
+    // Store cleanup functions
+    let cleanupFunctions = [];
+    
     // Add Google Font for Bungee Spice dynamically
     const link = document.createElement('link');
     link.href = "https://fonts.googleapis.com/css2?family=Bungee+Spice&family=Orbitron:wght@400;700;900&display=swap";
@@ -247,6 +251,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       camera.updateProjectionMatrix();
     }
     window.addEventListener('resize', handleResize);
+    cleanupFunctions.push(() => window.removeEventListener('resize', handleResize));
 
     // Enhanced UI Elements
     const countryNameDisplay = document.createElement('div');
@@ -304,8 +309,8 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
     instructions.innerHTML = `
       🖱 <strong>Click to explore countries</strong><br>
       🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
-      👋 <strong>Hand gestures: Point finger to move cursor</strong><br>
-      ✋ <strong>Open palm clicks where blue dot points</strong><br>
+      ✋ <strong>Open palm: Move blue cursor dot</strong><br>
+      🖐 <strong>Four fingers (no thumb): Click where cursor points</strong><br>
       🤏 <strong>Pinch/Zoom with scale limits (0.3x - 3.0x)</strong><br>
       🌟 <strong>Press 'B' for bright mode</strong><br>
       ⌨ <strong>Use GUI panel for fine-tuning</strong>
@@ -359,15 +364,15 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
     socket.off("cursor");
     socket.off("gesture");
 
-    // Listen for cursor position from backend
-    socket.on("cursor", (data) => {
+    // Store cursor event handler for cleanup
+    const handleCursor = (data) => {
       const container = mountRef.current;
       if (!container) return;
       
       // Handle clearing cursor when data.x or data.y is None/null
+      // Don't clear cursor - keep it visible but don't update position if no data
       if (data.x === null || data.y === null) {
-        setCursorPos({ x: null, y: null });
-        return;
+        return; // Keep current position, don't clear
       }
       
       const width = container.clientWidth;
@@ -375,8 +380,17 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       // Clamp and map normalized coordinates to screen
       let x = Math.min(Math.max(data.x, 0), 1) * width;
       let y = Math.min(Math.max(data.y, 0), 1) * height;
-      setCursorPos({ x, y });
-    });
+      console.log("📍 Updating cursor position:", { x, y, data });
+      
+      // Update both state and ref
+      const newPos = { x, y };
+      setCursorPos(newPos);
+      cursorPosRef.current = newPos; // Update ref for gesture handlers
+    };
+
+    // Listen for cursor position from backend
+    socket.on("cursor", handleCursor);
+    cleanupFunctions.push(() => socket.off("cursor", handleCursor));
 
     // Enhanced Stats
     const stats = new Stats();
@@ -624,8 +638,8 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       // Add group to scene
       scene.add(group);
 
-      // Listen for gesture data from Python backend (moved here so 'group' is accessible)
-      socket.on("gesture", (data) => {
+      // Store gesture event handler for cleanup
+      const handleGesture = (data) => {
         console.log("Received gesture:", data);
         const g = data.gesture;
         // Pinch: scale globe down (shrink) with minimum limit
@@ -642,17 +656,21 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
             group.scale.multiplyScalar(1.05);
           }
         }
-        // Open palm: tap/select country at cursor dot position
-        else if (g === "open_palm") {
-          if (renderer && renderer.domElement && cursorPos.x !== null && cursorPos.y !== null) {
+        // Click gesture: "OK" sign (thumb touches index, other fingers up) - clicks at cursor position
+        else if (g === "click") {
+          const currentCursorPos = cursorPosRef.current; // Use ref to get latest position
+          console.log("🎯 OK sign detected! Attempting to click at cursor position:", currentCursorPos);
+          if (renderer && renderer.domElement) {
             const rect = renderer.domElement.getBoundingClientRect();
-            const clickX = rect.left + cursorPos.x;
-            const clickY = rect.top + cursorPos.y;
+            const clickX = rect.left + currentCursorPos.x;
+            const clickY = rect.top + currentCursorPos.y;
+            console.log("🎯 Click coordinates:", { clickX, clickY, rect, cursorPos: currentCursorPos });
             const event = new MouseEvent('click', {
               clientX: clickX,
               clientY: clickY,
               bubbles: true
             });
+            console.log("🎯 Dispatching click event on renderer element");
             renderer.domElement.dispatchEvent(event);
           }
         }
@@ -679,7 +697,11 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
           group.rotation.x += 0.1;
           if (group.rotation.x > Math.PI) group.rotation.x += 2 * Math.PI;
         }
-      });
+      };
+
+      // Listen for gesture data from Python backend (moved here so 'group' is accessible)
+      socket.on("gesture", handleGesture);
+      cleanupFunctions.push(() => socket.off("gesture", handleGesture));
 
       // Enhanced GUI with better styling
       gui = new dat.GUI();
@@ -862,13 +884,13 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       }
 
       // Enhanced keyboard controls
-      window.addEventListener('keydown', (event) => {
+      const handleKeydown = (event) => {
         if (event.key === 'b' || event.key === 'B') {
           params.brightEarthMode = !params.brightEarthMode;
           toggleBrightEarth();
           console.log("🌟 Bright Earth mode:", params.brightEarthMode ? "ON" : "OFF");
         }
-      });
+      };
 
       // Enhanced country picking and highlighting with improved accuracy
       const raycaster = new THREE.Raycaster();
@@ -876,7 +898,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       raycaster.params.Points = { threshold: 0.2 };
       const mouse = new THREE.Vector2();
 
-      window.addEventListener('click', (event) => {
+      const handleClick = (event) => {
         // Accept clicks on renderer or its parent container
         if (event.target !== renderer.domElement && event.target !== container) return;
 
@@ -970,7 +992,12 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
           }
           setSelectedCountry(clickedName);
         }
-      });
+      };
+
+      window.addEventListener('keydown', handleKeydown);
+      window.addEventListener('click', handleClick);
+      cleanupFunctions.push(() => window.removeEventListener('keydown', handleKeydown));
+      cleanupFunctions.push(() => window.removeEventListener('click', handleClick));
 
       // Enhanced animation loop
       const animate = () => {
@@ -1050,24 +1077,22 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
         background: 'linear-gradient(135deg, #000000, #001122)',
       }}
     >
-      {/* Render gesture-controlled cursor dot */}
-      {cursorPos.x !== null && cursorPos.y !== null && (
-        <div
-          style={{
-            position: 'absolute',
-            left: cursorPos.x - 12,
-            top: cursorPos.y - 12,
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            background: 'rgba(0,212,255,0.8)',
-            boxShadow: '0 0 16px 4px #00d4ff',
-            pointerEvents: 'none',
-            zIndex: 2001,
-            border: '2px solid #fff',
-          }}
-        />
-      )}
+      {/* Render gesture-controlled cursor dot - always visible */}
+      <div
+        style={{
+          position: 'absolute',
+          left: cursorPos.x - 12,
+          top: cursorPos.y - 12,
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: 'rgba(0,212,255,0.8)',
+          boxShadow: '0 0 16px 4px #00d4ff',
+          pointerEvents: 'none',
+          zIndex: 2001,
+          border: '2px solid #fff',
+        }}
+      />
     </div>
   );
 };

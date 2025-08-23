@@ -1,14 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EarthThreeJS from "./EarthThreeJS";
 
 const ExplorePage = () => {
   const navigate = useNavigate();
+  const [selectedCountry, setSelectedCountry] = useState(null);
 
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       {/* 🌍 Earth Visualization */}
-      <EarthThreeJS />
+      <EarthThreeJS setSelectedCountry={setSelectedCountry} />
 
       {/* 🚀 Start Quiz Button */}
       <button

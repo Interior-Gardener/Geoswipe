@@ -54,28 +54,49 @@ def classify_gesture(landmarks):
     )
     # All other fingers closed
     fingers_closed = not any(fingers)
+    
+    # Calculate distance between thumb and index for gesture differentiation
+    thumb_index_distance = np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y]))
 
-    # Thumbs up: thumb extended, others closed, thumb tip well above wrist
-    if thumb_extended and fingers_closed and (thumb_tip.y < wrist.y - 0.05):
+    # CLICK GESTURE: "OK" sign (thumb touches index tip, other fingers extended) - HIGHEST PRIORITY
+    # OK sign: thumb and index close together (forming circle), middle/ring/pinky extended
+    ok_sign_condition = (thumb_index_distance < 0.05 and  # Thumb and index very close (forming circle)
+                        fingers[1] and fingers[2] and fingers[3])  # Middle, ring, pinky extended
+    if ok_sign_condition:
+        return "click"
+
+    # Thumbs up: thumb extended, others closed, thumb tip well above wrist AND thumb extended far
+    if (thumb_extended and fingers_closed and 
+        (thumb_tip.y < wrist.y - 0.08) and  # More strict vertical separation
+        np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) > 0.12):  # Thumb must be extended far
         return "thumbs_up"
-    # Thumbs down: thumb extended, others closed, thumb tip well below wrist
-    if thumb_extended and fingers_closed and (thumb_tip.y > wrist.y + 0.05):
+    
+    # Thumbs down: thumb extended, others closed, thumb tip well below wrist AND thumb extended far
+    if (thumb_extended and fingers_closed and 
+        (thumb_tip.y > wrist.y + 0.08) and  # More strict vertical separation
+        np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) > 0.12):  # Thumb must be extended far
         return "thumbs_down"
+    
     # Pinch: thumb and index close, others closed
-    if np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) < 0.04 and not any(fingers[1:]):
+    if thumb_index_distance < 0.04 and not any(fingers[1:]):
         return "pinch"
-    # Index finger pointing: only index finger open, others closed, thumb NOT extended (PRIORITIZED)
-    if fingers[0] and not any(fingers[1:]) and not thumb_extended:
-        return "index_point"
-    # Zoom: thumb extended AND index finger open, others closed, thumb and index far apart, BOTH clearly extended
-    if (thumb_extended and fingers[0] and not any(fingers[1:]) and 
-        np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y])) > 0.15 and
-        thumb_tip.y < index_tip.y):  # Additional constraint: thumb should be higher than index for zoom
+    
+    # ZOOM GESTURE: Requires BOTH thumb extended AND index finger open with WIDE separation
+    # This is the most specific gesture, so check it first among thumb+index combinations
+    if (thumb_extended and fingers[0] and not any(fingers[1:]) and thumb_index_distance > 0.13):
         return "zoom"
-    # Open palm: all fingers open, thumb not closed
+    
+    # INDEX POINT: Only index finger open, thumb clearly closed/not extended, others closed
+    # Make thumb condition more strict to avoid conflicts with zoom
+    thumb_clearly_closed = not thumb_extended and np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) < 0.10
+    if fingers[0] and not any(fingers[1:]) and thumb_clearly_closed:
+        return "index_point"
+    
+    # CURSOR CONTROL: Open palm (all fingers open, thumb not closed) - moves cursor
     thumb_closed = np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) < 0.08
     if all(fingers) and not thumb_closed:
-        return "open_palm"
+        return "cursor_move"
+    
     # Rotate left: index and middle open, hand tilted left
     if fingers[0] and fingers[1] and not any(fingers[2:]) and (index_tip.x < wrist.x):
         return "rotate_left"
@@ -102,7 +123,27 @@ while True:
         for hand_landmarks in result.multi_hand_landmarks:
             mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             gesture = classify_gesture(hand_landmarks.landmark)
-            cv2.putText(frame, gesture, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            
+            # Debug information for troubleshooting
+            thumb_tip = hand_landmarks.landmark[4]
+            index_tip = hand_landmarks.landmark[8]
+            wrist = hand_landmarks.landmark[0]
+            
+            thumb_extended = (
+                np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([hand_landmarks.landmark[2].x, hand_landmarks.landmark[2].y])) > 0.07 and
+                np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) > 0.12
+            )
+            thumb_index_distance = np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y]))
+            index_open = hand_landmarks.landmark[8].y < hand_landmarks.landmark[6].y
+            
+            # Display debug info on frame
+            debug_text = f"Gesture: {gesture}"
+            cv2.putText(frame, debug_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            debug_text2 = f"Thumb: {'Extended' if thumb_extended else 'Closed'}, Index: {'Open' if index_open else 'Closed'}"
+            cv2.putText(frame, debug_text2, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+            debug_text3 = f"Distance: {thumb_index_distance:.3f}"
+            cv2.putText(frame, debug_text3, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+            
             if gesture == last_gesture:
                 gesture_count += 1
             else:
@@ -111,11 +152,12 @@ while True:
             if connected and gesture_count >= STABLE_THRESHOLD and gesture != "unknown":
                 print("Emitting gesture:", gesture)
                 sio.emit('gesture', {'gesture': gesture})
-            # Emit index finger position for browser cursor ONLY when pointing
-            if connected and gesture == "index_point":
-                index_tip = hand_landmarks.landmark[8]
-                x_norm = index_tip.x
-                y_norm = index_tip.y
+            # Emit cursor position for browser cursor when moving cursor with open palm
+            if connected and gesture == "cursor_move":
+                # Use middle finger tip for more stable cursor control
+                middle_tip = hand_landmarks.landmark[12]
+                x_norm = middle_tip.x
+                y_norm = middle_tip.y
                 sio.emit('cursor', {'x': x_norm, 'y': y_norm})
     else:
         last_gesture = None

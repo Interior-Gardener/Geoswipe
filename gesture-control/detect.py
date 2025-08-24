@@ -107,6 +107,10 @@ def classify_gesture(landmarks):
 
 STABLE_THRESHOLD = 7  # Increase for more strictness
 
+# Click gesture stabilization
+last_click_time = 0
+CLICK_COOLDOWN = 1.0  # 1 second cooldown between clicks
+
 # Initialize webcam capture
 cap = cv2.VideoCapture(0)
 
@@ -150,8 +154,18 @@ while True:
                 gesture_count = 1
                 last_gesture = gesture
             if connected and gesture_count >= STABLE_THRESHOLD and gesture != "unknown":
-                print("Emitting gesture:", gesture)
-                sio.emit('gesture', {'gesture': gesture})
+                # Special handling for click gesture to prevent rapid firing
+                if gesture == "click":
+                    current_time = time.time()
+                    if current_time - last_click_time >= CLICK_COOLDOWN:
+                        print("Emitting click gesture")
+                        sio.emit('gesture', {'gesture': gesture})
+                        last_click_time = current_time
+                    else:
+                        print(f"Click ignored - cooldown active ({current_time - last_click_time:.1f}s)")
+                else:
+                    print("Emitting gesture:", gesture)
+                    sio.emit('gesture', {'gesture': gesture})
             # Emit cursor position for browser cursor when moving cursor with open palm
             if connected and gesture == "cursor_move":
                 # Use middle finger tip for more stable cursor control

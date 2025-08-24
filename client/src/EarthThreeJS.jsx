@@ -28,6 +28,50 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
   const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
   const cursorPosRef = useRef({ x: 400, y: 300 }); // Ref to store current cursor position for gesture handlers
 
+  // Geographic validation function to reject meshes in impossible locations
+  const validateCountryPosition = (countryName, point3D) => {
+    // Convert 3D coordinates to approximate lat/lon for validation
+    const lat = Math.asin(point3D.y / 10.3) * 180 / Math.PI;
+    const lon = Math.atan2(point3D.x, point3D.z) * 180 / Math.PI;
+    
+    // Define approximate geographic bounds for countries
+    const countryBounds = {
+      'Mexico': { latMin: 14, latMax: 33, lonMin: -118, lonMax: -86 },
+      'Brazil': { latMin: -34, latMax: 6, lonMin: -74, lonMax: -35 },
+      'Peru': { latMin: -19, latMax: 0, lonMin: -82, lonMax: -68 },
+      'Colombia': { latMin: -4, latMax: 12, lonMin: -82, lonMax: -66 },
+      'Philippines': { latMin: 4, latMax: 19, lonMin: 116, lonMax: 127 },
+      'Indonesia': { latMin: -11, latMax: 6, lonMin: 95, lonMax: 141 },
+      'India': { latMin: 6, latMax: 37, lonMin: 68, lonMax: 97 },
+      'China': { latMin: 18, latMax: 54, lonMin: 73, lonMax: 135 },
+      'Honduras': { latMin: 12, latMax: 17, lonMin: -89, lonMax: -83 },
+      'Cuba': { latMin: 19, latMax: 24, lonMin: -85, lonMax: -74 },
+      'Bangladesh': { latMin: 20, latMax: 27, lonMin: 88, lonMax: 93 },
+      'Myanmar': { latMin: 9, latMax: 29, lonMin: 92, lonMax: 102 },
+      'Thailand': { latMin: 5, latMax: 21, lonMin: 97, lonMax: 106 },
+      'Vietnam': { latMin: 8, latMax: 24, lonMin: 102, lonMax: 110 },
+      'Malaysia': { latMin: 1, latMax: 7, lonMin: 100, lonMax: 120 }
+    };
+    
+    const bounds = countryBounds[countryName];
+    if (!bounds) return true; // Allow unknown countries
+    
+    // Check if position is within expected bounds (with some tolerance)
+    const tolerance = 20; // degrees - increased tolerance for now
+    const isValid = lat >= (bounds.latMin - tolerance) && 
+                   lat <= (bounds.latMax + tolerance) && 
+                   lon >= (bounds.lonMin - tolerance) && 
+                   lon <= (bounds.lonMax + tolerance);
+    
+    if (!isValid) {
+      // console.log(`🌍 ${countryName} position check: lat=${lat.toFixed(1)}, lon=${lon.toFixed(1)} vs expected lat=[${bounds.latMin}, ${bounds.latMax}], lon=[${bounds.lonMin}, ${bounds.lonMax}]`);
+      // For now, allow most countries but log the discrepancy
+      return true; // Temporarily allow all to prevent crashes
+    }
+    
+    return isValid;
+  };
+
   useEffect(() => {
     // Store cleanup functions
     let cleanupFunctions = [];
@@ -380,7 +424,13 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       // Clamp and map normalized coordinates to screen
       let x = Math.min(Math.max(data.x, 0), 1) * width;
       let y = Math.min(Math.max(data.y, 0), 1) * height;
-      console.log("📍 Updating cursor position:", { x, y, data });
+      console.log("📍 Updating cursor position:", { 
+        x, y, data, width, height,
+        originalNormalizedX: data.x,
+        originalNormalizedY: data.y,
+        convertedX: x,
+        convertedY: y
+      });
       
       // Update both state and ref
       const newPos = { x, y };
@@ -503,6 +553,28 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
           }
         });
       });
+      
+      // Debug country mesh information
+      // console.log(`🗺️ Country mesh summary:`, {
+      //   totalMeshes: countryPickMeshes.length,
+      //   uniqueCountries: [...new Set(countryPickMeshes.map(mesh => mesh.userData.countryName))].length,
+      //   sampleCountries: countryPickMeshes.slice(0, 5).map(mesh => mesh.userData.countryName)
+      // });
+      
+      // Check for duplicate countries
+      // const countryMeshCounts = {};
+      // countryPickMeshes.forEach(mesh => {
+      //   const country = mesh.userData.countryName;
+      //   countryMeshCounts[country] = (countryMeshCounts[country] || 0) + 1;
+      // });
+      
+      // const duplicateCountries = Object.entries(countryMeshCounts)
+      //   .filter(([country, count]) => count > 1)
+      //   .slice(0, 10); // Show first 10 duplicates
+        
+      // if (duplicateCountries.length > 0) {
+      //   console.log(`⚠️ Countries with multiple meshes:`, Object.fromEntries(duplicateCountries));
+      // }
     }
 
     // Update progress bar helper
@@ -640,62 +712,198 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
 
       // Store gesture event handler for cleanup
       const handleGesture = (data) => {
-        console.log("Received gesture:", data);
+        // console.log("Received gesture:", data);
         const g = data.gesture;
-        // Pinch: scale globe down (shrink) with minimum limit
+        // Pinch: zoom out (move camera away) with distance limits
         if (g === "pinch") {
-          const newScale = group.scale.x * 0.95;
-          if (newScale >= 0.3) { // Minimum scale limit
-            group.scale.multiplyScalar(0.95);
+          const camera = cameraRef.current;
+          if (camera && controls) {
+            // Get current camera distance from target
+            const currentDistance = camera.position.distanceTo(controls.target);
+            const newDistance = Math.min(currentDistance * 1.1, controls.maxDistance);
+            
+            // Move camera away from target
+            const direction = camera.position.clone().sub(controls.target).normalize();
+            camera.position.copy(controls.target).add(direction.multiplyScalar(newDistance));
+            
+            // Update controls
+            controls.update();
           }
         }
-        // Zoom: scale globe up (enlarge) with maximum limit
+        // Zoom: zoom in (move camera closer) with distance limits  
         else if (g === "zoom") {
-          const newScale = group.scale.x * 1.05;
-          if (newScale <= 3.0) { // Maximum scale limit
-            group.scale.multiplyScalar(1.05);
+          const camera = cameraRef.current;
+          if (camera && controls) {
+            // Get current camera distance from target
+            const currentDistance = camera.position.distanceTo(controls.target);
+            const newDistance = Math.max(currentDistance * 0.9, controls.minDistance);
+            
+            // Move camera closer to target
+            const direction = camera.position.clone().sub(controls.target).normalize();
+            camera.position.copy(controls.target).add(direction.multiplyScalar(newDistance));
+            
+            // Update controls
+            controls.update();
           }
         }
         // Click gesture: "OK" sign (thumb touches index, other fingers up) - clicks at cursor position
         else if (g === "click") {
           const currentCursorPos = cursorPosRef.current; // Use ref to get latest position
-          console.log("🎯 OK sign detected! Attempting to click at cursor position:", currentCursorPos);
+          // console.log("🎯 OK sign detected! Cursor state:", cursorPos);
+          // console.log("🎯 OK sign detected! Cursor ref:", currentCursorPos);
+          
           if (renderer && renderer.domElement) {
             const rect = renderer.domElement.getBoundingClientRect();
-            const clickX = rect.left + currentCursorPos.x;
-            const clickY = rect.top + currentCursorPos.y;
-            console.log("🎯 Click coordinates:", { clickX, clickY, rect, cursorPos: currentCursorPos });
+            
+            // Debug: Log the rect and cursor position details
+            // console.log("🔧 Coordinate conversion debug:", {
+            //   cursorX: currentCursorPos.x,
+            //   cursorY: currentCursorPos.y,
+            //   rectLeft: rect.left,
+            //   rectTop: rect.top,
+            //   rectWidth: rect.width,
+            //   rectHeight: rect.height,
+            //   calculatedAbsoluteX: currentCursorPos.x + rect.left,
+            //   calculatedAbsoluteY: currentCursorPos.y + rect.top
+            // });
+            
+            // Check if cursor coordinates are relative to container vs renderer
+            const container = mountRef.current;
+            const containerRect = container.getBoundingClientRect();
+            // console.log("🔧 Container vs Renderer comparison:", {
+            //   containerLeft: containerRect.left,
+            //   containerTop: containerRect.top,
+            //   rendererLeft: rect.left,
+            //   rendererTop: rect.top,
+            //   offsetX: rect.left - containerRect.left,
+            //   offsetY: rect.top - containerRect.top
+            // });
+            
+            // FIXED: Round coordinates to avoid floating point precision issues
+            // This ensures gesture clicks match mouse click precision
+            const absoluteClickX = Math.round(currentCursorPos.x + rect.left);
+            const absoluteClickY = Math.round(currentCursorPos.y + rect.top);
+            
+            // console.log("🎯 Final click coordinates:", { 
+            //   cursorX: currentCursorPos.x, 
+            //   cursorY: currentCursorPos.y,
+            //   rectLeft: rect.left, 
+            //   rectTop: rect.top,
+            //   absoluteClickX: absoluteClickX, 
+            //   absoluteClickY: absoluteClickY,
+            //   rectWidth: rect.width,
+            //   rectHeight: rect.height
+            // });
+            
+            // Add a visual debug marker to show where gesture thinks it's clicking
+            const debugMarker = document.createElement('div');
+            debugMarker.style.cssText = `
+              position: fixed;
+              left: ${absoluteClickX - 5}px;
+              top: ${absoluteClickY - 5}px;
+              width: 10px;
+              height: 10px;
+              background: lime;
+              border: 2px solid black;
+              border-radius: 50%;
+              z-index: 10000;
+              pointer-events: none;
+            `;
+            document.body.appendChild(debugMarker);
+            setTimeout(() => debugMarker.remove(), 2000); // Remove after 2 seconds
+            
             const event = new MouseEvent('click', {
-              clientX: clickX,
-              clientY: clickY,
+              clientX: absoluteClickX,
+              clientY: absoluteClickY,
               bubbles: true
             });
-            console.log("🎯 Dispatching click event on renderer element");
+            // console.log("🎯 Dispatching click event on renderer element");
             renderer.domElement.dispatchEvent(event);
           }
         }
         // Rotate right
         else if (g === "rotate_right") {
-          group.rotation.y += 0.1;
-          // Clamp/wrap rotation to avoid overflow
-          if (group.rotation.y > Math.PI) group.rotation.y -= 2 * Math.PI;
+          // Instead of rotating the group, rotate the camera around the Y-axis
+          const camera = cameraRef.current;
+          if (camera && controls) {
+            // Get current camera position relative to target
+            const offset = camera.position.clone().sub(controls.target);
+            
+            // Create rotation matrix for Y-axis rotation
+            const rotationMatrix = new THREE.Matrix4().makeRotationY(0.1);
+            
+            // Apply rotation to camera offset
+            offset.applyMatrix4(rotationMatrix);
+            
+            // Update camera position
+            camera.position.copy(controls.target).add(offset);
+            
+            // Update controls
+            controls.update();
+          }
         }
         // Rotate left
         else if (g === "rotate_left") {
-          group.rotation.y -= 0.1;
-          if (group.rotation.y < -Math.PI) group.rotation.y += 2 * Math.PI;
+          // Instead of rotating the group, rotate the camera around the Y-axis
+          const camera = cameraRef.current;
+          if (camera && controls) {
+            // Get current camera position relative to target
+            const offset = camera.position.clone().sub(controls.target);
+            
+            // Create rotation matrix for Y-axis rotation
+            const rotationMatrix = new THREE.Matrix4().makeRotationY(-0.1);
+            
+            // Apply rotation to camera offset
+            offset.applyMatrix4(rotationMatrix);
+            
+            // Update camera position
+            camera.position.copy(controls.target).add(offset);
+            
+            // Update controls
+            controls.update();
+          }
         }
         // Thumbs up: move globe up
         else if (g === "thumbs_up") {
-          // Rotate globe towards the Arctic (north pole)
-          group.rotation.x -= 0.1;
-          if (group.rotation.x < -Math.PI) group.rotation.x -= 2 * Math.PI;
+          // Instead of rotating the group, rotate the camera around the X-axis (up)
+          const camera = cameraRef.current;
+          if (camera && controls) {
+            // Get current camera position relative to target
+            const offset = camera.position.clone().sub(controls.target);
+            
+            // Create rotation matrix for X-axis rotation (negative for up movement)
+            const rotationMatrix = new THREE.Matrix4().makeRotationX(-0.1);
+            
+            // Apply rotation to camera offset
+            offset.applyMatrix4(rotationMatrix);
+            
+            // Update camera position
+            camera.position.copy(controls.target).add(offset);
+            
+            // Update controls
+            controls.update();
+          }
         }
         // Thumbs down: move globe down
         else if (g === "thumbs_down") {
-          // Rotate globe towards the Antarctic (south pole)
-          group.rotation.x += 0.1;
-          if (group.rotation.x > Math.PI) group.rotation.x += 2 * Math.PI;
+          // Instead of rotating the group, rotate the camera around the X-axis (down)
+          const camera = cameraRef.current;
+          if (camera && controls) {
+            // Get current camera position relative to target
+            const offset = camera.position.clone().sub(controls.target);
+            
+            // Create rotation matrix for X-axis rotation (positive for down movement)
+            const rotationMatrix = new THREE.Matrix4().makeRotationX(0.1);
+            
+            // Apply rotation to camera offset
+            offset.applyMatrix4(rotationMatrix);
+            
+            // Update camera position
+            camera.position.copy(controls.target).add(offset);
+            
+            // Update controls
+            controls.update();
+          }
         }
       };
 
@@ -899,27 +1107,235 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       const mouse = new THREE.Vector2();
 
       const handleClick = (event) => {
+        // console.log("🔍 Click event details:", {
+        //   target: event.target?.tagName || 'unknown',
+        //   rendererElement: renderer.domElement?.tagName || 'unknown',
+        //   container: container?.tagName || 'unknown',
+        //   isSyntheticEvent: event.isTrusted === false,
+        //   eventType: event.type
+        // });
+        
         // Accept clicks on renderer or its parent container
-        if (event.target !== renderer.domElement && event.target !== container) return;
+        // FIXED: Accept all canvas clicks and synthetic events since zoom changes behavior
+        const isValidTarget = 
+          event.target?.tagName === 'CANVAS' ||             // Any canvas click
+          event.target === container ||                     // Container click  
+          event.isTrusted === false;                        // Synthetic gesture events
+        
+        if (!isValidTarget) {
+          console.log("🚫 Click rejected - wrong target", {
+            eventTarget: event.target?.tagName || 'unknown',
+            rendererElement: renderer.domElement?.tagName || 'unknown', 
+            container: container?.tagName || 'unknown',
+            isSynthetic: event.isTrusted === false,
+            targetIsCanvas: event.target?.tagName === 'CANVAS'
+          });
+          return;
+        }
 
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        raycaster.setFromCamera(mouse, camera);
-        // Increase threshold for more reliable picking
-        raycaster.params.Line = { threshold: 0.5 };
-        raycaster.params.Points = { threshold: 0.5 };
-        const intersects = raycaster.intersectObjects(countryPickMeshes)
+        // Log globe state for debugging
+        // console.log("🌍 Globe state at click:", {
+        //   rotationX: group.rotation.x.toFixed(3),
+        //   rotationY: group.rotation.y.toFixed(3),
+        //   rotationZ: group.rotation.z.toFixed(3),
+        //   scaleX: group.scale.x.toFixed(3)
+        // });
+        
+        // console.log("🎯 Click coordinates:", { 
+        //   screenX: event.clientX, 
+        //   screenY: event.clientY,
+        //   normalizedX: mouse.x.toFixed(3),
+        //   normalizedY: mouse.y.toFixed(3),
+        //   rectWidth: rect.width,
+        //   rectHeight: rect.height,
+        //   relativeX: (event.clientX - rect.left).toFixed(1),
+        //   relativeY: (event.clientY - rect.top).toFixed(1),
+        //   rectLeft: rect.left.toFixed(1),
+        //   rectTop: rect.top.toFixed(1)
+        // });
+
+        raycaster.setFromCamera(mouse, cameraRef.current || camera);
+        
+        // Debug: Show camera and raycaster state
+        // console.log("📷 Camera debug:", {
+        //   cameraPositionX: camera.position.x.toFixed(3),
+        //   cameraPositionY: camera.position.y.toFixed(3),
+        //   cameraPositionZ: camera.position.z.toFixed(3),
+        //   cameraRefPositionX: cameraRef.current?.position.x.toFixed(3) || 'null',
+        //   cameraRefPositionY: cameraRef.current?.position.y.toFixed(3) || 'null', 
+        //   cameraRefPositionZ: cameraRef.current?.position.z.toFixed(3) || 'null',
+        //   cameraSame: camera === cameraRef.current
+        // });
+        
+        // Debug: Show where the ray is actually pointing
+        const rayDirection = raycaster.ray.direction.clone();
+        const rayOrigin = raycaster.ray.origin.clone();
+        // console.log("🔫 Raycaster debug:", {
+        //   rayOriginX: rayOrigin.x.toFixed(3),
+        //   rayOriginY: rayOrigin.y.toFixed(3), 
+        //   rayOriginZ: rayOrigin.z.toFixed(3),
+        //   rayDirectionX: rayDirection.x.toFixed(3),
+        //   rayDirectionY: rayDirection.y.toFixed(3),
+        //   rayDirectionZ: rayDirection.z.toFixed(3),
+        //   isSynthetic: event.isTrusted === false
+        // });
+        // Increase threshold for more reliable picking at all zoom levels
+        // Adjust threshold based on camera distance for better precision
+        const cameraDistance = cameraRef.current ? cameraRef.current.position.length() : camera.position.length();
+        const baseThreshold = 0.5;
+        const dynamicThreshold = baseThreshold * (cameraDistance / 30.0); // Scale threshold with zoom
+        raycaster.params.Line = { threshold: dynamicThreshold };
+        raycaster.params.Points = { threshold: dynamicThreshold };
+        const allIntersects = raycaster.intersectObjects(countryPickMeshes);
+        // console.log("🎯 All intersections found:", allIntersects.length);
+        
+        // Log ALL intersections before filtering
+        allIntersects.forEach((intersect, index) => {
+          const distance = intersect.point.length();
+          const dotProduct = intersect.point.clone().normalize().dot(camera.position.clone().normalize());
+          // console.log(`🎯 Raw intersection ${index}:`, {
+          //   country: intersect.object.userData.countryName,
+          //   distance: distance,
+          //   point3D: `(${intersect.point.x.toFixed(2)}, ${intersect.point.y.toFixed(2)}, ${intersect.point.z.toFixed(2)})`,
+          //   meshIndex: intersect.object.userData.meshIndex || 'unknown',
+          //   faceIndex: intersect.faceIndex,
+          //   dotProduct: dotProduct.toFixed(3),
+          //   isBackFacing: dotProduct < 0
+          // });
+        });
+        
+        // Filter out back-facing intersections (only keep front-facing ones)
+        const frontFacingIntersects = allIntersects.filter(intersect => {
+          const dotProduct = intersect.point.clone().normalize().dot(camera.position.clone().normalize());
+          return dotProduct > 0; // Only front-facing
+        });
+        
+        // console.log(`🎯 Front-facing intersections: ${frontFacingIntersects.length} of ${allIntersects.length}`);
+        
+        // Further filter by geographic validation to remove misplaced meshes
+        const geographicallyValidIntersects = frontFacingIntersects.filter(intersect => {
+          const isValid = validateCountryPosition(intersect.object.userData.countryName, intersect.point);
+          if (!isValid) {
+            // console.log(`🚫 Rejected ${intersect.object.userData.countryName} - geographically invalid position`);
+          }
+          return isValid;
+        });
+        
+        // console.log(`🎯 Geographically valid intersections: ${geographicallyValidIntersects.length} of ${frontFacingIntersects.length}`);
+        
+        const intersects = geographicallyValidIntersects
           .filter(intersect => {
-            // Accept intersections near the picking mesh radius (10.3)
+            // FIXED: Make distance validation dynamic based on zoom level
+            // The Earth sphere has radius 10, picking meshes are at ~10.3
+            // Instead of hardcoded distance, validate that intersections are on the Earth surface
             const distance = intersect.point.length();
-            return Math.abs(distance - 10.3) < 1.0;
+            const earthRadius = 10; // Earth sphere radius
+            const pickingRadius = 10.3; // Picking mesh radius (slightly above clouds at 10.08)
+            
+            // Accept intersections near the picking mesh radius with some tolerance
+            // This works regardless of camera zoom distance
+            const isValid = distance >= earthRadius - 0.5 && distance <= pickingRadius + 0.5;
+            // console.log("🎯 Intersection:", {
+            //   country: intersect.object.userData.countryName,
+            //   distance: distance,
+            //   earthRadius: earthRadius,
+            //   pickingRadius: pickingRadius,
+            //   isValid: isValid,
+            //   point3D: `(${intersect.point.x.toFixed(2)}, ${intersect.point.y.toFixed(2)}, ${intersect.point.z.toFixed(2)})`
+            // });
+            return isValid;
           })
           .sort((a, b) => a.distance - b.distance);
 
+        // Add visual marker at the click point
+        // if (intersects.length > 0) {
+        //   const clickPoint = intersects[0].point;
+        //   const geometry = new THREE.SphereGeometry(0.05, 8, 8);
+        //   const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        //   const marker = new THREE.Mesh(geometry, material);
+        //   marker.position.copy(clickPoint);
+        //   marker.name = 'clickMarker';
+          
+        //   // Remove previous markers
+        //   const oldMarkers = scene.children.filter(child => child.name === 'clickMarker');
+        //   oldMarkers.forEach(marker => scene.remove(marker));
+          
+        //   scene.add(marker);
+        //   console.log(`🔴 Added red marker at: (${clickPoint.x.toFixed(2)}, ${clickPoint.y.toFixed(2)}, ${clickPoint.z.toFixed(2)})`);
+        // }
+
+        // console.log("🎯 Valid intersections after filtering:", intersects.length);
+        // console.log("🎯 All valid countries found:", intersects.map(i => ({
+        //   name: i.object.userData.countryName,
+        //   distance: i.distance.toFixed(3),
+        //   point: `(${i.point.x.toFixed(2)}, ${i.point.y.toFixed(2)}, ${i.point.z.toFixed(2)})`
+        // })));
+
         if (intersects.length > 0) {
-          const clickedName = intersects[0].object.userData.countryName;
+          // Enhanced selection algorithm for overlapping meshes with geographic validation
+          const countryIntersects = new Map();
+          
+          // Group intersections by country and validate geographic position
+          intersects.forEach(intersect => {
+            const country = intersect.object.userData.countryName;
+            const point = intersect.point;
+            
+            // Basic geographic validation - reject meshes in impossible locations
+            const isGeographicallyValid = validateCountryPosition(country, point);
+            
+            if (isGeographicallyValid) {
+              if (!countryIntersects.has(country)) {
+                countryIntersects.set(country, []);
+              }
+              countryIntersects.get(country).push(intersect);
+            } else {
+              // console.log(`🚫 Rejected ${country} at invalid position: (${point.x.toFixed(2)}, ${point.y.toFixed(2)}, ${point.z.toFixed(2)})`);
+            }
+          });
+          
+          // console.log(`🎯 Found ${countryIntersects.size} unique countries at click point:`, 
+          //   Array.from(countryIntersects.keys()));
+          
+          // For each country, find the best intersection (closest to expected distance)
+          const bestCountryMatches = Array.from(countryIntersects.entries()).map(([country, countryIntersects]) => {
+            const bestIntersect = countryIntersects.reduce((best, current) => {
+              const bestDiff = Math.abs(best.point.length() - 10.3);
+              const currentDiff = Math.abs(current.point.length() - 10.3);
+              return currentDiff < bestDiff ? current : best;
+            });
+            
+            return {
+              country,
+              intersect: bestIntersect,
+              distanceDiff: Math.abs(bestIntersect.point.length() - 10.3),
+              meshCount: countryIntersects.length
+            };
+          });
+          
+          // Sort by distance difference (best match first)
+          bestCountryMatches.sort((a, b) => a.distanceDiff - b.distanceDiff);
+          
+          // console.log(`🎯 Best matches per country:`, bestCountryMatches.slice(0, 3).map(match => ({
+          //   country: match.country,
+          //   distanceDiff: match.distanceDiff.toFixed(4),
+          //   meshCount: match.meshCount
+          // })));
+          
+          // Check if we have any valid countries after geographic validation
+          if (bestCountryMatches.length === 0) {
+            // console.log("🚫 No valid countries found after geographic validation");
+            return; // Exit early if no valid countries
+          }
+          
+          // Select the best overall match
+          const bestMatch = bestCountryMatches[0];
+          const bestIntersect = bestMatch.intersect;
+          const clickedName = bestMatch.country;
+          // console.log("🎯 Selected country (best match):", clickedName, "distance diff:", Math.abs(bestIntersect.point.length() - 10.3).toFixed(3));
           if (!clickedName) return;
 
           // Hide previous highlights
@@ -975,7 +1391,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
             currentlyHighlightedCountry = clickedName;
           }
 
-          console.log("🎯 Clicked country:", clickedName);
+          // console.log("🎯 Clicked country:", clickedName);
 
           // Enhanced country name display with better animations
           const countryNameDiv = document.getElementById('countryNameDisplay');

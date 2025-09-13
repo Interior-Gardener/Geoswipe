@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maharashtra Heritage Map</title>
+    
+    <link href='https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css' rel='stylesheet' />
+
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .fly-to-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 250px;
+        }
+        .fly-to-box input { margin-right: 5px; width: 80px; padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
+        .fly-to-box button { padding: 5px 10px; background: #007cba; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .fly-to-box button:hover { background: #005fa3; }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 200px;
+        }
+        .legend h4 { margin: 0 0 10px 0; color: #333; }
+        .legend-item { display: flex; align-items: center; margin: 5px 0; font-size: 12px; }
+        .legend-color { width: 15px; height: 15px; border-radius: 50%; margin-right: 8px; }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 300px;
+            font-size: 14px;
+        }
+        
+        #viewer-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: black; display: none; }
+        #close-viewer-btn { position: absolute; top: 15px; right: 15px; z-index: 1001; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 24px; cursor: pointer; transition: background 0.3s; }
+        #close-viewer-btn:hover { background: rgba(0,0,0,0.9); }
+        
+        .maplibregl-popup-content { 
+            background-color: #333; 
+            color: #fff; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 250px;
+        }
+        .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #333; }
+        .popup-category { color: #ffa500; font-size: 12px; margin-bottom: 5px; }
+        .popup-year { color: #ccc; font-size: 11px; margin-top: 5px; }
+        .popup-title { font-weight: bold; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="fly-to-box">
+        <strong>🧭 Fly to Location</strong><br><br>
+        <label>Lat:</label> <input type="text" id="lat-input" placeholder="e.g., 18.52">
+        <label>Lon:</label> <input type="text" id="lon-input" placeholder="e.g., 73.85">
+        <button id="fly-to-button">Go</button>
+    </div>
+
+    <div class="info-panel">
+        <strong>🏛️ Maharashtra Heritage Sites</strong><br>
+        <small>Click on any site marker to explore. Sites with 360° views will open in panoramic mode.</small><br><br>
+        <strong>Total Sites:</strong> <span id="site-count">0</span><br>
+        <strong>UNESCO Sites:</strong> <span id="unesco-count">0</span>
+    </div>
+
+    <div class="legend">
+        <h4>🗺️ Site Categories</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ff6b6b;"></div>
+            <span>UNESCO World Heritage</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #4ecdc4;"></div>
+            <span>Historic Forts</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #45b7d1;"></div>
+            <span>Rock-cut Caves</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #f9ca24;"></div>
+            <span>Temples</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #6c5ce7;"></div>
+            <span>Monuments</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #a29bfe;"></div>
+            <span>Palaces & Museums</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #fd79a8;"></div>
+            <span>Historic Buildings</span>
+        </div>
+    </div>
+
+    <div id="map"></div>
+    
+    <div id="viewer-container">
+        <button id="close-viewer-btn">&times;</button>
+        <div id="viewer" style="width: 100%; height: 100%;"></div>
+    </div>
+
+    <script src='https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js'></script>
+    
+    <script>
+        const apiKey = 'Vgab3vK39KZDFqcYVOBA';
+
+        const heritageSites = {
+            'type': 'FeatureCollection',
+            'features': [
+                // UNESCO World Heritage Sites
+                { 'type': 'Feature', 'properties': { 'name': 'Ajanta Caves', 'category': 'UNESCO World Heritage', 'year': '2nd century BCE - 480 CE', 'panorama_url': 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.7033, 20.5522] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Ellora Caves', 'category': 'UNESCO World Heritage', 'year': '600-1000 CE', 'panorama_url': 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.1772, 20.0258] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Chhatrapati Shivaji Maharaj Terminus', 'category': 'UNESCO World Heritage', 'year': '1888', 'panorama_url': 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8355, 18.9398] } },
+                
+                // Historic Forts
+                { 'type': 'Feature', 'properties': { 'name': 'Shaniwar Wada', 'category': 'Historic Fort', 'year': '1732', 'panorama_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [73.8553, 18.5196] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Raigad Fort', 'category': 'Historic Fort', 'year': '1656', 'panorama_url': 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4462, 18.2343] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Janjira Fort', 'category': 'Historic Fort', 'year': '15th century', 'panorama_url': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9613, 18.3006] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Sinhagad Fort', 'category': 'Historic Fort', 'year': '2nd century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.7553, 18.3669] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Pratapgad Fort', 'category': 'Historic Fort', 'year': '1656' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5522, 17.9414] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Daulatabad Fort', 'category': 'Historic Fort', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.2347, 19.9372] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Torna Fort', 'category': 'Historic Fort', 'year': '13th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6028, 18.2144] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Rajgad Fort', 'category': 'Historic Fort', 'year': '15th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6719, 18.2403] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Lohagad Fort', 'category': 'Historic Fort', 'year': '18th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4850, 18.7108] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Vishalgad Fort', 'category': 'Historic Fort', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.0231, 16.7719] } },
+                
+                // Monuments & Tombs
+                { 'type': 'Feature', 'properties': { 'name': 'Bibi Ka Maqbara', 'category': 'Monument', 'year': '1660', 'panorama_url': 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.3204, 19.8974] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Gateway of India', 'category': 'Monument', 'year': '1924', 'panorama_url': 'https://images.unsplash.com/photo-1595402513890-acbc47954481?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8347, 18.9217] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Elephanta Caves', 'category': 'UNESCO World Heritage', 'year': '5th-8th century', 'panorama_url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9311, 18.9633] } },
+                
+                // Rock-cut Architecture
+                { 'type': 'Feature', 'properties': { 'name': 'Karla Caves', 'category': 'Rock-cut Cave', 'year': '160 BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4844, 18.7458] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Bhaja Caves', 'category': 'Rock-cut Cave', 'year': '2nd century BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4850, 18.7317] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Bedse Caves', 'category': 'Rock-cut Cave', 'year': '1st century BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5033, 18.7481] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Kanheri Caves', 'category': 'Rock-cut Cave', 'year': '1st century BCE - 10th century CE' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9056, 19.2078] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Aurangabad Caves', 'category': 'Rock-cut Cave', 'year': '6th-7th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.3433, 19.8878] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Lenyadri Caves', 'category': 'Rock-cut Cave', 'year': '1st-3rd century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6928, 19.1850] } },
+                
+                // Temples
+                { 'type': 'Feature', 'properties': { 'name': 'Trimbakeshwar Temple', 'category': 'Temple', 'year': '1755' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5311, 19.9317] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Shirdi Sai Baba Temple', 'category': 'Temple', 'year': '20th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.4769, 19.7669] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Tuljapur Bhavani Temple', 'category': 'Temple', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [76.0683, 18.0089] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Mahalakshmi Temple, Kolhapur', 'category': 'Temple', 'year': '7th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.2264, 16.7050] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Aundha Nagnath Temple', 'category': 'Temple', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [77.0508, 19.5403] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Grishneshwar Temple', 'category': 'Temple', 'year': '18th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.1856, 20.0247] } },
+                
+                // Palaces & Museums
+                { 'type': 'Feature', 'properties': { 'name': 'Aga Khan Palace', 'category': 'Palace', 'year': '1892' }, 'geometry': { 'type': 'Point', 'coordinates': [73.9078, 18.5372] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Raja Dinkar Kelkar Museum', 'category': 'Museum', 'year': '1962' }, 'geometry': { 'type': 'Point', 'coordinates': [73.8550, 18.5092] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Prince of Wales Museum', 'category': 'Museum', 'year': '1922' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8328, 18.9267] } },
+                
+                // Historic Buildings
+                { 'type': 'Feature', 'properties': { 'name': 'Crawford Market', 'category': 'Historic Building', 'year': '1869' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8364, 18.9472] } },
+                { 'type': 'Feature', 'properties': { 'name': 'Rajabai Clock Tower', 'category': 'Historic Building', 'year': '1878' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8281, 18.9289] } },
+                { 'type': 'Feature', 'properties': { 'name': 'High Court Bombay', 'category': 'Historic Building', 'year': '1878' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8322, 18.9300] } }
+            ]
+        };
+
+        const map = new maplibregl.Map({
+            container: 'map', 
+            style: `https://api.maptiler.com/maps/hybrid/style.json?key=${apiKey}`,
+            center: [75.5, 19.0],
+            zoom: 6.5,
+            pitch: 60,
+            bearing: -15,
+            antialias: true
+        });
+
+        let viewer;
+
+        // Color mapping for different categories
+        const categoryColors = {
+            'UNESCO World Heritage': '#ff6b6b',
+            'Historic Fort': '#4ecdc4',
+            'Rock-cut Cave': '#45b7d1',
+            'Temple': '#f9ca24',
+            'Monument': '#6c5ce7',
+            'Palace': '#a29bfe',
+            'Museum': '#a29bfe',
+            'Historic Building': '#fd79a8'
+        };
+
+        // Function to get color based on category
+        function getCategoryColor(category) {
+            return categoryColors[category] || '#74b9ff';
+        }
+
+        // Update site counts
+        function updateSiteCounts() {
+            const totalSites = heritageSites.features.length;
+            const unescoSites = heritageSites.features.filter(site => 
+                site.properties.category === 'UNESCO World Heritage'
+            ).length;
+            
+            document.getElementById('site-count').textContent = totalSites;
+            document.getElementById('unesco-count').textContent = unescoSites;
+        }
+
+        map.on('load', () => {
+            // Add terrain and 3D effects
+            map.addSource('maptiler-terrain', { 
+                type: 'raster-dem', 
+                url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${apiKey}`, 
+                tileSize: 256 
+            });
+            map.setTerrain({ source: 'maptiler-terrain', exaggeration: 1.5 });
+            
+            // Note: Sky layer is not supported in MapLibre GL JS, removing to avoid errors
+
+            // Add heritage sites source
+            map.addSource('heritage-sites-source', { 
+                'type': 'geojson', 
+                'data': heritageSites 
+            });
+
+            // Add circle layer for better visibility
+            map.addLayer({
+                'id': 'heritage-sites-circles',
+                'type': 'circle',
+                'source': 'heritage-sites-source',
+                'paint': {
+                    'circle-radius': [
+                        'case',
+                        ['==', ['get', 'category'], 'UNESCO World Heritage'], 12,
+                        ['==', ['get', 'category'], 'Historic Fort'], 10,
+                        8
+                    ],
+                    'circle-color': [
+                        'case',
+                        ['==', ['get', 'category'], 'UNESCO World Heritage'], '#ff6b6b',
+                        ['==', ['get', 'category'], 'Historic Fort'], '#4ecdc4',
+                        ['==', ['get', 'category'], 'Rock-cut Cave'], '#45b7d1',
+                        ['==', ['get', 'category'], 'Temple'], '#f9ca24',
+                        ['==', ['get', 'category'], 'Monument'], '#6c5ce7',
+                        ['in', ['get', 'category'], ['literal', ['Palace', 'Museum']]], '#a29bfe',
+                        ['==', ['get', 'category'], 'Historic Building'], '#fd79a8',
+                        '#74b9ff'
+                    ],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff',
+                    'circle-opacity': 0.8
+                }
+            });
+            
+            // Add text labels
+            map.addLayer({ 
+                'id': 'heritage-sites-layer', 
+                'type': 'symbol', 
+                'source': 'heritage-sites-source', 
+                'layout': { 
+                    'text-field': ['get', 'name'], 
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 
+                    'text-offset': [0, 1.2], 
+                    'text-anchor': 'top', 
+                    'text-size': [
+                        'case',
+                        ['==', ['get', 'category'], 'UNESCO World Heritage'], 14,
+                        12
+                    ]
+                }, 
+                'paint': { 
+                    'text-color': '#ffffff', 
+                    'text-halo-color': '#000000', 
+                    'text-halo-width': 2 
+                } 
+            });
+
+            // Enhanced click interaction
+            map.on('click', 'heritage-sites-circles', (e) => {
+                const properties = e.features[0].properties;
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const panoramaUrl = properties.panorama_url;
+                
+                if (panoramaUrl) {
+                    // Show panoramic image in fullscreen
+                    const viewerContainer = document.getElementById('viewer-container');
+                    viewerContainer.style.display = 'block';
+
+                    // Create a simple panoramic image viewer
+                    document.querySelector('#viewer').innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #1a1a1a; padding: 20px; box-sizing: border-box;">
+                            <div style="max-width: 100%; max-height: 100%; text-align: center;">
+                                <img src="${panoramaUrl}" 
+                                     style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" 
+                                     alt="${properties.name}"
+                                     onload="this.style.opacity='1'"
+                                     style="opacity: 0; transition: opacity 0.3s ease;">
+                                <div style="color: white; margin-top: 15px; font-family: 'Segoe UI', sans-serif;">
+                                    <h3 style="margin: 0; font-size: 24px;">${properties.name}</h3>
+                                    <p style="margin: 5px 0 0 0; color: #ffa500; font-size: 16px;">${properties.category}</p>
+                                    ${properties.year ? `<p style="margin: 5px 0 0 0; color: #ccc; font-size: 14px;">Built: ${properties.year}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add zoom functionality
+                    const img = document.querySelector('#viewer img');
+                    let scale = 1;
+                    let isDragging = false;
+                    let startX, startY, translateX = 0, translateY = 0;
+                    
+                    img.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                        scale *= delta;
+                        scale = Math.max(0.5, Math.min(3, scale));
+                        img.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+                    });
+                    
+                    img.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        startX = e.clientX - translateX;
+                        startY = e.clientY - translateY;
+                        img.style.cursor = 'grabbing';
+                    });
+                    
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        translateX = e.clientX - startX;
+                        translateY = e.clientY - startY;
+                        img.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+                    });
+                    
+                    document.addEventListener('mouseup', () => {
+                        isDragging = false;
+                        img.style.cursor = 'grab';
+                    });
+                    
+                    img.style.cursor = 'grab';
+                } else {
+                    // Show detailed popup
+                    const popupHTML = `
+                        <div class="popup-title">${properties.name}</div>
+                        <div class="popup-category">${properties.category}</div>
+                        ${properties.year ? `<div class="popup-year">Built: ${properties.year}</div>` : ''}
+                        <small style="color: #aaa; margin-top: 8px; display: block;">No 360° view available</small>
+                    `;
+                    
+                    new maplibregl.Popup({ offset: 25 })
+                        .setLngLat(coordinates)
+                        .setHTML(popupHTML)
+                        .addTo(map);
+                }
+            });
+
+            // Enhanced hover effects
+            map.on('mouseenter', 'heritage-sites-circles', (e) => { 
+                map.getCanvas().style.cursor = 'pointer';
+                
+                // Highlight the hovered site
+                map.setPaintProperty('heritage-sites-circles', 'circle-stroke-width', [
+                    'case',
+                    ['==', ['get', 'name'], e.features[0].properties.name], 4,
+                    2
+                ]);
+            });
+            
+            map.on('mouseleave', 'heritage-sites-circles', () => { 
+                map.getCanvas().style.cursor = '';
+                map.setPaintProperty('heritage-sites-circles', 'circle-stroke-width', 2);
+            });
+
+            // Close image viewer
+            document.getElementById('close-viewer-btn').addEventListener('click', () => {
+                const viewerContainer = document.getElementById('viewer-container');
+                viewerContainer.style.display = 'none';
+                // Clear the viewer container
+                document.querySelector('#viewer').innerHTML = '';
+            });
+            
+            // Enhanced fly-to functionality
+            document.getElementById('fly-to-button').addEventListener('click', () => {
+                const lat = parseFloat(document.getElementById('lat-input').value);
+                const lon = parseFloat(document.getElementById('lon-input').value);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    map.flyTo({ 
+                        center: [lon, lat], 
+                        zoom: 15, 
+                        pitch: 75,
+                        bearing: Math.random() * 360, // Random bearing for variety
+                        essential: true,
+                        duration: 2000
+                    });
+                } else {
+                    alert('Please enter valid latitude and longitude values.');
+                }
+            });
+
+            // Initialize site counts
+            updateSiteCounts();
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const viewerContainer = document.getElementById('viewer-container');
+                    if (viewerContainer.style.display === 'block') {
+                        document.getElementById('close-viewer-btn').click();
+                    }
+                }
+            });
+
+            // Auto-rotate the map slowly
+            let isUserInteracting = false;
+            map.on('mousedown', () => { isUserInteracting = true; });
+            map.on('mouseup', () => { isUserInteracting = false; });
+            
+            function rotateCamera() {
+                const viewerContainer = document.getElementById('viewer-container');
+                if (!isUserInteracting && viewerContainer.style.display !== 'block') {
+                    map.rotateTo((map.getBearing() + 0.5) % 360, { duration: 10000 });
+                }
+            }
+            
+            // Start rotation after 5 seconds of inactivity
+            setTimeout(() => {
+                if (!isUserInteracting) {
+                    setInterval(rotateCamera, 10000);
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

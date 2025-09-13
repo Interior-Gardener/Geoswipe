@@ -45,11 +45,11 @@ const LandingPage = () => {
             <p>Rotate, zoom, and explore Earth with smooth 3D interactions</p>
           </div>
 
-          {/* Heritage Mode */}
+          {/* Heritage Mode - Clickable */}
           <div className="feature clickable" onClick={handleHeritageMode} style={{ cursor: 'pointer' }}>
             <div className="feature-icon">🏛️</div>
             <h3>Heritage Mode</h3>
-            <p>Explore cultural heritage sites from Maharashtra</p>
+            <p>Explore cultural heritage sites from around the globe</p>
           </div>
         </div>
       </div>

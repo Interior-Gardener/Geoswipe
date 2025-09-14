@@ -22,7 +22,7 @@ const NightLights = '/assets/night_lights_modified.png';
 const GaiaSky = '/assets/Gaia_EDR3_darkened.png';
 const CountriesData = '/assets/countrieslite.geo.json';
 
-const EarthThreeJS = ({ setSelectedCountry }) => {
+const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideControls = false }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
   const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
@@ -348,35 +348,37 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
     `;
     container.appendChild(title);
 
-    // Enhanced Instructions
-    const instructions = document.createElement('div');
-    instructions.innerHTML = `
-      🖱 <strong>Click to explore countries</strong><br>
-      🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
-      ✋ <strong>Open palm: Move blue cursor dot</strong><br>
-      🖐 <strong>Four fingers (no thumb): Click where cursor points</strong><br>
-      🤏 <strong>Pinch/Zoom with scale limits (0.3x - 3.0x)</strong><br>
-      🌟 <strong>Press 'B' for bright mode</strong><br>
-      ⌨ <strong>Use GUI panel for fine-tuning</strong>
-    `;
-    instructions.style.cssText = `
-      position: absolute;
-      bottom: 140px;
-      left: 20px;
-      color: rgba(255, 255, 255, 0.9);
-      font-family: 'Orbitron', sans-serif;
-      font-size: 14px;
-      font-weight: 400;
-      z-index: 100;
-      background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 40, 80, 0.9));
-      padding: 16px 20px;
-      border-radius: 12px;
-      border: 2px solid rgba(0, 212, 255, 0.3);
-      backdrop-filter: blur(15px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.1);
-      line-height: 1.6;
-    `;
-    container.appendChild(instructions);
+    // Enhanced Instructions - only show if not hidden
+    if (!hideInstructions) {
+      const instructions = document.createElement('div');
+      instructions.innerHTML = `
+        🖱 <strong>Click to explore countries</strong><br>
+        🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
+        ✋ <strong>Open palm: Move blue cursor dot</strong><br>
+        🖐 <strong>Four fingers (no thumb): Click where cursor points</strong><br>
+        🤏 <strong>Pinch/Zoom with scale limits (0.3x - 3.0x)</strong><br>
+        🌟 <strong>Press 'B' for bright mode</strong><br>
+        ⌨ <strong>Use GUI panel for fine-tuning</strong>
+      `;
+      instructions.style.cssText = `
+        position: absolute;
+        bottom: 140px;
+        left: 20px;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        z-index: 100;
+        background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 40, 80, 0.9));
+        padding: 16px 20px;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        backdrop-filter: blur(15px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.1);
+        line-height: 1.6;
+      `;
+      container.appendChild(instructions);
+    }
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
@@ -421,15 +423,30 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
       
       const width = container.clientWidth;
       const height = container.clientHeight;
-      // Clamp and map normalized coordinates to screen
-      let x = Math.min(Math.max(data.x, 0), 1) * width;
-      let y = Math.min(Math.max(data.y, 0), 1) * height;
+      
+      // Improved mapping with calibration adjustments for better edge detection
+      // Allow slight overshoot and then clamp to ensure full screen coverage
+      const calibrationPadding = 0.1; // 10% padding for better edge detection
+      
+      // Map with expanded range, then clamp to screen bounds
+      let x = (data.x - calibrationPadding) / (1 - 2 * calibrationPadding) * width;
+      let y = (data.y - calibrationPadding) / (1 - 2 * calibrationPadding) * height;
+      
+      // Clamp to screen boundaries to ensure cursor stays within screen
+      x = Math.max(0, Math.min(width, x));
+      y = Math.max(0, Math.min(height, y));
+      
       console.log("📍 Updating cursor position:", { 
-        x, y, data, width, height,
-        originalNormalizedX: data.x,
-        originalNormalizedY: data.y,
-        convertedX: x,
-        convertedY: y
+        originalX: data.x,
+        originalY: data.y,
+        mappedX: x,
+        mappedY: y,
+        screenWidth: width,
+        screenHeight: height,
+        reachedLeftEdge: x <= 5,
+        reachedRightEdge: x >= width - 5,
+        reachedTopEdge: y <= 5,
+        reachedBottomEdge: y >= height - 5
       });
       
       // Update both state and ref
@@ -720,7 +737,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
           if (camera && controls) {
             // Get current camera distance from target
             const currentDistance = camera.position.distanceTo(controls.target);
-            const newDistance = Math.min(currentDistance * 1.1, controls.maxDistance);
+            const newDistance = Math.min(currentDistance * 1.05, controls.maxDistance); // Slower zoom out
             
             // Move camera away from target
             const direction = camera.position.clone().sub(controls.target).normalize();
@@ -736,7 +753,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
           if (camera && controls) {
             // Get current camera distance from target
             const currentDistance = camera.position.distanceTo(controls.target);
-            const newDistance = Math.max(currentDistance * 0.9, controls.minDistance);
+            const newDistance = Math.max(currentDistance * 0.95, controls.minDistance); // Slower zoom in
             
             // Move camera closer to target
             const direction = camera.position.clone().sub(controls.target).normalize();
@@ -863,7 +880,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
             controls.update();
           }
         }
-        // Thumbs up: move globe up
+        // Thumbs up: move globe up (show more northern hemisphere/top)
         else if (g === "thumbs_up") {
           // Instead of rotating the group, rotate the camera around the X-axis (up)
           const camera = cameraRef.current;
@@ -871,8 +888,8 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
             // Get current camera position relative to target
             const offset = camera.position.clone().sub(controls.target);
             
-            // Create rotation matrix for X-axis rotation (negative for up movement)
-            const rotationMatrix = new THREE.Matrix4().makeRotationX(-0.1);
+            // Create rotation matrix for X-axis rotation (slower movement for better control)
+            const rotationMatrix = new THREE.Matrix4().makeRotationX(0.05);
             
             // Apply rotation to camera offset
             offset.applyMatrix4(rotationMatrix);
@@ -884,7 +901,7 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
             controls.update();
           }
         }
-        // Thumbs down: move globe down
+        // Thumbs down: move globe down (show more southern hemisphere/bottom)
         else if (g === "thumbs_down") {
           // Instead of rotating the group, rotate the camera around the X-axis (down)
           const camera = cameraRef.current;
@@ -892,8 +909,8 @@ const EarthThreeJS = ({ setSelectedCountry }) => {
             // Get current camera position relative to target
             const offset = camera.position.clone().sub(controls.target);
             
-            // Create rotation matrix for X-axis rotation (positive for down movement)
-            const rotationMatrix = new THREE.Matrix4().makeRotationX(0.1);
+            // Create rotation matrix for X-axis rotation (slower movement for better control)
+            const rotationMatrix = new THREE.Matrix4().makeRotationX(-0.05);
             
             // Apply rotation to camera offset
             offset.applyMatrix4(rotationMatrix);

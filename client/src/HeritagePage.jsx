@@ -9,7 +9,229 @@ const HeritagePage = () => {
   // Sidebar state
   const [sidebarData, setSidebarData] = useState(null); // null or { info, howToReach, view360, model3d }
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Search functionality state
+  const [searchMode, setSearchMode] = useState('coordinates'); // 'coordinates' or 'places'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredPlaces, setFilteredPlaces] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  
   const navigate = useNavigate();
+
+  // Heritage sites data - moved outside useEffect for search functionality
+  const heritageSites = {
+    'type': 'FeatureCollection',
+    'features': [
+      // UNESCO World Heritage Sites
+      { 'type': 'Feature', 'properties': { 'name': 'Ajanta Caves', 'category': 'UNESCO World Heritage', 'year': '2nd century BCE - 480 CE', 'panorama_url': 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.7033, 20.5522] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Ellora Caves', 'category': 'UNESCO World Heritage', 'year': '600-1000 CE', 'panorama_url': 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.1772, 20.0258] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Chhatrapati Shivaji Maharaj Terminus', 'category': 'UNESCO World Heritage', 'year': '1888', 'panorama_url': 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8355, 18.9398] } },
+      
+      // Historic Forts
+      { 'type': 'Feature', 'properties': { 'name': 'Shaniwar Wada', 'category': 'Historic Fort', 'year': '1732', 'panorama_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [73.8553, 18.5196] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Raigad Fort', 'category': 'Historic Fort', 'year': '1656', 'panorama_url': 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4462, 18.2343] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Janjira Fort', 'category': 'Historic Fort', 'year': '15th century', 'panorama_url': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9613, 18.3006] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Sinhagad Fort', 'category': 'Historic Fort', 'year': '2nd century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.7553, 18.3669] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Pratapgad Fort', 'category': 'Historic Fort', 'year': '1656' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5522, 17.9414] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Daulatabad Fort', 'category': 'Historic Fort', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.2347, 19.9372] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Torna Fort', 'category': 'Historic Fort', 'year': '13th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6028, 18.2144] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Rajgad Fort', 'category': 'Historic Fort', 'year': '15th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6719, 18.2403] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Lohagad Fort', 'category': 'Historic Fort', 'year': '18th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4850, 18.7108] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Vishalgad Fort', 'category': 'Historic Fort', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.0231, 16.7719] } },
+      
+      // Monuments & Tombs
+      { 'type': 'Feature', 'properties': { 'name': 'Bibi Ka Maqbara', 'category': 'Monument', 'year': '1660', 'panorama_url': 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.3204, 19.8974] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Gateway of India', 'category': 'Monument', 'year': '1924', 'panorama_url': 'https://images.unsplash.com/photo-1595402513890-acbc47954481?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8347, 18.9217] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Elephanta Caves', 'category': 'UNESCO World Heritage', 'year': '5th-8th century', 'panorama_url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9311, 18.9633] } },
+      
+      // Rock-cut Architecture
+      { 'type': 'Feature', 'properties': { 'name': 'Karla Caves', 'category': 'Rock-cut Cave', 'year': '160 BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4844, 18.7458] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Bhaja Caves', 'category': 'Rock-cut Cave', 'year': '2nd century BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4850, 18.7317] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Bedse Caves', 'category': 'Rock-cut Cave', 'year': '1st century BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5033, 18.7481] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Kanheri Caves', 'category': 'Rock-cut Cave', 'year': '1st century BCE - 10th century CE' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9056, 19.2078] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Aurangabad Caves', 'category': 'Rock-cut Cave', 'year': '6th-7th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.3433, 19.8878] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Lenyadri Caves', 'category': 'Rock-cut Cave', 'year': '1st-3rd century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6928, 19.1850] } },
+      
+      // Temples
+      { 'type': 'Feature', 'properties': { 'name': 'Trimbakeshwar Temple', 'category': 'Temple', 'year': '1755' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5311, 19.9317] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Shirdi Sai Baba Temple', 'category': 'Temple', 'year': '20th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.4769, 19.7669] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Tuljapur Bhavani Temple', 'category': 'Temple', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [76.0683, 18.0089] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Mahalakshmi Temple, Kolhapur', 'category': 'Temple', 'year': '7th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.2264, 16.7050] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Aundha Nagnath Temple', 'category': 'Temple', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [77.0508, 19.5403] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Grishneshwar Temple', 'category': 'Temple', 'year': '18th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.1856, 20.0247] } },
+      
+      // Palaces & Museums
+      { 'type': 'Feature', 'properties': { 'name': 'Aga Khan Palace', 'category': 'Palace', 'year': '1892' }, 'geometry': { 'type': 'Point', 'coordinates': [73.9078, 18.5372] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Raja Dinkar Kelkar Museum', 'category': 'Museum', 'year': '1962' }, 'geometry': { 'type': 'Point', 'coordinates': [73.8550, 18.5092] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Prince of Wales Museum', 'category': 'Museum', 'year': '1922' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8328, 18.9267] } },
+      
+      // Historic Buildings
+      { 'type': 'Feature', 'properties': { 'name': 'Crawford Market', 'category': 'Historic Building', 'year': '1869' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8364, 18.9472] } },
+      { 'type': 'Feature', 'properties': { 'name': 'Rajabai Clock Tower', 'category': 'Historic Building', 'year': '1878' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8281, 18.9289] } },
+      { 'type': 'Feature', 'properties': { 'name': 'High Court Bombay', 'category': 'Historic Building', 'year': '1878' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8322, 18.9300] } }
+    ]
+  };
+
+  // Search functionality
+  const filterPlaces = (query) => {
+    if (!query.trim()) return [];
+    
+    const filtered = heritageSites.features
+      .filter(site => 
+        site.properties.name.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 5) // Limit to 5 results
+      .map(site => ({
+        name: site.properties.name,
+        category: site.properties.category,
+        coordinates: site.geometry.coordinates
+      }));
+    
+    return filtered;
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim()) {
+      const filtered = filterPlaces(query);
+      setFilteredPlaces(filtered);
+      setShowDropdown(filtered.length > 0);
+    } else {
+      setFilteredPlaces([]);
+      setShowDropdown(false);
+    }
+  };
+
+  // Handle place selection from dropdown
+  const handlePlaceSelect = (place) => {
+    setSelectedPlace(place);
+    setSearchQuery(place.name);
+    setShowDropdown(false);
+  };
+
+  // Handle clicks outside dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const flyToBox = document.querySelector('.fly-to-box');
+      if (flyToBox && !flyToBox.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Clear search when switching modes
+  useEffect(() => {
+    setSearchQuery('');
+    setSelectedPlace(null);
+    setShowDropdown(false);
+    setFilteredPlaces([]);
+  }, [searchMode]);
+
+  // Enhanced Fly-to functionality with coordinate and place search support
+  const handleFlyTo = (e) => {
+    e.preventDefault();
+    console.log('Fly-to button clicked, mode:', searchMode);
+    
+    let lat, lon;
+    
+    if (searchMode === 'coordinates') {
+      // Handle coordinate input
+      const latInput = document.getElementById('lat-input');
+      const lonInput = document.getElementById('lon-input');
+      
+      if (!latInput || !lonInput) {
+        alert('Coordinate input fields not found');
+        return;
+      }
+      
+      const latValue = latInput.value.trim();
+      const lonValue = lonInput.value.trim();
+      
+      if (!latValue || !lonValue) {
+        alert('Please enter both latitude and longitude coordinates');
+        return;
+      }
+      
+      lat = parseFloat(latValue);
+      lon = parseFloat(lonValue);
+      
+      if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        alert('Please enter valid coordinates (Lat: -90 to 90, Lon: -180 to 180)');
+        return;
+      }
+    } else if (searchMode === 'places') {
+      // Handle place search
+      if (selectedPlace) {
+        // Use selected place coordinates
+        [lon, lat] = selectedPlace.coordinates;
+        console.log('Using selected place:', selectedPlace.name, 'at', lat, lon);
+      } else if (searchQuery.trim()) {
+        // Try to find exact match or first filtered result
+        const matchedPlaces = filterPlaces(searchQuery);
+        if (matchedPlaces.length > 0) {
+          const place = matchedPlaces[0];
+          [lon, lat] = place.coordinates;
+          console.log('Using first match:', place.name, 'at', lat, lon);
+          // Update selected place
+          setSelectedPlace(place);
+          setSearchQuery(place.name);
+        } else {
+          alert('No heritage site found matching your search. Please select from the dropdown or try a different search term.');
+          return;
+        }
+      } else {
+        alert('Please search for and select a heritage site');
+        return;
+      }
+    }
+    
+    // Execute fly-to with coordinates
+    console.log('Flying to coordinates:', lat, lon);
+    
+    const executeflyTo = () => {
+      try {
+        map.current.flyTo({ 
+          center: [lon, lat], 
+          zoom: 14, 
+          pitch: 60,
+          bearing: -15,
+          essential: true,
+          duration: 3000
+        });
+        console.log('FlyTo command executed successfully');
+        
+        // Hide dropdown if in place search mode
+        if (searchMode === 'places') {
+          setShowDropdown(false);
+        }
+      } catch (error) {
+        console.error('Error during flyTo:', error);
+        alert('Error flying to location. Please try again.');
+      }
+    };
+    
+    if (map.current && map.current.isStyleLoaded()) {
+      executeflyTo();
+    } else if (map.current) {
+      console.log('Map not fully loaded, waiting...');
+      map.current.once('idle', executeflyTo);
+    } else {
+      console.error('Map not initialized');
+      alert('Map is not ready. Please wait and try again.');
+    }
+  };
 
   useEffect(() => {
     if (map.current) return; // Initialize map only once
@@ -34,59 +256,6 @@ const HeritagePage = () => {
       .catch(error => {
         console.error('API key test failed:', error);
       });
-
-    const heritageSites = {
-      'type': 'FeatureCollection',
-      'features': [
-        // UNESCO World Heritage Sites
-        { 'type': 'Feature', 'properties': { 'name': 'Ajanta Caves', 'category': 'UNESCO World Heritage', 'year': '2nd century BCE - 480 CE', 'panorama_url': 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.7033, 20.5522] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Ellora Caves', 'category': 'UNESCO World Heritage', 'year': '600-1000 CE', 'panorama_url': 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.1772, 20.0258] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Chhatrapati Shivaji Maharaj Terminus', 'category': 'UNESCO World Heritage', 'year': '1888', 'panorama_url': 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8355, 18.9398] } },
-        
-        // Historic Forts
-        { 'type': 'Feature', 'properties': { 'name': 'Shaniwar Wada', 'category': 'Historic Fort', 'year': '1732', 'panorama_url': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [73.8553, 18.5196] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Raigad Fort', 'category': 'Historic Fort', 'year': '1656', 'panorama_url': 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4462, 18.2343] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Janjira Fort', 'category': 'Historic Fort', 'year': '15th century', 'panorama_url': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9613, 18.3006] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Sinhagad Fort', 'category': 'Historic Fort', 'year': '2nd century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.7553, 18.3669] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Pratapgad Fort', 'category': 'Historic Fort', 'year': '1656' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5522, 17.9414] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Daulatabad Fort', 'category': 'Historic Fort', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.2347, 19.9372] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Torna Fort', 'category': 'Historic Fort', 'year': '13th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6028, 18.2144] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Rajgad Fort', 'category': 'Historic Fort', 'year': '15th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6719, 18.2403] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Lohagad Fort', 'category': 'Historic Fort', 'year': '18th century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4850, 18.7108] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Vishalgad Fort', 'category': 'Historic Fort', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.0231, 16.7719] } },
-        
-        // Monuments & Tombs
-        { 'type': 'Feature', 'properties': { 'name': 'Bibi Ka Maqbara', 'category': 'Monument', 'year': '1660', 'panorama_url': 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [75.3204, 19.8974] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Gateway of India', 'category': 'Monument', 'year': '1924', 'panorama_url': 'https://images.unsplash.com/photo-1595402513890-acbc47954481?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8347, 18.9217] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Elephanta Caves', 'category': 'UNESCO World Heritage', 'year': '5th-8th century', 'panorama_url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=600&fit=crop' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9311, 18.9633] } },
-        
-        // Rock-cut Architecture
-        { 'type': 'Feature', 'properties': { 'name': 'Karla Caves', 'category': 'Rock-cut Cave', 'year': '160 BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4844, 18.7458] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Bhaja Caves', 'category': 'Rock-cut Cave', 'year': '2nd century BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.4850, 18.7317] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Bedse Caves', 'category': 'Rock-cut Cave', 'year': '1st century BCE' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5033, 18.7481] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Kanheri Caves', 'category': 'Rock-cut Cave', 'year': '1st century BCE - 10th century CE' }, 'geometry': { 'type': 'Point', 'coordinates': [72.9056, 19.2078] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Aurangabad Caves', 'category': 'Rock-cut Cave', 'year': '6th-7th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.3433, 19.8878] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Lenyadri Caves', 'category': 'Rock-cut Cave', 'year': '1st-3rd century' }, 'geometry': { 'type': 'Point', 'coordinates': [73.6928, 19.1850] } },
-        
-        // Temples
-        { 'type': 'Feature', 'properties': { 'name': 'Trimbakeshwar Temple', 'category': 'Temple', 'year': '1755' }, 'geometry': { 'type': 'Point', 'coordinates': [73.5311, 19.9317] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Shirdi Sai Baba Temple', 'category': 'Temple', 'year': '20th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.4769, 19.7669] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Tuljapur Bhavani Temple', 'category': 'Temple', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [76.0683, 18.0089] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Mahalakshmi Temple, Kolhapur', 'category': 'Temple', 'year': '7th century' }, 'geometry': { 'type': 'Point', 'coordinates': [74.2264, 16.7050] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Aundha Nagnath Temple', 'category': 'Temple', 'year': '12th century' }, 'geometry': { 'type': 'Point', 'coordinates': [77.0508, 19.5403] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Grishneshwar Temple', 'category': 'Temple', 'year': '18th century' }, 'geometry': { 'type': 'Point', 'coordinates': [75.1856, 20.0247] } },
-        
-        // Palaces & Museums
-        { 'type': 'Feature', 'properties': { 'name': 'Aga Khan Palace', 'category': 'Palace', 'year': '1892' }, 'geometry': { 'type': 'Point', 'coordinates': [73.9078, 18.5372] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Raja Dinkar Kelkar Museum', 'category': 'Museum', 'year': '1962' }, 'geometry': { 'type': 'Point', 'coordinates': [73.8550, 18.5092] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Prince of Wales Museum', 'category': 'Museum', 'year': '1922' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8328, 18.9267] } },
-        
-        // Historic Buildings
-        { 'type': 'Feature', 'properties': { 'name': 'Crawford Market', 'category': 'Historic Building', 'year': '1869' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8364, 18.9472] } },
-        { 'type': 'Feature', 'properties': { 'name': 'Rajabai Clock Tower', 'category': 'Historic Building', 'year': '1878' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8281, 18.9289] } },
-        { 'type': 'Feature', 'properties': { 'name': 'High Court Bombay', 'category': 'Historic Building', 'year': '1878' }, 'geometry': { 'type': 'Point', 'coordinates': [72.8322, 18.9300] } }
-      ]
-    };
 
     // Color mapping for different categories
     const categoryColors = {
@@ -405,79 +574,7 @@ const HeritagePage = () => {
       }, 500); // Wait 500ms before adding layers
     });
 
-    // Fly-to functionality with better error handling
-    const handleFlyTo = (e) => {
-      e.preventDefault();
-      console.log('Fly-to button clicked');
-      
-      const latInput = document.getElementById('lat-input');
-      const lonInput = document.getElementById('lon-input');
-      
-      console.log('Input elements found:', !!latInput, !!lonInput);
-      
-      if (latInput && lonInput) {
-        const latValue = latInput.value.trim();
-        const lonValue = lonInput.value.trim();
-        
-        console.log('Input values:', latValue, lonValue);
-        
-        const lat = parseFloat(latValue);
-        const lon = parseFloat(lonValue);
-        
-        console.log('Parsed coordinates:', lat, lon);
-        
-        if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-          console.log('Flying to:', lat, lon);
-          if (map.current && map.current.isStyleLoaded()) {
-            try {
-              map.current.flyTo({ 
-                center: [lon, lat], 
-                zoom: 14, 
-                pitch: 60,
-                bearing: -15,
-                essential: true,
-                duration: 3000
-              });
-              console.log('FlyTo command executed successfully');
-            } catch (error) {
-              console.error('Error during flyTo:', error);
-            }
-          } else if (map.current) {
-            console.log('Map not fully loaded, waiting...');
-            // Wait for map to be ready
-            map.current.once('idle', () => {
-              map.current.flyTo({ 
-                center: [lon, lat], 
-                zoom: 14, 
-                pitch: 60,
-                bearing: -15,
-                essential: true,
-                duration: 3000
-              });
-              console.log('FlyTo command executed after map idle');
-            });
-          } else {
-            console.error('Map not initialized');
-          }
-        } else {
-          alert('Please enter valid coordinates (Lat: -90 to 90, Lon: -180 to 180)');
-        }
-      } else {
-        console.error('Input elements not found');
-        alert('Input fields not found');
-      }
-    };
-
-    const setupFlyTo = () => {
-      const flyToButton = document.getElementById('fly-to-button');
-      console.log('Setting up fly-to button:', !!flyToButton);
-      if (flyToButton) {
-        // Remove existing listener if any
-        flyToButton.removeEventListener('click', handleFlyTo);
-        flyToButton.addEventListener('click', handleFlyTo);
-        console.log('Fly-to button listener added');
-      }
-    };
+    // Note: handleFlyTo moved outside useEffect to component scope for React onClick handler
 
     // Close image viewer functionality
     const setupCloseViewer = () => {
@@ -513,7 +610,6 @@ const HeritagePage = () => {
       // Setup event listeners after component mounts
       setTimeout(() => {
         console.log('Setting up event listeners...');
-        setupFlyTo();
         setupCloseViewer();
         
         // Add some helpful default coordinates
@@ -542,7 +638,6 @@ const HeritagePage = () => {
       <div ref={mapContainer} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%', zIndex: 1 }} />
 
       {/* Fly-to Box */}
-      {/* ...existing code... */}
       <div className="fly-to-box" style={{
         position: 'absolute',
         top: '10px',
@@ -553,12 +648,143 @@ const HeritagePage = () => {
         boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
         zIndex: 10,
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        maxWidth: '250px'
+        minWidth: '280px'
       }}>
-        <strong>🧭 Fly to Location</strong><br /><br />
-        <label>Lat:</label> <input type="number" id="lat-input" placeholder="19.076" step="0.001" min="-90" max="90" style={{ marginRight: '5px', width: '80px', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }} />
-        <label>Lon:</label> <input type="number" id="lon-input" placeholder="72.877" step="0.001" min="-180" max="180" style={{ marginRight: '5px', width: '80px', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }} />
-        <button id="fly-to-button" style={{ padding: '5px 10px', background: '#007cba', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Go</button>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+          <strong>🧭 Fly to Location</strong>
+        </div>
+        
+        {/* Mode Toggle */}
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ marginRight: '10px' }}>
+            <input 
+              type="radio" 
+              value="coordinates" 
+              checked={searchMode === 'coordinates'} 
+              onChange={(e) => setSearchMode(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            Coordinates
+          </label>
+          <label>
+            <input 
+              type="radio" 
+              value="places" 
+              checked={searchMode === 'places'} 
+              onChange={(e) => setSearchMode(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            Places
+          </label>
+        </div>
+
+        {/* Coordinate Mode */}
+        {searchMode === 'coordinates' && (
+          <div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Latitude:</label>
+              <input 
+                type="number" 
+                id="lat-input" 
+                placeholder="19.076" 
+                step="0.001" 
+                min="-90" 
+                max="90" 
+                style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }} 
+              />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Longitude:</label>
+              <input 
+                type="number" 
+                id="lon-input" 
+                placeholder="72.877" 
+                step="0.001" 
+                min="-180" 
+                max="180" 
+                style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }} 
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Place Search Mode */}
+        {searchMode === 'places' && (
+          <div style={{ position: 'relative', marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Search Heritage Site:</label>
+            <input 
+              type="text" 
+              id="place-search-input"
+              placeholder="Type place name (e.g., Aja for Ajanta)"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => {
+                if (filteredPlaces.length > 0) setShowDropdown(true);
+              }}
+              style={{ 
+                width: '100%', 
+                padding: '5px', 
+                border: '1px solid #ccc', 
+                borderRadius: '3px',
+                borderBottomLeftRadius: showDropdown ? '0' : '3px',
+                borderBottomRightRadius: showDropdown ? '0' : '3px'
+              }} 
+            />
+            
+            {/* Dropdown */}
+            {showDropdown && filteredPlaces.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '0',
+                right: '0',
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderTop: 'none',
+                borderBottomLeftRadius: '3px',
+                borderBottomRightRadius: '3px',
+                maxHeight: '150px',
+                overflowY: 'auto',
+                zIndex: 1000,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                {filteredPlaces.map((place, index) => (
+                  <div
+                    key={index}
+                    className="dropdown-item"
+                    onClick={() => handlePlaceSelect(place)}
+                    style={{
+                      padding: '8px 10px',
+                      cursor: 'pointer',
+                      borderBottom: index < filteredPlaces.length - 1 ? '1px solid #eee' : 'none',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <div style={{ fontWeight: '500', fontSize: '13px' }}>{place.name}</div>
+                    <div style={{ fontSize: '11px', color: '#666' }}>{place.category}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <button 
+          onClick={handleFlyTo}
+          style={{ 
+            width: '100%',
+            padding: '8px 10px', 
+            background: '#007cba', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '3px', 
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          {searchMode === 'coordinates' ? 'Fly to Coordinates' : 'Fly to Place'}
+        </button>
       </div>
 
       {/* Info Panel */}
@@ -739,6 +965,17 @@ const HeritagePage = () => {
           .sidebar-block:hover {
             background: #f0f4ff !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+          }
+          .dropdown-item:hover {
+            background-color: #f5f5f5 !important;
+          }
+          .fly-to-box input:focus {
+            outline: none;
+            border-color: #007cba;
+            box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+          }
+          .fly-to-box button:hover {
+            background: #005fa3 !important;
           }
 
         `

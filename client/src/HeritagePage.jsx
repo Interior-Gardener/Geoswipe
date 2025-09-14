@@ -1,15 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const viewer = useRef(null);
+  // Sidebar state
+  const [sidebarData, setSidebarData] = useState(null); // null or { info, howToReach, view360, model3d }
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (map.current) return; // Initialize map only once
-
     console.log('Initializing map...');
     const apiKey = 'UItNGCy3GRgJ70RLvqlZ';
     
@@ -276,32 +279,67 @@ const HeritagePage = () => {
       }
 
       // Enhanced click interaction
-      map.current.on('click', 'heritage-sites-circles', (e) => {
+
+      map.current.on('click', 'heritage-sites-circles', async (e) => {
         const properties = e.features[0].properties;
         const coordinates = e.features[0].geometry.coordinates.slice();
-        const panoramaUrl = properties.panorama_url;
-        
-        let popupContent = `
-          <div class="popup-category">${properties.category}</div>
-          <div class="popup-title">${properties.name}</div>
-          <div class="popup-year">${properties.year}</div>
-        `;
-        
-        if (panoramaUrl) {
-          popupContent += '<br><small>Click to view panorama</small>';
-          
-          // Show panorama in viewer
-          const viewerContainer = document.getElementById('viewer-container');
-          const viewerDiv = document.querySelector('#viewer');
-          
-          viewerDiv.innerHTML = `<img src="${panoramaUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="${properties.name}">`;
-          viewerContainer.style.display = 'block';
-        }
 
-        new maplibregl.Popup({ closeOnClick: false })
-          .setLngLat(coordinates)
-          .setHTML(popupContent)
-          .addTo(map.current);
+        // Simulate fetching detailed data from API/database
+        // Replace this with your real API call
+        const fetchDetails = async (siteName) => {
+          // Simulate: Only Ajanta Caves and Shaniwar Wada have all details, others partial/none
+          if (siteName === 'Ajanta Caves') {
+            return {
+              info: {
+                summary: 'Ancient Buddhist cave monuments, UNESCO site.',
+                full: 'Ajanta Caves are 30 rock-cut Buddhist cave monuments dating from the 2nd century BCE to about 480 CE in Maharashtra, India.'
+              },
+              howToReach: {
+                summary: 'Nearest city: Aurangabad. Road/train connectivity.',
+                full: 'Ajanta Caves are about 100 km from Aurangabad. You can reach by road, taxi, or bus from Aurangabad. Jalgaon is the nearest railway station.'
+              },
+              view360: {
+                summary: '360° panorama available.',
+                url: properties.panorama_url,
+                full: 'Experience a 360° view of Ajanta Caves.'
+              },
+              model3d: {
+                summary: '3D model available.',
+                url: '/3dmodels/ajanta',
+                full: 'Explore the 3D model of Ajanta Caves.'
+              }
+            };
+          } else if (siteName === 'Shaniwar Wada') {
+            return {
+              info: {
+                summary: 'Historic fortification in Pune.',
+                full: 'Shaniwar Wada is an 18th-century fortification in Pune, India. Built in 1732, it was the seat of the Peshwas.'
+              },
+              howToReach: {
+                summary: 'Located in Pune city center.',
+                full: 'Shaniwar Wada is easily accessible by road and public transport within Pune.'
+              },
+              // No 360 or 3D model for demo
+            };
+          } else {
+            // No details in DB for other sites
+            return {
+              info: {
+                summary: properties.name + ' - No detailed info available.',
+                full: properties.name + ' - No detailed info in database.'
+              }
+            };
+          }
+        };
+
+        const details = await fetchDetails(properties.name);
+        setSidebarData({
+          name: properties.name,
+          category: properties.category,
+          year: properties.year,
+          ...details
+        });
+        setSidebarOpen(true);
       });
 
       // Enhanced hover effects
@@ -457,11 +495,11 @@ const HeritagePage = () => {
 
   return (
     <div style={{ margin: 0, padding: 0, overflow: 'hidden', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}>
-      
       {/* Map Container - First so it's in background */}
       <div ref={mapContainer} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%', zIndex: 1 }} />
-      
+
       {/* Fly-to Box */}
+      {/* ...existing code... */}
       <div className="fly-to-box" style={{
         position: 'absolute',
         top: '10px',
@@ -481,6 +519,7 @@ const HeritagePage = () => {
       </div>
 
       {/* Info Panel */}
+      {/* ...existing code... */}
       <div className="info-panel" style={{
         position: 'absolute',
         top: '10px',
@@ -501,6 +540,7 @@ const HeritagePage = () => {
       </div>
 
       {/* Legend */}
+      {/* ...existing code... */}
       <div className="legend" style={{
         position: 'absolute',
         bottom: '30px',
@@ -544,14 +584,77 @@ const HeritagePage = () => {
         </div>
       </div>
 
-
-      {/* Viewer Container */}
-      <div id="viewer-container" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1000, background: 'black', display: 'none' }}>
-        <button id="close-viewer-btn" style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 1001, background: 'rgba(0,0,0,0.7)', color: 'white', border: 'none', borderRadius: '50%', width: '45px', height: '45px', fontSize: '24px', cursor: 'pointer', transition: 'background 0.3s' }}>&times;</button>
-        <div id="viewer" style={{ width: '100%', height: '100%' }}></div>
-      </div>
+      {/* Sidebar for heritage site details */}
+      {sidebarOpen && sidebarData && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 350,
+          height: '100%',
+          background: 'rgba(255,255,255,0.98)',
+          zIndex: 2000,
+          boxShadow: '-4px 0 16px rgba(0,0,0,0.2)',
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+        }}>
+          <div style={{ padding: '20px 20px 10px 20px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: 20 }}>{sidebarData.name}</div>
+              <div style={{ color: '#888', fontSize: 14 }}>{sidebarData.category} &middot; {sidebarData.year}</div>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', fontSize: 28, color: '#888', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
+          </div>
+          {/* Info Block */}
+          {sidebarData.info && (
+            <SidebarBlock
+              icon="📄"
+              title="Information"
+              summary={sidebarData.info.summary}
+              onClick={() => window.open(`/heritage/info/${encodeURIComponent(sidebarData.name)}`, '_blank')}
+            />
+          )}
+          {/* How to Reach Block */}
+          {sidebarData.howToReach && (
+            <SidebarBlock
+              icon="🗺️"
+              title="How to Reach"
+              summary={sidebarData.howToReach.summary}
+              onClick={() => window.open(`/heritage/howtoreach/${encodeURIComponent(sidebarData.name)}`, '_blank')}
+            />
+          )}
+          {/* 360 View Block */}
+          {sidebarData.view360 && (
+            <SidebarBlock
+              icon="🌐"
+              title="360° View"
+              summary={sidebarData.view360.summary}
+              onClick={() => window.open(sidebarData.view360.url, '_blank')}
+            />
+          )}
+          {/* 3D Model Block */}
+          {sidebarData.model3d && (
+            <SidebarBlock
+              icon="🧊"
+              title="3D Model"
+              summary={sidebarData.model3d.summary}
+              onClick={() => {
+                // Add more models here as needed
+                if (sidebarData.name === 'Ajanta Caves') {
+                  navigate('/sketchfab/d916f1bc949c4284ab3fe56ddbfe660d');
+                } else {
+                  window.open(sidebarData.model3d.url, '_blank');
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {/* Add custom styles for popups */}
+      {/* ...existing code... */}
       <style dangerouslySetInnerHTML={{
         __html: `
           .maplibregl-popup-content { 
@@ -585,10 +688,39 @@ const HeritagePage = () => {
           .fly-to-box button:hover { 
             background: #005fa3 !important; 
           }
+          .sidebar-block:hover {
+            background: #f0f4ff !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+          }
+
         `
       }} />
     </div>
   );
+
+function SidebarBlock({ icon, title, summary, onClick }) {
+  return (
+    <div
+      className="sidebar-block"
+      style={{
+        padding: '18px 20px',
+        borderBottom: '1px solid #eee',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 16,
+        transition: 'background 0.2s, box-shadow 0.2s',
+      }}
+      onClick={onClick}
+    >
+      <span style={{ fontSize: 28, marginRight: 12 }}>{icon}</span>
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{title}</div>
+        <div style={{ color: '#444', fontSize: 14 }}>{summary}</div>
+      </div>
+    </div>
+  );
+};
 };
 
 export default HeritagePage;

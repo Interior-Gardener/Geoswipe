@@ -8,6 +8,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const Country = require("./models/Country"); 
+const HeritageSite = require("./models/HeritageSite");
 //const path = require('path');
 
 // Enable CORS for all requests (safe for dev; restrict in prod if needed)
@@ -86,6 +87,50 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log("Frontend disconnected");
   });
+});
+
+// ===== HERITAGE SITE API ROUTES =====
+
+// Get all heritage sites
+app.get("/api/heritage-sites", async (req, res) => {
+  try {
+    const sites = await HeritageSite.find({});
+    res.json(sites);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch heritage sites" });
+  }
+});
+
+// Get specific heritage site by name
+app.get("/api/heritage/:name", async (req, res) => {
+  try {
+    const siteName = decodeURIComponent(req.params.name);
+    const site = await HeritageSite.findOne({ 
+      name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+    });
+    
+    if (!site) {
+      return res.status(404).json({ error: "Heritage site not found" });
+    }
+    
+    res.json(site);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch heritage site" });
+  }
+});
+
+// Get heritage sites by category
+app.get("/api/heritage/category/:category", async (req, res) => {
+  try {
+    const category = decodeURIComponent(req.params.category);
+    const sites = await HeritageSite.find({ category: category });
+    res.json(sites);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch heritage sites by category" });
+  }
 });
 
 // ===== API ROUTES =====

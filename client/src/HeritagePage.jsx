@@ -321,6 +321,49 @@ const HeritagePage = () => {
               },
               // No 360 or 3D model for demo
             };
+          } else if(siteName === 'Ellora Caves') {
+            return {
+              info: {
+                summary: 'Famous for its monumental caves.',
+                full: 'Ellora Caves are one of the largest rock-cut monastery-temple cave complexes in the world, featuring Buddhist, Hindu, and Jain monuments.'
+              },
+              howToReach: {
+                summary: 'Nearest city: Aurangabad. Road/train connectivity.',
+                full: 'Ellora Caves are about 30 km from Aurangabad. You can reach by road, taxi, or bus from Aurangabad. Aurangabad is the nearest railway station.'
+              },
+              view360: {
+                summary: '360° panorama available.',
+                url: properties.panorama_url,
+                full: 'Experience a 360° view of Ellora Caves.'
+              },
+              model3d: {
+                summary: '3D model available.',
+                url: '/3dmodels/ellora',
+                full: 'Explore the 3D model of Ellora Caves.'
+              }
+            };
+          }
+          else if(siteName === 'Gateway of India') {
+            return {
+              info: {
+                summary: 'Iconic arch monument in Mumbai.',
+                full: 'Gateway of India is a historical monument located in Mumbai, India. It was built in 1924 to commemorate the visit of King George V and Queen Mary to India.'
+              },
+              howToReach: {
+                summary: 'Located in Colaba, easily accessible by road.',
+                full: 'Gateway of India is situated in Colaba, Mumbai. It is well connected by local trains, buses, and taxis.'
+              },
+              view360: {
+                summary: '360° panorama available.',
+                url: properties.panorama_url,
+                full: 'Experience a 360° view of Gateway of India.'
+              },
+              model3d: {
+                summary: '3D model available.',
+                url: '/3dmodels/gateway',
+                full: 'Explore the 3D model of Gateway of India.'
+              }
+            };
           } else {
             // No details in DB for other sites
             return {
@@ -644,6 +687,11 @@ const HeritagePage = () => {
                 // Add more models here as needed
                 if (sidebarData.name === 'Ajanta Caves') {
                   navigate('/sketchfab/d916f1bc949c4284ab3fe56ddbfe660d');
+                }
+                else if(sidebarData.name === 'Ellora Caves') {
+                  navigate('/sketchfab/1a5ec1e212f9451e80dc051e97164d17');
+                } else if (sidebarData.name === 'Gateway of India') {
+                  navigate('/sketchfab/38a652e9f3bf49039026ef65ef61ac92');
                 } else {
                   window.open(sidebarData.model3d.url, '_blank');
                 }

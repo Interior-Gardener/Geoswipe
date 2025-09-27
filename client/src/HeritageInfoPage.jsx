@@ -107,7 +107,7 @@ const HeritageInfoPage = () => {
         </>
       )}
     </div>
-  );
+  ); 
 };
 
 export default HeritageInfoPage;

@@ -76,6 +76,19 @@ const HeritageSiteSchema = new mongoose.Schema({
     images: [String],
     video_url: String
   },
+  view360: { // for 360 degree street view
+    summary: String,
+    iframeUrl: String,
+    full: String,
+    heading: { type: Number, default: 0 },
+    pitch: { type: Number, default: 0 }
+  },
+  model3d: {  // for 3d model
+    summary: String,
+    url: String,
+    full: String,
+    sketchfabId: String // For Sketchfab integration
+  },
   visitor_info: {
     timings: String,
     entryFee: String,

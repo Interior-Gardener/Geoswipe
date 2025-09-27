@@ -68,6 +68,19 @@ const heritageSitesData = [
         localTransport: "Regular MSRTC bus services from Aurangabad bus station. Private taxis and auto-rickshaws also available."
       }
     },
+    view360: {
+      summary: '360° Street View available.',
+      iframeUrl: '', // Will be generated dynamically
+      full: 'Experience a 360° Street View of Ajanta Caves.',
+      heading: 157.14547735902838,
+      pitch: 0
+    },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/ajanta',
+      full: 'Explore the 3D model of Ajanta Caves.',
+      sketchfabId: 'd916f1bc949c4284ab3fe56ddbfe660d'
+    },    
     media: {
       panorama_url: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=1200&h=600&fit=crop"
     },
@@ -132,6 +145,19 @@ const heritageSitesData = [
         localTransport: "Regular MSRTC buses every 30 minutes from Aurangabad Central Bus Station. Shared jeeps and private taxis also available."
       }
     },
+    view360: {
+      summary: '360° Street View available.',
+      iframeUrl: '',
+      full: 'Experience a 360° Street View of Ellora Caves.',
+      heading: 150.123456789, // Example heading, adjust as needed
+      pitch: 0
+    },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/ellora',
+      full: 'Explore the 3D model of Ellora Caves.',
+      sketchfabId: 'a1b2c3d4e5f67890123456789abcdef0' // Example, replace with real ID
+    },    
     media: {
       panorama_url: "https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop"
     },
@@ -196,6 +222,19 @@ const heritageSitesData = [
         localTransport: "Local trains to Churchgate/CST, then bus/taxi/walk. BEST buses, Mumbai taxis, and auto-rickshaws available."
       }
     },
+    view360: {
+      summary: '360° Street View available.',
+      iframeUrl: '',
+      full: 'Experience a 360° Street View of Gateway of India.',
+      heading: 180.987654321, // Example heading, adjust as needed
+      pitch: 0
+    },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/gateway-of-india',
+      full: 'Explore the 3D model of Gateway of India.',
+      sketchfabId: '1234567890abcdef1234567890abcdef' // Example, replace with real ID
+    },    
     media: {
       panorama_url: "https://images.unsplash.com/photo-1595402513890-acbc47954481?w=1200&h=600&fit=crop"
     },
@@ -205,6 +244,254 @@ const heritageSitesData = [
       bestTimeToVisit: "October to March, sunset hours",
       duration: "1-2 hours"
     }
+  },
+
+   // Historic Forts
+   {
+    name: 'Shaniwar Wada',
+    category: 'Historic Fort',
+    year: '1732',
+    location: { coordinates: [73.8553, 18.5196], country: 'India' },
+    info: { summary: 'Shaniwar Wada summary', full: 'Shaniwar Wada full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    media: { panorama_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=600&fit=crop' }
+  },
+  {
+    name: 'Raigad Fort',
+    category: 'Historic Fort',
+    year: '1656',
+    location: { coordinates: [73.4462, 18.2343], country: 'India' },
+    info: { summary: 'Raigad Fort summary', full: 'Raigad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    media: { panorama_url: 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=1200&h=600&fit=crop' }
+  },
+  {
+    name: 'Janjira Fort',
+    category: 'Historic Fort',
+    year: '15th century',
+    location: { coordinates: [72.9613, 18.3006], country: 'India' },
+    info: { summary: 'Janjira Fort summary', full: 'Janjira Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    media: { panorama_url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&h=600&fit=crop' }
+  },
+  {
+    name: 'Sinhagad Fort',
+    category: 'Historic Fort',
+    year: '2nd century',
+    location: { coordinates: [73.7553, 18.3669], country: 'India' },
+    info: { summary: 'Sinhagad Fort summary', full: 'Sinhagad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Pratapgad Fort',
+    category: 'Historic Fort',
+    year: '1656',
+    location: { coordinates: [73.5522, 17.9414], country: 'India' },
+    info: { summary: 'Pratapgad Fort summary', full: 'Pratapgad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Daulatabad Fort',
+    category: 'Historic Fort',
+    year: '12th century',
+    location: { coordinates: [75.2347, 19.9372], country: 'India' },
+    info: { summary: 'Daulatabad Fort summary', full: 'Daulatabad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Torna Fort',
+    category: 'Historic Fort',
+    year: '13th century',
+    location: { coordinates: [73.6028, 18.2144], country: 'India' },
+    info: { summary: 'Torna Fort summary', full: 'Torna Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Rajgad Fort',
+    category: 'Historic Fort',
+    year: '15th century',
+    location: { coordinates: [73.6719, 18.2403], country: 'India' },
+    info: { summary: 'Rajgad Fort summary', full: 'Rajgad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Lohagad Fort',
+    category: 'Historic Fort',
+    year: '18th century',
+    location: { coordinates: [73.4850, 18.7108], country: 'India' },
+    info: { summary: 'Lohagad Fort summary', full: 'Lohagad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Vishalgad Fort',
+    category: 'Historic Fort',
+    year: '12th century',
+    location: { coordinates: [74.0231, 16.7719], country: 'India' },
+    info: { summary: 'Vishalgad Fort summary', full: 'Vishalgad Fort full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+
+ // Monuments
+  {
+    name: 'Bibi Ka Maqbara',
+    category: 'Monument',
+    year: '1660',
+    location: { coordinates: [75.3204, 19.8974], country: 'India' },
+    info: { summary: 'Bibi Ka Maqbara summary', full: 'Bibi Ka Maqbara full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    media: { panorama_url: 'https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop' }
+  },
+
+   // Rock-cut Caves
+   {
+    name: 'Karla Caves',
+    category: 'Rock-cut Cave',
+    year: '160 BCE',
+    location: { coordinates: [73.4844, 18.7458], country: 'India' },
+    info: { summary: 'Karla Caves summary', full: 'Karla Caves full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Bhaja Caves',
+    category: 'Rock-cut Cave',
+    year: '2nd century BCE',
+    location: { coordinates: [73.4850, 18.7317], country: 'India' },
+    info: { summary: 'Bhaja Caves summary', full: 'Bhaja Caves full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Bedse Caves',
+    category: 'Rock-cut Cave',
+    year: '1st century BCE',
+    location: { coordinates: [73.5033, 18.7481], country: 'India' },
+    info: { summary: 'Bedse Caves summary', full: 'Bedse Caves full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Kanheri Caves',
+    category: 'Rock-cut Cave',
+    year: '1st century BCE - 10th century CE',
+    location: { coordinates: [72.9056, 19.2078], country: 'India' },
+    info: { summary: 'Kanheri Caves summary', full: 'Kanheri Caves full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Aurangabad Caves',
+    category: 'Rock-cut Cave',
+    year: '6th-7th century',
+    location: { coordinates: [75.3433, 19.8878], country: 'India' },
+    info: { summary: 'Aurangabad Caves summary', full: 'Aurangabad Caves full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Lenyadri Caves',
+    category: 'Rock-cut Cave',
+    year: '1st-3rd century',
+    location: { coordinates: [73.6928, 19.1850], country: 'India' },
+    info: { summary: 'Lenyadri Caves summary', full: 'Lenyadri Caves full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+
+  // Temples
+  {
+    name: 'Trimbakeshwar Temple',
+    category: 'Temple',
+    year: '1755',
+    location: { coordinates: [73.5311, 19.9317], country: 'India' },
+    info: { summary: 'Trimbakeshwar Temple summary', full: 'Trimbakeshwar Temple full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Shirdi Sai Baba Temple',
+    category: 'Temple',
+    year: '20th century',
+    location: { coordinates: [74.4769, 19.7669], country: 'India' },
+    info: { summary: 'Shirdi Sai Baba Temple summary', full: 'Shirdi Sai Baba Temple full description' },
+    howToReach: { summary: 'By road or train', full: 'Detailed directions' }
+  },
+  {
+    name: 'Tuljapur Bhavani Temple',
+    category: 'Temple',
+    year: '12th century',
+    location: { coordinates: [76.0683, 18.0089], country: 'India' },
+    info: { summary: 'Tuljapur Bhavani Temple summary', full: 'Tuljapur Bhavani Temple full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Mahalakshmi Temple, Kolhapur',
+    category: 'Temple',
+    year: '7th century',
+    location: { coordinates: [74.2264, 16.7050], country: 'India' },
+    info: { summary: 'Mahalakshmi Temple summary', full: 'Mahalakshmi Temple full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Aundha Nagnath Temple',
+    category: 'Temple',
+    year: '12th century',
+    location: { coordinates: [77.0508, 19.5403], country: 'India' },
+    info: { summary: 'Aundha Nagnath Temple summary', full: 'Aundha Nagnath Temple full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Grishneshwar Temple',
+    category: 'Temple',
+    year: '18th century',
+    location: { coordinates: [75.1856, 20.0247], country: 'India' },
+    info: { summary: 'Grishneshwar Temple summary', full: 'Grishneshwar Temple full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+
+  // Palaces & Museums
+  {
+    name: 'Aga Khan Palace',
+    category: 'Palace',
+    year: '1892',
+    location: { coordinates: [73.9078, 18.5372], country: 'India' },
+    info: { summary: 'Aga Khan Palace summary', full: 'Aga Khan Palace full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Raja Dinkar Kelkar Museum',
+    category: 'Museum',
+    year: '1962',
+    location: { coordinates: [73.8550, 18.5092], country: 'India' },
+    info: { summary: 'Raja Dinkar Kelkar Museum summary', full: 'Raja Dinkar Kelkar Museum full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Prince of Wales Museum',
+    category: 'Museum',
+    year: '1922',
+    location: { coordinates: [72.8328, 18.9267], country: 'India' },
+    info: { summary: 'Prince of Wales Museum summary', full: 'Prince of Wales Museum full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+
+  // Historic Buildings
+  {
+    name: 'Crawford Market',
+    category: 'Historic Building',
+    year: '1869',
+    location: { coordinates: [72.8364, 18.9472], country: 'India' },
+    info: { summary: 'Crawford Market summary', full: 'Crawford Market full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'Rajabai Clock Tower',
+    category: 'Historic Building',
+    year: '1878',
+    location: { coordinates: [72.8281, 18.9289], country: 'India' },
+    info: { summary: 'Rajabai Clock Tower summary', full: 'Rajabai Clock Tower full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
+  },
+  {
+    name: 'High Court Bombay',
+    category: 'Historic Building',
+    year: '1878',
+    location: { coordinates: [72.8322, 18.9300], country: 'India' },
+    info: { summary: 'High Court Bombay summary', full: 'High Court Bombay full description' },
+    howToReach: { summary: 'By road', full: 'Detailed directions' }
   }
 ];
 

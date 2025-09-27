@@ -69,6 +69,78 @@ app.get("/api/country-question", async (req, res) => {
   }
 });
 
+// Get heritage sites for map display (GeoJSON format)
+app.get("/api/heritage-sites/geojson", async (req, res) => {
+  try {
+    const sites = await HeritageSite.find({});
+    
+    const geoJsonData = {
+      type: 'FeatureCollection',
+      features: sites.map(site => ({
+        type: 'Feature',
+        properties: {
+          name: site.name,
+          category: site.category,
+          year: site.year,
+          panorama_url: site.media?.panorama_url
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: site.location.coordinates
+        }
+      }))
+    };
+    
+    res.json(geoJsonData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch heritage sites GeoJSON" });
+  }
+});
+
+// Get detailed heritage site data (for sidebar)
+app.get("/api/heritage-sites/:name/details", async (req, res) => {
+  try {
+    const siteName = decodeURIComponent(req.params.name);
+    const site = await HeritageSite.findOne({ 
+      name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+    });
+    
+    if (!site) {
+      return res.status(404).json({ error: "Heritage site not found" });
+    }
+    
+    // Generate Street View URL dynamically
+    const generateStreetViewUrl = (lat, lng, heading = 0, pitch = 0) => {
+      return `https://www.google.com/maps/embed?pb=!4v${Date.now()}!6m8!1m7!1s${lat},${lng}!2m2!1d${lat}!2d${lng}!3f${heading}!4f${pitch}!5f0.7820865974627469`;
+    };
+    
+    const [lon, lat] = site.location.coordinates;
+    const streetViewUrl = site.view360 ? 
+      generateStreetViewUrl(lat, lon, site.view360.heading || 0, site.view360.pitch || 0) : 
+      null;
+    
+    const response = {
+      name: site.name,
+      category: site.category,
+      year: site.year,
+      info: site.info,
+      howToReach: site.howToReach,
+      view360: site.view360 ? {
+        ...site.view360,
+        iframeUrl: streetViewUrl
+      } : null,
+      model3d: site.model3d,
+      media: site.media,
+      visitor_info: site.visitor_info
+    };
+    
+    res.json(response);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch heritage site details" });
+  }
+});
 
 //socket io logic
 io.on('connection', (socket) => {

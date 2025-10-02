@@ -156,7 +156,7 @@ const heritageSitesData = [
       summary: '3D model available.',
       url: '/3dmodels/ellora',
       full: 'Explore the 3D model of Ellora Caves.',
-      sketchfabId: 'a1b2c3d4e5f67890123456789abcdef0' // Example, replace with real ID
+      sketchfabId: '1a5ec1e212f9451e80dc051e97164d17' // replaced with real ID
     },    
     media: {
       panorama_url: "https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop"
@@ -233,7 +233,7 @@ const heritageSitesData = [
       summary: '3D model available.',
       url: '/3dmodels/gateway-of-india',
       full: 'Explore the 3D model of Gateway of India.',
-      sketchfabId: '1234567890abcdef1234567890abcdef' // Example, replace with real ID
+      sketchfabId: '38a652e9f3bf49039026ef65ef61ac92' // replaced with real ID
     },    
     media: {
       panorama_url: "https://images.unsplash.com/photo-1595402513890-acbc47954481?w=1200&h=600&fit=crop"
@@ -301,6 +301,12 @@ const heritageSitesData = [
         localTransport: 'Auto-rickshaws, buses, and taxis are readily available from anywhere in Pune city to reach Shaniwar Wada.'
       }
     },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/gateway-of-india',
+      full: 'Explore the 3D model of Gateway of India.',
+      sketchfabId: '6a4055758e6a463b9733c6c7e64f0c71' // replaced with real ID
+    },
     visitor_info: {
       timings: '9:00 AM - 5:30 PM (Closed on Mondays)',
       entryFee: '₹25 for Indians, ₹300 for foreigners',
@@ -316,7 +322,13 @@ const heritageSitesData = [
     location: { coordinates: [73.4462, 18.2343], country: 'India' },
     info: { summary: 'Raigad Fort summary', full: 'Raigad Fort full description' },
     howToReach: { summary: 'By road', full: 'Detailed directions' },
-    media: { panorama_url: 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=1200&h=600&fit=crop' }
+    media: { panorama_url: 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=1200&h=600&fit=crop' },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/gateway-of-india',
+      full: 'Explore the 3D model of Gateway of India.',
+      sketchfabId: 'ae06291e8d79463b950c0f71d28ad90f' // replaced with real ID
+    }
   },
   {
     name: 'Janjira Fort',
@@ -349,7 +361,13 @@ const heritageSitesData = [
     year: '12th century',
     location: { coordinates: [75.2347, 19.9372], country: 'India' },
     info: { summary: 'Daulatabad Fort summary', full: 'Daulatabad Fort full description' },
-    howToReach: { summary: 'By road', full: 'Detailed directions' }
+    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/gateway-of-india',
+      full: 'Explore the 3D model of Gateway of India.',
+      sketchfabId: '496e6f7d00e04d4587a8c3dc768cef40' // replaced with real ID
+    }
   },
   {
     name: 'Torna Fort',
@@ -434,7 +452,13 @@ const heritageSitesData = [
     year: '6th-7th century',
     location: { coordinates: [75.3433, 19.8878], country: 'India' },
     info: { summary: 'Aurangabad Caves summary', full: 'Aurangabad Caves full description' },
-    howToReach: { summary: 'By road', full: 'Detailed directions' }
+    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    model3d: {
+      summary: '3D model available.',
+      url: '/3dmodels/gateway-of-india',
+      full: 'Explore the 3D model of Gateway of India.',
+      sketchfabId: '62fcbbe2f8244581b44065cd7fd6e4b4' // replaced with real ID
+    }
   },
   {
     name: 'Lenyadri Caves',

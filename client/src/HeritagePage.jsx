@@ -15,6 +15,10 @@ const HeritagePage = () => {
   const [streetViewModalOpen, setStreetViewModalOpen] = useState(false);
   const [streetViewData, setStreetViewData] = useState(null);
   
+  // Heritage Info Modal state
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [directionsModalOpen, setDirectionsModalOpen] = useState(false);
+  
   // Search functionality state
   const [searchMode, setSearchMode] = useState('coordinates');
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +32,20 @@ const HeritagePage = () => {
   const [error, setError] = useState(null);
   
   const navigate = useNavigate();
+
+  // Handle ESC key to close modals
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setInfoModalOpen(false);
+        setDirectionsModalOpen(false);
+        setStreetViewModalOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Fetch heritage sites data from MongoDB on component mount
   useEffect(() => {
@@ -857,7 +875,7 @@ const HeritagePage = () => {
               icon="📄"
               title="Information"
               summary={sidebarData.info.summary}
-              onClick={() => window.open(`/heritage/info/${encodeURIComponent(sidebarData.name)}`, '_blank')}
+              onClick={() => setInfoModalOpen(true)}
             />
           )}
           
@@ -867,7 +885,7 @@ const HeritagePage = () => {
               icon="🗺️"
               title="How to Reach"
               summary={sidebarData.howToReach.summary}
-              onClick={() => window.open(`/heritage/howtoreach/${encodeURIComponent(sidebarData.name)}`, '_blank')}
+              onClick={() => setDirectionsModalOpen(true)}
             />
           )}
           
@@ -992,6 +1010,326 @@ const HeritagePage = () => {
               Use your mouse to explore the 360° view • Press <strong>ESC</strong> or click <strong>×</strong> to close
             </p>
             </div>
+        </div>
+      )}
+
+      {/* Heritage Information Modal */}
+      {infoModalOpen && sidebarData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '800px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px 32px',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: '#f8f9fa'
+            }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#333' }}>
+                  📄 {sidebarData.name}
+                </h2>
+                <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#666' }}>
+                  {sidebarData.category} • {sidebarData.year}
+                </p>
+              </div>
+              <button
+                onClick={() => setInfoModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '32px',
+                  color: '#666',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '50%',
+                  width: '44px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div style={{
+              padding: '32px',
+              overflowY: 'auto',
+              flex: 1
+            }}>
+              {/* Basic Information */}
+              <div style={{ marginBottom: '32px' }}>
+                <h3 style={{ fontSize: '22px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>About</h3>
+                <p style={{ fontSize: '18px', lineHeight: '1.6', color: '#444', marginBottom: '20px' }}>
+                  {sidebarData.info?.full || 'No detailed information available.'}
+                </p>
+              </div>
+              
+              {/* History Section */}
+              {sidebarData.info?.history && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>History</h3>
+                  <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#444' }}>{sidebarData.info.history}</p>
+                </div>
+              )}
+              
+              {/* Architecture Section */}
+              {sidebarData.info?.architecture && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Architecture</h3>
+                  <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#444' }}>{sidebarData.info.architecture}</p>
+                </div>
+              )}
+              
+              {/* Significance Section */}
+              {sidebarData.info?.significance && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Significance</h3>
+                  <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#444' }}>{sidebarData.info.significance}</p>
+                </div>
+              )}
+              
+              {/* Visiting Tips */}
+              {sidebarData.info?.visitingTips && sidebarData.info.visitingTips.length > 0 && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Visiting Tips</h3>
+                  <ul style={{ fontSize: '16px', lineHeight: '1.6', color: '#444', paddingLeft: '20px' }}>
+                    {sidebarData.info.visitingTips.map((tip, index) => (
+                      <li key={index} style={{ marginBottom: '8px' }}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Visitor Information */}
+              {sidebarData.visitor_info && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Visitor Information</h3>
+                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                    {sidebarData.visitor_info.timings && (
+                      <p style={{ marginBottom: '12px' }}><strong>Timings:</strong> {sidebarData.visitor_info.timings}</p>
+                    )}
+                    {sidebarData.visitor_info.entryFee && (
+                      <p style={{ marginBottom: '12px' }}><strong>Entry Fee:</strong> {sidebarData.visitor_info.entryFee}</p>
+                    )}
+                    {sidebarData.visitor_info.bestTimeToVisit && (
+                      <p style={{ marginBottom: '12px' }}><strong>Best Time to Visit:</strong> {sidebarData.visitor_info.bestTimeToVisit}</p>
+                    )}
+                    {sidebarData.visitor_info.duration && (
+                      <p style={{ marginBottom: '0' }}><strong>Duration:</strong> {sidebarData.visitor_info.duration}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Location Information */}
+              {sidebarData.location && (
+                <div>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Location</h3>
+                  <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#444' }}>
+                    {sidebarData.location.city && `${sidebarData.location.city}, `}
+                    {sidebarData.location.state && `${sidebarData.location.state}, `}
+                    {sidebarData.location.country}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* How to Reach Modal */}
+      {directionsModalOpen && sidebarData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '800px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px 32px',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: '#f8f9fa'
+            }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#333' }}>
+                  🗺️ How to Reach {sidebarData.name}
+                </h2>
+                <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#666' }}>
+                  Travel directions and transportation options
+                </p>
+              </div>
+              <button
+                onClick={() => setDirectionsModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '32px',
+                  color: '#666',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '50%',
+                  width: '44px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div style={{
+              padding: '32px',
+              overflowY: 'auto',
+              flex: 1
+            }}>
+              {/* Overview */}
+              <div style={{ marginBottom: '32px' }}>
+                <h3 style={{ fontSize: '22px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Overview</h3>
+                <p style={{ fontSize: '18px', lineHeight: '1.6', color: '#444' }}>
+                  {sidebarData.howToReach?.full || 'No travel information available.'}
+                </p>
+              </div>
+              
+              {/* By Air */}
+              {sidebarData.howToReach?.byAir && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>✈️ By Air</h3>
+                  <div style={{ background: '#f0f8ff', padding: '20px', borderRadius: '8px', border: '1px solid #b3d9ff' }}>
+                    {sidebarData.howToReach.byAir.nearestAirport && (
+                      <p style={{ marginBottom: '12px' }}><strong>Nearest Airport:</strong> {sidebarData.howToReach.byAir.nearestAirport}</p>
+                    )}
+                    {sidebarData.howToReach.byAir.distance && (
+                      <p style={{ marginBottom: '12px' }}><strong>Distance:</strong> {sidebarData.howToReach.byAir.distance}</p>
+                    )}
+                    {sidebarData.howToReach.byAir.description && (
+                      <p style={{ marginBottom: '0' }}>{sidebarData.howToReach.byAir.description}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* By Rail */}
+              {sidebarData.howToReach?.byRail && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>🚂 By Train</h3>
+                  <div style={{ background: '#f0fff0', padding: '20px', borderRadius: '8px', border: '1px solid #90ee90' }}>
+                    {sidebarData.howToReach.byRail.nearestStation && (
+                      <p style={{ marginBottom: '12px' }}><strong>Nearest Railway Station:</strong> {sidebarData.howToReach.byRail.nearestStation}</p>
+                    )}
+                    {sidebarData.howToReach.byRail.distance && (
+                      <p style={{ marginBottom: '12px' }}><strong>Distance:</strong> {sidebarData.howToReach.byRail.distance}</p>
+                    )}
+                    {sidebarData.howToReach.byRail.description && (
+                      <p style={{ marginBottom: '0' }}>{sidebarData.howToReach.byRail.description}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* By Road */}
+              {sidebarData.howToReach?.byRoad && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>🚗 By Road</h3>
+                  <div style={{ background: '#fff8f0', padding: '20px', borderRadius: '8px', border: '1px solid #ffb366' }}>
+                    {sidebarData.howToReach.byRoad.fromMajorCities && sidebarData.howToReach.byRoad.fromMajorCities.length > 0 && (
+                      <>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>From Major Cities:</h4>
+                        {sidebarData.howToReach.byRoad.fromMajorCities.map((route, index) => (
+                          <div key={index} style={{ marginBottom: '16px', padding: '16px', background: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
+                            <p style={{ fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '8px' }}>From {route.city}:</p>
+                            {route.distance && <p style={{ marginBottom: '8px' }}><strong>Distance:</strong> {route.distance}</p>}
+                            {route.duration && <p style={{ marginBottom: '8px' }}><strong>Duration:</strong> {route.duration}</p>}
+                            {route.route && <p style={{ marginBottom: '0' }}><strong>Route:</strong> {route.route}</p>}
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {sidebarData.howToReach.byRoad.localTransport && (
+                      <>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#333', marginBottom: '12px' }}>Local Transport:</h4>
+                        <p style={{ marginBottom: '0' }}>{sidebarData.howToReach.byRoad.localTransport}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Location Information */}
+              {sidebarData.location && (
+                <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>📍 Location</h3>
+                  <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#444', marginBottom: '12px' }}>
+                    {sidebarData.location.city && `${sidebarData.location.city}, `}
+                    {sidebarData.location.state && `${sidebarData.location.state}, `}
+                    {sidebarData.location.country}
+                  </p>
+                  {sidebarData.location.coordinates && (
+                    <p style={{ fontSize: '16px', color: '#666', marginBottom: '0' }}>
+                      <strong>Coordinates:</strong> {sidebarData.location.coordinates[1]}, {sidebarData.location.coordinates[0]}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

@@ -251,9 +251,62 @@ const heritageSitesData = [
     name: 'Shaniwar Wada',
     category: 'Historic Fort',
     year: '1732',
-    location: { coordinates: [73.8553, 18.5196], country: 'India' },
-    info: { summary: 'Shaniwar Wada summary', full: 'Shaniwar Wada full description' },
-    howToReach: { summary: 'By road', full: 'Detailed directions' },
+    location: { 
+      coordinates: [73.8553, 18.5196], 
+      country: 'India',
+      city: 'Pune',
+      state: 'Maharashtra'
+    },
+    info: { 
+      summary: 'Historic fort palace of the Peshwas', 
+      full: 'Shaniwar Wada is a historic fortification in the city of Pune, India. Built in 1732, it was the seat of the Peshwa rulers of the Maratha Empire until 1818. The fort was the center of Indian politics in the 18th century.',
+      history: 'The fort was commissioned by Peshwa Bajirao I and completed in 1732. It served as the political capital of the Maratha Empire and witnessed many important historical events, including the assassination of Narayanrao Peshwa in 1773.',
+      architecture: 'The fort features traditional Maratha architecture with massive walls, bastions, and gates. The main structure was built using teak wood and stone, with intricate carvings and traditional Maratha design elements.',
+      significance: 'Shaniwar Wada is significant as the center of Maratha power and represents the architectural and cultural heritage of the Maratha Empire. It played a crucial role in Indian history during the 18th century.',
+      visitingTips: [
+        'Visit during early morning or late afternoon for better lighting',
+        'Wear comfortable walking shoes as the fort requires extensive walking',
+        'Hire a guide to understand the historical significance',
+        'Carry water and sun protection during summer months'
+      ]
+    },
+    howToReach: { 
+      summary: 'Easily accessible by road from Pune city center', 
+      full: 'Shaniwar Wada is located in the heart of Pune city and is easily accessible by various modes of transportation.',
+      byAir: {
+        nearestAirport: 'Pune Airport (PNQ)',
+        distance: '12 km from the fort',
+        description: 'Take a taxi or cab from Pune Airport to Shaniwar Wada. The journey takes about 30-45 minutes depending on traffic.'
+      },
+      byRail: {
+        nearestStation: 'Pune Railway Station',
+        distance: '3 km from the fort',
+        description: 'From Pune Railway Station, you can take a local bus, auto-rickshaw, or taxi to reach Shaniwar Wada in 15-20 minutes.'
+      },
+      byRoad: {
+        fromMajorCities: [
+          {
+            city: 'Mumbai',
+            distance: '150 km',
+            duration: '3-4 hours',
+            route: 'Take NH48 via Lonavala and Khandala'
+          },
+          {
+            city: 'Nashik',
+            distance: '210 km',
+            duration: '4-5 hours',
+            route: 'Take NH160 via Ahmednagar'
+          }
+        ],
+        localTransport: 'Auto-rickshaws, buses, and taxis are readily available from anywhere in Pune city to reach Shaniwar Wada.'
+      }
+    },
+    visitor_info: {
+      timings: '9:00 AM - 5:30 PM (Closed on Mondays)',
+      entryFee: '₹25 for Indians, ₹300 for foreigners',
+      bestTimeToVisit: 'October to March (winter months)',
+      duration: '2-3 hours'
+    },
     media: { panorama_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=600&fit=crop' }
   },
   {

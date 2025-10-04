@@ -25,6 +25,7 @@ const HeritagePage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredPlaces, setFilteredPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   
   // API data state
   const [heritageSites, setHeritageSites] = useState(null);
@@ -101,6 +102,7 @@ const HeritagePage = () => {
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
+    setHighlightedIndex(-1);
     
     if (query.trim()) {
       const filtered = filterPlaces(query);
@@ -117,6 +119,82 @@ const HeritagePage = () => {
     setSelectedPlace(place);
     setSearchQuery(place.name);
     setShowDropdown(false);
+    setHighlightedIndex(-1);
+  };
+
+  // Scroll to highlighted item in dropdown
+  const scrollToHighlightedItem = (index) => {
+    const dropdownElement = document.querySelector('.dropdown-container');
+    const highlightedElement = document.querySelector(`[data-dropdown-index="${index}"]`);
+    
+    if (dropdownElement && highlightedElement) {
+      const dropdownRect = dropdownElement.getBoundingClientRect();
+      const highlightedRect = highlightedElement.getBoundingClientRect();
+      
+      // Calculate if the item is outside the visible area
+      const isAbove = highlightedRect.top < dropdownRect.top;
+      const isBelow = highlightedRect.bottom > dropdownRect.bottom;
+      
+      if (isAbove || isBelow) {
+        highlightedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        });
+      }
+    }
+  };
+
+  // Handle keyboard navigation and enter key
+  const handleKeyDown = (e) => {
+    if (!showDropdown) {
+      // If dropdown is closed and Enter is pressed, trigger fly-to
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleFlyTo(e);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev => {
+          const newIndex = prev < filteredPlaces.length - 1 ? prev + 1 : 0;
+          // Scroll the highlighted item into view
+          setTimeout(() => scrollToHighlightedItem(newIndex), 0);
+          return newIndex;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev => {
+          const newIndex = prev > 0 ? prev - 1 : filteredPlaces.length - 1;
+          // Scroll the highlighted item into view
+          setTimeout(() => scrollToHighlightedItem(newIndex), 0);
+          return newIndex;
+        });
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < filteredPlaces.length) {
+          const selectedPlace = filteredPlaces[highlightedIndex];
+          handlePlaceSelect(selectedPlace);
+          // After selection, trigger fly-to with a slight delay to ensure state updates
+          setTimeout(() => handleFlyTo(e), 50);
+        } else if (filteredPlaces.length > 0) {
+          // If no item is highlighted, select the first one
+          const firstPlace = filteredPlaces[0];
+          handlePlaceSelect(firstPlace);
+          setTimeout(() => handleFlyTo(e), 50);
+        }
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        setHighlightedIndex(-1);
+        break;
+      default:
+        break;
+    }
   };
 
   // Handle clicks outside dropdown to close it
@@ -137,15 +215,14 @@ const HeritagePage = () => {
       };
     }, [showDropdown]);
   
-    // Clear search when switching modes
-    useEffect(() => {
-      setSearchQuery('');
-      setSelectedPlace(null);
-      setShowDropdown(false);
-      setFilteredPlaces([]);
-    }, [searchMode]);
-  
-    // Enhanced Fly-to functionality with coordinate and place search support
+  // Clear search when switching modes
+  useEffect(() => {
+    setSearchQuery('');
+    setSelectedPlace(null);
+    setShowDropdown(false);
+    setFilteredPlaces([]);
+    setHighlightedIndex(-1);
+  }, [searchMode]);    // Enhanced Fly-to functionality with coordinate and place search support
     const handleFlyTo = (e) => {
       e.preventDefault();
       console.log('Fly-to button clicked, mode:', searchMode);
@@ -183,11 +260,19 @@ const HeritagePage = () => {
       } else if (searchQuery.trim()) {
         const matchedPlaces = filterPlaces(searchQuery);
         if (matchedPlaces.length > 0) {
-          const place = matchedPlaces[0];
-          [lon, lat] = place.coordinates;
-          console.log('Using first match:', place.name, 'at', lat, lon);
-          setSelectedPlace(place);
-          setSearchQuery(place.name);
+          // Check if there's a highlighted item in dropdown
+          let placeToUse;
+          if (highlightedIndex >= 0 && highlightedIndex < filteredPlaces.length) {
+            placeToUse = filteredPlaces[highlightedIndex];
+            console.log('Using highlighted place:', placeToUse.name, 'at index', highlightedIndex);
+          } else {
+            placeToUse = matchedPlaces[0];
+            console.log('Using first match:', placeToUse.name);
+          }
+          
+          [lon, lat] = placeToUse.coordinates;
+          setSelectedPlace(placeToUse);
+          setSearchQuery(placeToUse.name);
         } else {
           alert('No heritage site found matching your search. Please select from the dropdown or try a different search term.');
           return;
@@ -626,6 +711,41 @@ const HeritagePage = () => {
           {/* Map Container */}
           <div ref={mapContainer} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%', zIndex: 1 }} />
     
+          {/* Home Navigation Button */}
+          <button 
+            onClick={() => navigate('/')}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '50px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '12px 20px',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              zIndex: 10,
+              boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+            }}
+          >
+            🏠 Home
+          </button>
+
           {/* Fly-to Box */}
           <div className="fly-to-box" style={{
             position: 'absolute',
@@ -679,6 +799,12 @@ const HeritagePage = () => {
                     step="0.001" 
                     min="-90" 
                     max="90" 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleFlyTo(e);
+                      }
+                    }}
                     style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }} 
                   />
                 </div>
@@ -691,6 +817,12 @@ const HeritagePage = () => {
                     step="0.001" 
                     min="-180" 
                     max="180" 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleFlyTo(e);
+                      }
+                    }}
                     style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }} 
                   />
                 </div>
@@ -707,6 +839,7 @@ const HeritagePage = () => {
                   placeholder="Type place name (e.g., Aja for Ajanta)"
                   value={searchQuery}
                   onChange={handleSearchChange}
+                  onKeyDown={handleKeyDown}
                   onFocus={() => {
                     if (filteredPlaces.length > 0) setShowDropdown(true);
                   }}
@@ -722,35 +855,44 @@ const HeritagePage = () => {
                 
                 {/* Dropdown */}
                 {showDropdown && filteredPlaces.length > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '0',
-                    right: '0',
-                    backgroundColor: 'white',
-                    border: '1px solid #ccc',
-                    borderTop: 'none',
-                    borderBottomLeftRadius: '3px',
-                    borderBottomRightRadius: '3px',
-                    maxHeight: '150px',
-                    overflowY: 'auto',
-                    zIndex: 1000,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  }}>
+                  <div 
+                    className="dropdown-container"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '0',
+                      right: '0',
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderTop: 'none',
+                      borderBottomLeftRadius: '3px',
+                      borderBottomRightRadius: '3px',
+                      maxHeight: '150px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      scrollBehavior: 'smooth'
+                    }}
+                  >
                     {filteredPlaces.map((place, index) => (
                       <div
                         key={index}
                         className="dropdown-item"
+                        data-dropdown-index={index}
                         onClick={() => handlePlaceSelect(place)}
                         style={{
                           padding: '8px 10px',
                           cursor: 'pointer',
                           borderBottom: index < filteredPlaces.length - 1 ? '1px solid #eee' : 'none',
-                          backgroundColor: 'white'
+                          backgroundColor: highlightedIndex === index ? '#007cba' : 'white',
+                          color: highlightedIndex === index ? 'white' : 'black'
                         }}
                       >
                         <div style={{ fontWeight: '500', fontSize: '13px' }}>{place.name}</div>
-                        <div style={{ fontSize: '11px', color: '#666' }}>{place.category}</div>
+                        <div style={{ 
+                          fontSize: '11px', 
+                          color: highlightedIndex === index ? 'rgba(255,255,255,0.8)' : '#666' 
+                        }}>{place.category}</div>
                       </div>
                     ))}
                   </div>
@@ -779,7 +921,7 @@ const HeritagePage = () => {
       {/* Info Panel */}
       <div className="info-panel" style={{
         position: 'absolute',
-        top: '10px',
+        top: '100px',
         right: '10px',
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         padding: '15px',
@@ -790,7 +932,7 @@ const HeritagePage = () => {
         maxWidth: '300px',
         fontSize: '14px'
       }}>
-        <strong>🏛️ Maharashtra Heritage Sites</strong><br />
+        <strong>🏛️ Indian Heritage Sites</strong><br />
         <small>Click on any site marker to explore. Sites with 360° views will open in panoramic mode.</small><br /><br />
         <strong>Total Sites:</strong> <span id="site-count">0</span><br />
         <strong>UNESCO Sites:</strong> <span id="unesco-count">0</span>
@@ -1371,7 +1513,7 @@ const HeritagePage = () => {
             background: #f0f4ff !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
           }
-          .dropdown-item:hover {
+          .dropdown-item:hover:not([style*="background-color: #007cba"]) {
             background-color: #f5f5f5 !important;
           }
           .fly-to-box input:focus {

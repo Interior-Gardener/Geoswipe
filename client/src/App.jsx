@@ -4,6 +4,7 @@ import ExplorePage from "./ExplorePage";
 import QuizPage from "./QuizPage";
 import HeritagePage from "./HeritagePage";
 import SketchfabViewer from "./SketchfabViewer";
+import HowToReachPage from "./HowToReachPage";
 
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/quiz" element={<QuizPage />} />
         <Route path="/heritage" element={<HeritagePage />} />
         <Route path="/sketchfab/:uid" element={<SketchfabViewer />} />
+        <Route path="/how-to-reach/:name" element={<HowToReachPage />} />
 
       </Routes>
     </Router>

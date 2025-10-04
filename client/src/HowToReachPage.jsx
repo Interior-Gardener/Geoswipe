@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
  
 const HowToReachPage = () => {
   const { name } = useParams();
+  const navigate = useNavigate();
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,8 +30,80 @@ const HowToReachPage = () => {
   if (!site) return <div style={{padding: 32}}>No data found.</div>;
 
   return (
-    <div style={{ padding: 32, maxWidth: 800, margin: 'auto', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' }}>
-      <h1>{site.name}</h1>
+    <div style={{ padding: 32, maxWidth: 800, margin: 'auto', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', minHeight: '100vh', background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)', color: 'white', position: 'relative' }}>
+      {/* Navigation Buttons */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '20px', 
+        left: '20px', 
+        zIndex: 1000, 
+        display: 'flex', 
+        gap: '10px' 
+      }}>
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate('/heritage')}
+          style={{
+            background: 'linear-gradient(45deg, #4ecdc4, #44a08d)',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '12px 20px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(78, 205, 196, 0.3)',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(78, 205, 196, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(78, 205, 196, 0.3)';
+          }}
+        >
+          ← Back
+        </button>
+
+        {/* Home Button */}
+        <button 
+          onClick={() => navigate('/')}
+          style={{
+            background: 'linear-gradient(45deg, #2196f3, #21cbf3)',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '12px 20px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+          }}
+        >
+          🏠 Home
+        </button>
+      </div>
+
+      <h1 style={{ marginTop: '60px' }}>{site.name}</h1>
       <h3 style={{ color: '#888' }}>{site.category} &middot; {site.year}</h3>
       <hr style={{ margin: '24px 0' }} />
       

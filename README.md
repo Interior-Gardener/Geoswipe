@@ -34,7 +34,7 @@ cd ../client
 npm install
 ```
 
-# IRun Entire Project (Root)
+# Run Entire Project (Root)
 ```bash
 cd ..
 npm install

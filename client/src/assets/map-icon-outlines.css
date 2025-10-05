@@ -1,0 +1,233 @@
+/* 
+ * Reusable CSS Classes for Map Icon Outlines
+ * Ensures icons are always visible against any map background
+ * Author: GeoSwipe Team
+ * Date: October 2025
+ */
+
+/* Base outline - soft, always visible */
+.map-icon-outline {
+  filter: 
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.9))
+    drop-shadow(0px 0px 2px rgba(255, 255, 255, 0.8))
+    drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+  border-radius: 3px;
+  transition: filter 0.2s ease;
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Strong outline - for better visibility on complex backgrounds */
+.map-icon-outline-strong {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.9))
+    drop-shadow(0px 0px 2px rgba(255, 255, 255, 0.7))
+    drop-shadow(1px 1px 3px rgba(0, 0, 0, 0.4));
+  border-radius: 3px;
+  transition: filter 0.2s ease;
+  image-rendering: crisp-edges;
+}
+
+/* Adaptive outline - combines white and black for maximum contrast */
+.map-icon-adaptive {
+  filter: 
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.95))
+    drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.8))
+    drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.5));
+  border-radius: 2px;
+  transition: filter 0.2s ease;
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Hover effect - enhanced visibility and slight scaling */
+.map-icon-hover:hover {
+  filter: 
+    drop-shadow(0px 0px 5px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.9))
+    drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4))
+    brightness(1.1);
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+/* Glow effect - for highlighting important markers */
+.map-icon-glow {
+  filter: 
+    drop-shadow(0px 0px 6px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.8))
+    drop-shadow(0px 0px 8px rgba(33, 150, 243, 0.6))
+    drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.4));
+  animation: subtle-glow 2s ease-in-out infinite alternate;
+}
+
+/* Subtle animation for special markers */
+@keyframes subtle-glow {
+  from {
+    filter: 
+      drop-shadow(0px 0px 6px rgba(255, 255, 255, 1))
+      drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.8))
+      drop-shadow(0px 0px 8px rgba(33, 150, 243, 0.6))
+      drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.4));
+  }
+  to {
+    filter: 
+      drop-shadow(0px 0px 8px rgba(255, 255, 255, 1))
+      drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.9))
+      drop-shadow(0px 0px 12px rgba(33, 150, 243, 0.8))
+      drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+  }
+}
+
+/* High contrast - for accessibility */
+.map-icon-high-contrast {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 2px rgba(0, 0, 0, 1))
+    drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.8))
+    drop-shadow(-1px -1px 1px rgba(255, 255, 255, 0.8));
+  border-radius: 2px;
+  image-rendering: crisp-edges;
+}
+
+/* Night mode - optimized for dark map themes */
+.map-icon-night-mode {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.9))
+    drop-shadow(0px 0px 2px rgba(255, 255, 255, 0.7))
+    drop-shadow(1px 1px 3px rgba(255, 255, 255, 0.5))
+    brightness(1.1);
+  border-radius: 3px;
+}
+
+/* Day mode - optimized for light map themes */
+.map-icon-day-mode {
+  filter: 
+    drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.8))
+    drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.6))
+    drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.4))
+    brightness(0.95);
+  border-radius: 2px;
+}
+
+/* 
+ * EXAMPLE USAGE:
+ * 
+ * Basic marker with adaptive outline:
+ * <img src="marker.png" class="map-icon-adaptive" alt="Marker" />
+ * 
+ * Interactive marker with hover effect:
+ * <img src="marker.png" class="map-icon-adaptive map-icon-hover" alt="Marker" />
+ * 
+ * Important marker with glow:
+ * <img src="marker.png" class="map-icon-adaptive map-icon-glow" alt="Important" />
+ * 
+ * High visibility marker:
+ * <img src="marker.png" class="map-icon-outline-strong map-icon-hover" alt="Marker" />
+ */
+
+/* WHITE OUTLINE - For Map Icons (against varied backgrounds) */
+.map-icon-white-outline {
+  filter: 
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 2px rgba(255, 255, 255, 0.9))
+    drop-shadow(1px 1px 2px rgba(255, 255, 255, 0.7))
+    drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3));
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  image-rendering: crisp-edges;
+}
+
+.map-icon-white-outline:hover {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.9))
+    drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4))
+    brightness(1.1);
+  transform: scale(1.05);
+}
+
+/* BLACK OUTLINE - For Legend Icons (against light backgrounds) */
+.legend-icon-black-outline {
+  filter: 
+    drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.8))
+    drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.6))
+    drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.5))
+    drop-shadow(-1px -1px 1px rgba(255, 255, 255, 0.3));
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  image-rendering: crisp-edges;
+}
+
+.legend-icon-black-outline:hover {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(0, 0, 0, 0.9))
+    drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.7))
+    drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.6))
+    brightness(1.05);
+  transform: scale(1.1);
+}
+
+/* Heritage site specific classes */
+.heritage-marker-icon {
+  filter: 
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.9))
+    drop-shadow(0px 0px 2px rgba(255, 255, 255, 0.7))
+    drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.4));
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  image-rendering: crisp-edges;
+}
+
+.heritage-marker-icon:hover {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.8))
+    drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.5))
+    brightness(1.1);
+  transform: scale(1.1);
+}
+
+/* UNESCO World Heritage special styling */
+.unesco-heritage-icon {
+  filter: 
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.8))
+    drop-shadow(0px 0px 6px rgba(255, 107, 107, 0.5))
+    drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.4));
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.unesco-heritage-icon:hover {
+  filter: 
+    drop-shadow(0px 0px 6px rgba(255, 255, 255, 1))
+    drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.9))
+    drop-shadow(0px 0px 8px rgba(255, 107, 107, 0.7))
+    drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5))
+    brightness(1.15);
+  transform: scale(1.12);
+}
+
+/* Responsive sizing for different zoom levels */
+@media (max-width: 768px) {
+  .map-icon-outline,
+  .map-icon-outline-strong,
+  .map-icon-adaptive {
+    filter: 
+      drop-shadow(0px 0px 2px rgba(255, 255, 255, 0.9))
+      drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.4));
+  }
+}
+
+/* Print styles - remove effects for print */
+@media print {
+  .map-icon-outline,
+  .map-icon-outline-strong,
+  .map-icon-adaptive,
+  .map-icon-glow {
+    filter: none !important;
+    animation: none !important;
+  }
+}

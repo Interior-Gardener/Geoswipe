@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './assets/map-icon-outlines.css';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -653,29 +654,57 @@ const HeritagePage = () => {
                   
                   img.onload = () => {
                     try {
+                      // Create canvas with extra space for white outline
                       const canvas = document.createElement('canvas');
                       const ctx = canvas.getContext('2d');
-                      const size = 32;
-                      canvas.width = size;
-                      canvas.height = size;
+                      const baseSize = 28; // Actual icon size
+                      const padding = 4; // Extra space for outline
+                      const totalSize = baseSize + (padding * 2);
                       
-                      // Clear canvas and draw resized image
-                      ctx.clearRect(0, 0, size, size);
-                      ctx.drawImage(img, 0, 0, size, size);
+                      canvas.width = totalSize;
+                      canvas.height = totalSize;
+                      
+                      // Clear canvas
+                      ctx.clearRect(0, 0, totalSize, totalSize);
+                      
+                      // Create white outline by drawing the image multiple times with offset
+                      const outlineWidth = 2;
+                      ctx.globalCompositeOperation = 'source-over';
+                      
+                      // Draw white outline (multiple passes for smooth effect)
+                      for (let x = -outlineWidth; x <= outlineWidth; x++) {
+                        for (let y = -outlineWidth; y <= outlineWidth; y++) {
+                          if (x !== 0 || y !== 0) {
+                            ctx.save();
+                            ctx.globalAlpha = 0.8;
+                            // Create white outline by converting image to white silhouette
+                            ctx.filter = 'brightness(0) invert(1)';
+                            ctx.drawImage(img, padding + x, padding + y, baseSize, baseSize);
+                            ctx.restore();
+                          }
+                        }
+                      }
+                      
+                      // Draw the main icon on top
+                      ctx.save();
+                      ctx.globalCompositeOperation = 'source-over';
+                      ctx.filter = 'contrast(1.1) brightness(1.05)';
+                      ctx.drawImage(img, padding, padding, baseSize, baseSize);
+                      ctx.restore();
                       
                       // Create ImageData object (this is what MapLibre expects)
-                      const imageData = ctx.getImageData(0, 0, size, size);
+                      const imageData = ctx.getImageData(0, 0, totalSize, totalSize);
                       
                       // Create proper image object for MapLibre
                       const mapImage = {
-                        width: size,
-                        height: size,
+                        width: totalSize,
+                        height: totalSize,
                         data: imageData.data
                       };
                       
                       if (!map.current.hasImage(iconId)) {
                         map.current.addImage(iconId, mapImage);
-                        console.log(`✅ Loaded: ${category} (${size}x${size})`);
+                        console.log(`✅ Loaded with white outline: ${category} (${totalSize}x${totalSize})`);
                       }
                       resolve(true);
                     } catch (error) {
@@ -722,9 +751,9 @@ const HeritagePage = () => {
                       ],
                       'icon-size': [
                         'interpolate', ['linear'], ['zoom'],
-                        6, 0.8,
-                        10, 1.0,
-                        14, 1.4
+                        6, 0.7,  // Smaller at low zoom since we added outline padding
+                        10, 0.9, // Adjusted for outline padding
+                        14, 1.2  // Maximum size accounting for outline
                       ],
                       'icon-allow-overlap': true
                     }
@@ -1201,6 +1230,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/UNESCO World Heritage.png" 
             alt="UNESCO" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />
@@ -1211,6 +1241,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/Historic Forts.png" 
             alt="Fort" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />
@@ -1221,6 +1252,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/Rock-cut Caves.png" 
             alt="Cave" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />
@@ -1231,6 +1263,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/Temples.png" 
             alt="Temple" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />
@@ -1241,6 +1274,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/Monuments.png" 
             alt="Monument" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />
@@ -1251,6 +1285,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/Palaces & Museums.png" 
             alt="Palace" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />
@@ -1261,6 +1296,7 @@ const HeritagePage = () => {
           <img 
             src="/assets/Historic Buildings.png" 
             alt="Building" 
+            className="legend-icon-black-outline"
             style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
           />

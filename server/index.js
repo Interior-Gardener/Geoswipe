@@ -2,70 +2,211 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, { cors: { origin: "*" } });
+const io = require('socket.io')(http, { 
+  cors: { origin: "*" },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6,
+  transports: ['websocket', 'polling']
+});
 const cors = require("cors");
-
 const mongoose = require("mongoose");
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const Country = require("./models/Country"); 
 const HeritageSite = require("./models/HeritageSite");
-//const path = require('path');
 
-// Enable CORS for all requests (safe for dev; restrict in prod if needed)
-app.use(cors());
+// Middleware for parsing JSON and enabling CORS
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? ['https://your-domain.com'] : '*',
+  credentials: true
+}));
 
-// ===== MONGO CONNECTION =====
-mongoose.connect("mongodb://127.0.0.1:27017/geoswipedb", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error(err));
+// Add compression middleware for better performance
+const compression = require('compression');
+app.use(compression());
 
-//Populate Countries (One Time)
+// Rate limiting middleware
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// ===== OPTIMIZED MONGO CONNECTION =====
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/geoswipedb", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      family: 4 // Use IPv4, skip trying IPv6
+    });
+    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  }
+};
+
+// Handle MongoDB connection errors
+mongoose.connection.on('error', err => {
+  console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+// Connect to MongoDB
+connectDB();
+
+// Cache for country data to avoid repeated DB queries
+let countryCache = null;
+let cacheExpiry = null;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+//Optimized Country Population (One Time)
 async function populateCountries() {
-  const count = await Country.countDocuments();
-  if (count === 0) {
-    console.log("🌍 Fetching countries from API...");
-    const res = await fetch("https://restcountries.com/v3.1/all?fields=name");
-    const data = await res.json();
-    const countryDocs = data.map(c => ({ name: c.name.common.toLowerCase() }));
-    await Country.insertMany(countryDocs);
-    console.log(`✅ Inserted ${countryDocs.length} countries into DB`);
+  try {
+    const count = await Country.countDocuments();
+    if (count === 0) {
+      console.log("🌍 Fetching countries from API...");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const res = await fetch("https://restcountries.com/v3.1/all?fields=name", {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'GeoSwipe/1.0'
+        }
+      });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      const countryDocs = data
+        .filter(c => c.name?.common)
+        .map(c => ({ name: c.name.common.toLowerCase().trim() }));
+      
+      if (countryDocs.length > 0) {
+        await Country.insertMany(countryDocs);
+        console.log(`✅ Inserted ${countryDocs.length} countries into DB`);
+        
+        // Update cache
+        countryCache = countryDocs.map(c => c.name);
+        cacheExpiry = Date.now() + CACHE_DURATION;
+      }
+    }
+  } catch (error) {
+    console.error('Error populating countries:', error.message);
+    // Don't crash the server, just log the error
   }
 }
-populateCountries();
 
-//Get Country List from DB
+//Optimized Country List Retrieval with Caching
 async function getCountryListFromDB() {
-  const countries = await Country.find({});
-  return countries.map(c => c.name);
+  // Check cache first
+  if (countryCache && cacheExpiry && Date.now() < cacheExpiry) {
+    return countryCache;
+  }
+  
+  try {
+    const countries = await Country.find({}, 'name').lean(); // Use lean() for better performance
+    countryCache = countries.map(c => c.name);
+    cacheExpiry = Date.now() + CACHE_DURATION;
+    return countryCache;
+  } catch (error) {
+    console.error('Error fetching countries from DB:', error);
+    return countryCache || []; // Return cached data if available, otherwise empty array
+  }
 }
 
-//Country questions api
+// Initialize countries on startup
+populateCountries();
+
+//Optimized Country questions api with timeout and error handling
 app.get("/api/country-question", async (req, res) => {
   try {
     const countries = await getCountryListFromDB();
+    
+    if (countries.length === 0) {
+      return res.status(503).json({ error: "Country data not available" });
+    }
 
     let question = null;
+    let attempts = 0;
+    const maxAttempts = 10; // Limit attempts to avoid infinite loops
 
-    while (!question) {
-      const triviaRes = await fetch("https://the-trivia-api.com/v2/questions?categories=geography&limit=1");
-      const triviaData = await triviaRes.json();
-      const q = triviaData[0];
+    while (!question && attempts < maxAttempts) {
+      attempts++;
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        
+        const triviaRes = await fetch(
+          "https://the-trivia-api.com/v2/questions?categories=geography&limit=1",
+          {
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'GeoSwipe/1.0',
+              'Accept': 'application/json'
+            }
+          }
+        );
+        clearTimeout(timeoutId);
 
-      if (countries.includes(q.correctAnswer.toLowerCase())) {
-        question = {
-          question: q.question.text,
-          correctAnswer: q.correctAnswer,
-          options: [...q.incorrectAnswers, q.correctAnswer].sort(() => Math.random() - 0.5)
-        };
+        if (!triviaRes.ok) {
+          throw new Error(`API responded with status: ${triviaRes.status}`);
+        }
+
+        const triviaData = await triviaRes.json();
+        if (!triviaData || !Array.isArray(triviaData) || triviaData.length === 0) {
+          throw new Error('Invalid response format from trivia API');
+        }
+
+        const q = triviaData[0];
+        if (q?.correctAnswer && countries.includes(q.correctAnswer.toLowerCase().trim())) {
+          question = {
+            question: q.question?.text || q.question,
+            correctAnswer: q.correctAnswer,
+            options: [...(q.incorrectAnswers || []), q.correctAnswer]
+              .sort(() => Math.random() - 0.5)
+          };
+        }
+      } catch (fetchError) {
+        console.warn(`Trivia API attempt ${attempts} failed:`, fetchError.message);
+        if (attempts === maxAttempts) {
+          throw fetchError;
+        }
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
+    }
+
+    if (!question) {
+      return res.status(503).json({ 
+        error: "Unable to fetch geography question at this time",
+        retry: true 
+      });
     }
 
     res.json(question);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch question" });
+    console.error('Error in country-question endpoint:', err);
+    res.status(500).json({ 
+      error: "Failed to fetch question",
+      retry: true 
+    });
   }
 });
 
@@ -142,22 +283,83 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
   }
 });
 
-//socket io logic
+//Optimized Socket.IO logic with error handling and rate limiting
+const socketRateLimits = new Map();
+const SOCKET_RATE_LIMIT = 100; // messages per minute per socket
+const RATE_WINDOW = 60 * 1000; // 1 minute
+
 io.on('connection', (socket) => {
-  console.log("Frontend connected.");
+  console.log(`Client connected: ${socket.id}`);
+  
+  // Initialize rate limiting for this socket
+  socketRateLimits.set(socket.id, {
+    count: 0,
+    resetTime: Date.now() + RATE_WINDOW
+  });
+
+  // Rate limiting helper
+  const checkRateLimit = (socketId) => {
+    const now = Date.now();
+    const limit = socketRateLimits.get(socketId);
+    
+    if (!limit) return false;
+    
+    if (now > limit.resetTime) {
+      limit.count = 0;
+      limit.resetTime = now + RATE_WINDOW;
+    }
+    
+    if (limit.count >= SOCKET_RATE_LIMIT) {
+      return false; // Rate limited
+    }
+    
+    limit.count++;
+    return true; // Within limits
+  };
 
   socket.on('gesture', (data) => {
-    console.log("Gesture from Python:", data);
-    io.emit('gesture', data); // Forward to frontend
+    try {
+      if (!checkRateLimit(socket.id)) {
+        console.warn(`Rate limit exceeded for socket ${socket.id}`);
+        return;
+      }
+
+      if (!data || typeof data !== 'object') {
+        console.warn('Invalid gesture data received');
+        return;
+      }
+
+      console.log("Gesture from Python:", data);
+      socket.broadcast.emit('gesture', data); // Broadcast to all other clients
+    } catch (error) {
+      console.error('Error handling gesture:', error);
+    }
   });
 
   socket.on('cursor', (data) => {
-    // Forward index finger position to all clients
-    io.emit('cursor', data);
+    try {
+      if (!checkRateLimit(socket.id)) {
+        return; // Silently drop cursor updates if rate limited
+      }
+
+      if (!data || typeof data !== 'object') {
+        return; // Silently ignore invalid cursor data
+      }
+
+      // Forward index finger position to all other clients (not sender)
+      socket.broadcast.emit('cursor', data);
+    } catch (error) {
+      console.error('Error handling cursor:', error);
+    }
   });
 
-  socket.on('disconnect', () => {
-    console.log("Frontend disconnected");
+  socket.on('disconnect', (reason) => {
+    console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
+    socketRateLimits.delete(socket.id);
+  });
+
+  socket.on('error', (error) => {
+    console.error(`Socket error for ${socket.id}:`, error);
   });
 });
 
@@ -211,5 +413,59 @@ app.get('/api/start', (req, res) => {
   res.json({ allow: true });
 });
 
-//start server
-http.listen(3000, () => console.log("Server running on http://localhost:3000"));
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Graceful shutdown
+const gracefulShutdown = () => {
+  console.log('\nReceived shutdown signal, closing server gracefully...');
+  
+  http.close(() => {
+    console.log('HTTP server closed.');
+    
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB connection closed.');
+      process.exit(0);
+    });
+  });
+  
+  // Force close after 30 seconds
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 30000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const healthcheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now(),
+    env: process.env.NODE_ENV || 'development'
+  };
+  res.json(healthcheck);
+});
+
+//start server with error handling
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+
+http.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check: http://${HOST}:${PORT}/health`);
+}).on('error', (err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

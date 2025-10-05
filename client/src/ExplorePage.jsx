@@ -1,37 +1,63 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import EarthThreeJS from "./EarthThreeJS";
+
+// Memoized button component to prevent unnecessary re-renders
+const QuizButton = memo(({ onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      position: "absolute",
+      bottom: "20px",
+      left: "20px",
+      padding: "12px 24px",
+      fontSize: "18px",
+      fontWeight: "bold",
+      background: "linear-gradient(135deg, #00d4ff, #0080ff)",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      zIndex: 1000,
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    }}
+    onMouseOver={(e) => {
+      e.target.style.transform = "translateY(-2px)";
+      e.target.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+    }}
+    onMouseOut={(e) => {
+      e.target.style.transform = "translateY(0)";
+      e.target.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+    }}
+  >
+    Start Quiz
+  </button>
+));
+
+QuizButton.displayName = 'QuizButton';
 
 const ExplorePage = () => {
   const navigate = useNavigate();
   const [selectedCountry, setSelectedCountry] = useState(null);
 
+  // Memoize callback to prevent EarthThreeJS re-renders
+  const handleCountrySelect = useCallback((country) => {
+    setSelectedCountry(country);
+  }, []);
+
+  // Memoize navigation callback
+  const handleQuizNavigation = useCallback(() => {
+    navigate("/quiz");
+  }, [navigate]);
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       {/* 🌍 Earth Visualization */}
-      <EarthThreeJS setSelectedCountry={setSelectedCountry} />
-
+      <EarthThreeJS setSelectedCountry={handleCountrySelect} />
+      
       {/* 🚀 Start Quiz Button */}
-      <button
-        onClick={() => navigate("/quiz")}
-        style={{
-          position: "absolute",
-          bottom: "20px",
-          left: "20px",
-          padding: "12px 24px",
-          fontSize: "18px",
-          fontWeight: "bold",
-          background: "linear-gradient(135deg, #00d4ff, #0080ff)",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-          zIndex: 1000,
-        }}
-      >
-        Start Quiz
-      </button>
+      <QuizButton onClick={handleQuizNavigation} />
     </div>
   );
 };

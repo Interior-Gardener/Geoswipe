@@ -1,17 +1,33 @@
-import React from 'react';
+import React, { useCallback, memo } from 'react';
 import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
+
+// Memoized feature component
+const Feature = memo(({ icon, title, description, onClick, clickable = false }) => (
+  <div 
+    className={`feature ${clickable ? 'clickable' : ''}`} 
+    onClick={onClick} 
+    style={{ cursor: clickable ? 'pointer' : 'default' }}
+  >
+    <div className="feature-icon">{icon}</div>
+    <h3>{title}</h3>
+    <p>{description}</p>
+  </div>
+));
+
+Feature.displayName = 'Feature';
 
 const LandingPage = () => {
   const navigate = useNavigate();
 
-  const handleStartExploration = () => {
+  // Memoize navigation callbacks
+  const handleStartExploration = useCallback(() => {
     navigate("/explore");
-  };
+  }, [navigate]);
 
-  const handleHeritageMode = () => {
+  const handleHeritageMode = useCallback(() => {
     navigate("/heritage");
-  };
+  }, [navigate]);
 
   return (
     <div className="landing-page">
@@ -39,18 +55,22 @@ const LandingPage = () => {
         
         <div className="features" id="features">
           {/* Interactive Globe - Clickable */}
-          <div className="feature clickable" onClick={handleStartExploration} style={{ cursor: 'pointer' }}>
-            <div className="feature-icon">🌍</div>
-            <h3>Interactive Globe</h3>
-            <p>Rotate, zoom, and explore Earth with smooth 3D interactions</p>
-          </div>
+          <Feature
+            icon="🌍"
+            title="Interactive Globe"
+            description="Rotate, zoom, and explore Earth with smooth 3D interactions"
+            onClick={handleStartExploration}
+            clickable={true}
+          />
 
           {/* Heritage Mode - Clickable */}
-          <div className="feature clickable" onClick={handleHeritageMode} style={{ cursor: 'pointer' }}>
-            <div className="feature-icon">🏛️</div>
-            <h3>Heritage Mode</h3>
-            <p>Explore cultural heritage sites from around the globe</p>
-          </div>
+          <Feature
+            icon="🏛️"
+            title="Heritage Mode"
+            description="Explore cultural heritage sites from around the globe"
+            onClick={handleHeritageMode}
+            clickable={true}
+          />
         </div>
       </div>
     </div>

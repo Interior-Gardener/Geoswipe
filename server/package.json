@@ -1,19 +1,29 @@
 {
-  "name": "server",
+  "name": "geoswipe-server",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["geoswipe", "geography", "3d", "earth", "heritage"],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "GeoSwipe server for interactive earth exploration",
   "dependencies": {
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.1.5",
     "mongoose": "^8.17.1",
     "node-fetch": "^3.3.2",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

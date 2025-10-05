@@ -1,11 +1,27 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import * as dat from 'dat.gui';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import earcut from 'earcut';
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3000");
+// Memoize socket connection to prevent reconnections
+const getSocket = (() => {
+  let socket = null;
+  return () => {
+    if (!socket) {
+      socket = io("http://localhost:3000", {
+        autoConnect: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      });
+    }
+    return socket;
+  };
+})();
+
+const socket = getSocket();
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { createRenderer, createCamera } from './earth/core-utils';
@@ -25,33 +41,43 @@ const CountriesData = '/assets/countrieslite.geo.json';
 const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideControls = false }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
+  const rendererRef = useRef(null);
+  const sceneRef = useRef(null);
+  const animationIdRef = useRef(null);
   const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
   const cursorPosRef = useRef({ x: 400, y: 300 }); // Ref to store current cursor position for gesture handlers
 
-  // Geographic validation function to reject meshes in impossible locations
-  const validateCountryPosition = (countryName, point3D) => {
+  // Memoize callback to prevent unnecessary re-renders
+  const handleCountrySelect = useCallback((country) => {
+    if (setSelectedCountry) {
+      setSelectedCountry(country);
+    }
+  }, [setSelectedCountry]);
+
+  // Memoize country bounds to avoid recreating on every render
+  const countryBounds = useMemo(() => ({
+    'Mexico': { latMin: 14, latMax: 33, lonMin: -118, lonMax: -86 },
+    'Brazil': { latMin: -34, latMax: 6, lonMin: -74, lonMax: -35 },
+    'Peru': { latMin: -19, latMax: 0, lonMin: -82, lonMax: -68 },
+    'Colombia': { latMin: -4, latMax: 12, lonMin: -82, lonMax: -66 },
+    'Philippines': { latMin: 4, latMax: 19, lonMin: 116, lonMax: 127 },
+    'Indonesia': { latMin: -11, latMax: 6, lonMin: 95, lonMax: 141 },
+    'India': { latMin: 6, latMax: 37, lonMin: 68, lonMax: 97 },
+    'China': { latMin: 18, latMax: 54, lonMin: 73, lonMax: 135 },
+    'Honduras': { latMin: 12, latMax: 17, lonMin: -89, lonMax: -83 },
+    'Cuba': { latMin: 19, latMax: 24, lonMin: -85, lonMax: -74 },
+    'Bangladesh': { latMin: 20, latMax: 27, lonMin: 88, lonMax: 93 },
+    'Myanmar': { latMin: 9, latMax: 29, lonMin: 92, lonMax: 102 },
+    'Thailand': { latMin: 5, latMax: 21, lonMin: 97, lonMax: 106 },
+    'Vietnam': { latMin: 8, latMax: 24, lonMin: 102, lonMax: 110 },
+    'Malaysia': { latMin: 1, latMax: 7, lonMin: 100, lonMax: 120 }
+  }), []);
+
+  // Memoized geographic validation function to reject meshes in impossible locations
+  const validateCountryPosition = useCallback((countryName, point3D) => {
     // Convert 3D coordinates to approximate lat/lon for validation
     const lat = Math.asin(point3D.y / 10.3) * 180 / Math.PI;
     const lon = Math.atan2(point3D.x, point3D.z) * 180 / Math.PI;
-    
-    // Define approximate geographic bounds for countries
-    const countryBounds = {
-      'Mexico': { latMin: 14, latMax: 33, lonMin: -118, lonMax: -86 },
-      'Brazil': { latMin: -34, latMax: 6, lonMin: -74, lonMax: -35 },
-      'Peru': { latMin: -19, latMax: 0, lonMin: -82, lonMax: -68 },
-      'Colombia': { latMin: -4, latMax: 12, lonMin: -82, lonMax: -66 },
-      'Philippines': { latMin: 4, latMax: 19, lonMin: 116, lonMax: 127 },
-      'Indonesia': { latMin: -11, latMax: 6, lonMin: 95, lonMax: 141 },
-      'India': { latMin: 6, latMax: 37, lonMin: 68, lonMax: 97 },
-      'China': { latMin: 18, latMax: 54, lonMin: 73, lonMax: 135 },
-      'Honduras': { latMin: 12, latMax: 17, lonMin: -89, lonMax: -83 },
-      'Cuba': { latMin: 19, latMax: 24, lonMin: -85, lonMax: -74 },
-      'Bangladesh': { latMin: 20, latMax: 27, lonMin: 88, lonMax: 93 },
-      'Myanmar': { latMin: 9, latMax: 29, lonMin: 92, lonMax: 102 },
-      'Thailand': { latMin: 5, latMax: 21, lonMin: 97, lonMax: 106 },
-      'Vietnam': { latMin: 8, latMax: 24, lonMin: 102, lonMax: 110 },
-      'Malaysia': { latMin: 1, latMax: 7, lonMin: 100, lonMax: 120 }
-    };
     
     const bounds = countryBounds[countryName];
     if (!bounds) return true; // Allow unknown countries
@@ -63,14 +89,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
                    lon >= (bounds.lonMin - tolerance) && 
                    lon <= (bounds.lonMax + tolerance);
     
-    if (!isValid) {
-      // console.log(`🌍 ${countryName} position check: lat=${lat.toFixed(1)}, lon=${lon.toFixed(1)} vs expected lat=[${bounds.latMin}, ${bounds.latMax}], lon=[${bounds.lonMin}, ${bounds.lonMax}]`);
-      // For now, allow most countries but log the discrepancy
-      return true; // Temporarily allow all to prevent crashes
-    }
-    
-    return isValid;
-  };
+    return isValid || true; // Temporarily allow all to prevent crashes
+  }, [countryBounds]);
 
   useEffect(() => {
     // Store cleanup functions
@@ -104,6 +124,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
 
     // Scene, Renderer, Camera
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
+    
     const renderer = createRenderer({ antialias: true, alpha: true }, (_renderer) => {
       _renderer.outputColorSpace = THREE.SRGBColorSpace;
       _renderer.shadowMap.enabled = true;
@@ -111,6 +133,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       _renderer.toneMapping = THREE.ACESFilmicToneMapping;
       _renderer.toneMappingExposure = 1.2;
     });
+    rendererRef.current = renderer;
 
     // Get container size
     const container = mountRef.current;
@@ -1240,7 +1263,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
               countryNameDiv.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.1)';
             }, 400);
           }
-          setSelectedCountry(clickedName);
+          handleCountrySelect(clickedName);
         }
       };
 
@@ -1249,47 +1272,92 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       cleanupFunctions.push(() => window.removeEventListener('keydown', handleKeydown));
       cleanupFunctions.push(() => window.removeEventListener('click', handleClick));
 
-      // Enhanced animation loop
-      const animate = () => {
+      // Enhanced animation loop with throttled updates for better performance
+      let lastFrameTime = 0;
+      const targetFPS = 60;
+      const frameInterval = 1000 / targetFPS;
+
+      const animate = (currentTime = 0) => {
         if (!isMounted) return;
-        stats.update();
-        controls.update();
+        
+        // Throttle animation to target FPS
+        if (currentTime - lastFrameTime >= frameInterval) {
+          stats.update();
+          controls.update();
 
-        // Smooth rotation
-        clouds.rotateY(0.0005 * params.cloudSpeed);
+          // Smooth rotation (reduced frequency for performance)
+          if (clouds) {
+            clouds.rotateY(0.0005 * params.cloudSpeed);
+          }
 
-        // Enhanced atmosphere breathing effect
-        if (atmos && !params.brightEarthMode) {
-          const time = performance.now() * 0.001;
-          atmos.material.uniforms.atmOpacity.value = params.atmOpacity.value + Math.sin(time * 0.7) * 0.08;
+          // Enhanced atmosphere breathing effect (less frequent updates)
+          if (atmos && !params.brightEarthMode && currentTime % 100 < frameInterval) {
+            const time = performance.now() * 0.001;
+            atmos.material.uniforms.atmOpacity.value = params.atmOpacity.value + Math.sin(time * 0.7) * 0.08;
+          }
+
+          // Dynamic lighting (less frequent updates)
+          if (dirLight && !params.brightEarthMode && currentTime % 200 < frameInterval) {
+            const rotationAngle = group.rotation.y;
+            dirLight.position.x = -50 * Math.cos(rotationAngle * 0.1);
+            dirLight.position.z = 30 * Math.sin(rotationAngle * 0.1);
+          }
+
+          renderer.render(scene, camera);
+          lastFrameTime = currentTime;
         }
-
-        // Dynamic lighting
-        if (dirLight && !params.brightEarthMode) {
-          const rotationAngle = group.rotation.y;
-          dirLight.position.x = -50 * Math.cos(rotationAngle * 0.1);
-          dirLight.position.z = 30 * Math.sin(rotationAngle * 0.1);
-        }
-
-        renderer.render(scene, camera);
+        
         animationId = requestAnimationFrame(animate);
+        animationIdRef.current = animationId;
       };
       animate();
     })();
 
-    // Enhanced cleanup
+    // Enhanced cleanup with proper memory management
     return () => {
       isMounted = false;
-      if (animationId) cancelAnimationFrame(animationId);
+      
+      // Cancel animation frame
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
       
       // Clean up socket listeners to prevent memory leaks
       socket.off("cursor");
       socket.off("gesture");
       
-      if (renderer.domElement && mountRef.current) {
-        try {
-          mountRef.current.removeChild(renderer.domElement);
-        } catch (e) {}
+      // Dispose of Three.js resources to prevent memory leaks
+      if (sceneRef.current) {
+        sceneRef.current.traverse((child) => {
+          if (child.geometry) {
+            child.geometry.dispose();
+          }
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(material => material.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+          if (child.texture) {
+            child.texture.dispose();
+          }
+        });
+      }
+      
+      // Dispose renderer
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        if (rendererRef.current.domElement && mountRef.current) {
+          try {
+            mountRef.current.removeChild(rendererRef.current.domElement);
+          } catch (e) {
+            console.warn('Error removing renderer element:', e);
+          }
+        }
       }
 
       // Clean up all UI elements
@@ -1299,16 +1367,35 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         if (element && element.parentNode) {
           try {
             element.parentNode.removeChild(element);
-          } catch (e) {}
+          } catch (e) {
+            console.warn(`Error removing element ${id}:`, e);
+          }
         }
       });
 
-      window.removeEventListener('resize', handleResize);
-      if (gui) gui.destroy();
+      // Clean up event listeners and refs
+      cleanupFunctions.forEach(cleanup => {
+        try {
+          cleanup();
+        } catch (e) {
+          console.warn('Error during cleanup:', e);
+        }
+      });
+
+      if (gui) {
+        try {
+          gui.destroy();
+        } catch (e) {
+          console.warn('Error destroying GUI:', e);
+        }
+      }
+      
       if (stats && stats.dom && stats.dom.parentNode) {
         try {
           stats.dom.parentNode.removeChild(stats.dom);
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Error removing stats:', e);
+        }
       }
     };
   }, []);

@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 const socket = io("http://localhost:3000");
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { createRenderer, createCamera, updateLoadingProgressBar } from './earth/core-utils';
+import { createRenderer, createCamera } from './earth/core-utils';
 import { loadTexture } from './earth/common-utils';
 // Import shaders as raw text
 import vertexShader from './assets/shaders/vertex.glsl?raw';
@@ -570,28 +570,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           }
         });
       });
-      
-      // Debug country mesh information
-      // console.log(`🗺️ Country mesh summary:`, {
-      //   totalMeshes: countryPickMeshes.length,
-      //   uniqueCountries: [...new Set(countryPickMeshes.map(mesh => mesh.userData.countryName))].length,
-      //   sampleCountries: countryPickMeshes.slice(0, 5).map(mesh => mesh.userData.countryName)
-      // });
-      
-      // Check for duplicate countries
-      // const countryMeshCounts = {};
-      // countryPickMeshes.forEach(mesh => {
-      //   const country = mesh.userData.countryName;
-      //   countryMeshCounts[country] = (countryMeshCounts[country] || 0) + 1;
-      // });
-      
-      // const duplicateCountries = Object.entries(countryMeshCounts)
-      //   .filter(([country, count]) => count > 1)
-      //   .slice(0, 10); // Show first 10 duplicates
-        
-      // if (duplicateCountries.length > 0) {
-      //   console.log(`⚠️ Countries with multiple meshes:`, Object.fromEntries(duplicateCountries));
-      // }
     }
 
     // Update progress bar helper
@@ -729,7 +707,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
 
       // Store gesture event handler for cleanup
       const handleGesture = (data) => {
-        // console.log("Received gesture:", data);
         const g = data.gesture;
         // Pinch: zoom out (move camera away) with distance limits
         if (g === "pinch") {
@@ -766,51 +743,14 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         // Click gesture: "OK" sign (thumb touches index, other fingers up) - clicks at cursor position
         else if (g === "click") {
           const currentCursorPos = cursorPosRef.current; // Use ref to get latest position
-          // console.log("🎯 OK sign detected! Cursor state:", cursorPos);
-          // console.log("🎯 OK sign detected! Cursor ref:", currentCursorPos);
           
           if (renderer && renderer.domElement) {
             const rect = renderer.domElement.getBoundingClientRect();
-            
-            // Debug: Log the rect and cursor position details
-            // console.log("🔧 Coordinate conversion debug:", {
-            //   cursorX: currentCursorPos.x,
-            //   cursorY: currentCursorPos.y,
-            //   rectLeft: rect.left,
-            //   rectTop: rect.top,
-            //   rectWidth: rect.width,
-            //   rectHeight: rect.height,
-            //   calculatedAbsoluteX: currentCursorPos.x + rect.left,
-            //   calculatedAbsoluteY: currentCursorPos.y + rect.top
-            // });
-            
-            // Check if cursor coordinates are relative to container vs renderer
-            const container = mountRef.current;
-            const containerRect = container.getBoundingClientRect();
-            // console.log("🔧 Container vs Renderer comparison:", {
-            //   containerLeft: containerRect.left,
-            //   containerTop: containerRect.top,
-            //   rendererLeft: rect.left,
-            //   rendererTop: rect.top,
-            //   offsetX: rect.left - containerRect.left,
-            //   offsetY: rect.top - containerRect.top
-            // });
             
             // FIXED: Round coordinates to avoid floating point precision issues
             // This ensures gesture clicks match mouse click precision
             const absoluteClickX = Math.round(currentCursorPos.x + rect.left);
             const absoluteClickY = Math.round(currentCursorPos.y + rect.top);
-            
-            // console.log("🎯 Final click coordinates:", { 
-            //   cursorX: currentCursorPos.x, 
-            //   cursorY: currentCursorPos.y,
-            //   rectLeft: rect.left, 
-            //   rectTop: rect.top,
-            //   absoluteClickX: absoluteClickX, 
-            //   absoluteClickY: absoluteClickY,
-            //   rectWidth: rect.width,
-            //   rectHeight: rect.height
-            // });
             
             // Add a visual debug marker to show where gesture thinks it's clicking
             const debugMarker = document.createElement('div');
@@ -834,7 +774,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
               clientY: absoluteClickY,
               bubbles: true
             });
-            // console.log("🎯 Dispatching click event on renderer element");
             renderer.domElement.dispatchEvent(event);
           }
         }
@@ -1124,14 +1063,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       const mouse = new THREE.Vector2();
 
       const handleClick = (event) => {
-        // console.log("🔍 Click event details:", {
-        //   target: event.target?.tagName || 'unknown',
-        //   rendererElement: renderer.domElement?.tagName || 'unknown',
-        //   container: container?.tagName || 'unknown',
-        //   isSyntheticEvent: event.isTrusted === false,
-        //   eventType: event.type
-        // });
-        
         // Accept clicks on renderer or its parent container
         // FIXED: Accept all canvas clicks and synthetic events since zoom changes behavior
         const isValidTarget = 
@@ -1154,52 +1085,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        // Log globe state for debugging
-        // console.log("🌍 Globe state at click:", {
-        //   rotationX: group.rotation.x.toFixed(3),
-        //   rotationY: group.rotation.y.toFixed(3),
-        //   rotationZ: group.rotation.z.toFixed(3),
-        //   scaleX: group.scale.x.toFixed(3)
-        // });
-        
-        // console.log("🎯 Click coordinates:", { 
-        //   screenX: event.clientX, 
-        //   screenY: event.clientY,
-        //   normalizedX: mouse.x.toFixed(3),
-        //   normalizedY: mouse.y.toFixed(3),
-        //   rectWidth: rect.width,
-        //   rectHeight: rect.height,
-        //   relativeX: (event.clientX - rect.left).toFixed(1),
-        //   relativeY: (event.clientY - rect.top).toFixed(1),
-        //   rectLeft: rect.left.toFixed(1),
-        //   rectTop: rect.top.toFixed(1)
-        // });
-
         raycaster.setFromCamera(mouse, cameraRef.current || camera);
         
-        // Debug: Show camera and raycaster state
-        // console.log("📷 Camera debug:", {
-        //   cameraPositionX: camera.position.x.toFixed(3),
-        //   cameraPositionY: camera.position.y.toFixed(3),
-        //   cameraPositionZ: camera.position.z.toFixed(3),
-        //   cameraRefPositionX: cameraRef.current?.position.x.toFixed(3) || 'null',
-        //   cameraRefPositionY: cameraRef.current?.position.y.toFixed(3) || 'null', 
-        //   cameraRefPositionZ: cameraRef.current?.position.z.toFixed(3) || 'null',
-        //   cameraSame: camera === cameraRef.current
-        // });
-        
-        // Debug: Show where the ray is actually pointing
-        const rayDirection = raycaster.ray.direction.clone();
-        const rayOrigin = raycaster.ray.origin.clone();
-        // console.log("🔫 Raycaster debug:", {
-        //   rayOriginX: rayOrigin.x.toFixed(3),
-        //   rayOriginY: rayOrigin.y.toFixed(3), 
-        //   rayOriginZ: rayOrigin.z.toFixed(3),
-        //   rayDirectionX: rayDirection.x.toFixed(3),
-        //   rayDirectionY: rayDirection.y.toFixed(3),
-        //   rayDirectionZ: rayDirection.z.toFixed(3),
-        //   isSynthetic: event.isTrusted === false
-        // });
         // Increase threshold for more reliable picking at all zoom levels
         // Adjust threshold based on camera distance for better precision
         const cameraDistance = cameraRef.current ? cameraRef.current.position.length() : camera.position.length();
@@ -1208,22 +1095,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         raycaster.params.Line = { threshold: dynamicThreshold };
         raycaster.params.Points = { threshold: dynamicThreshold };
         const allIntersects = raycaster.intersectObjects(countryPickMeshes);
-        // console.log("🎯 All intersections found:", allIntersects.length);
-        
-        // Log ALL intersections before filtering
-        allIntersects.forEach((intersect, index) => {
-          const distance = intersect.point.length();
-          const dotProduct = intersect.point.clone().normalize().dot(camera.position.clone().normalize());
-          // console.log(`🎯 Raw intersection ${index}:`, {
-          //   country: intersect.object.userData.countryName,
-          //   distance: distance,
-          //   point3D: `(${intersect.point.x.toFixed(2)}, ${intersect.point.y.toFixed(2)}, ${intersect.point.z.toFixed(2)})`,
-          //   meshIndex: intersect.object.userData.meshIndex || 'unknown',
-          //   faceIndex: intersect.faceIndex,
-          //   dotProduct: dotProduct.toFixed(3),
-          //   isBackFacing: dotProduct < 0
-          // });
-        });
         
         // Filter out back-facing intersections (only keep front-facing ones)
         const frontFacingIntersects = allIntersects.filter(intersect => {
@@ -1231,18 +1102,11 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           return dotProduct > 0; // Only front-facing
         });
         
-        // console.log(`🎯 Front-facing intersections: ${frontFacingIntersects.length} of ${allIntersects.length}`);
-        
         // Further filter by geographic validation to remove misplaced meshes
         const geographicallyValidIntersects = frontFacingIntersects.filter(intersect => {
           const isValid = validateCountryPosition(intersect.object.userData.countryName, intersect.point);
-          if (!isValid) {
-            // console.log(`🚫 Rejected ${intersect.object.userData.countryName} - geographically invalid position`);
-          }
           return isValid;
         });
-        
-        // console.log(`🎯 Geographically valid intersections: ${geographicallyValidIntersects.length} of ${frontFacingIntersects.length}`);
         
         const intersects = geographicallyValidIntersects
           .filter(intersect => {
@@ -1256,41 +1120,9 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             // Accept intersections near the picking mesh radius with some tolerance
             // This works regardless of camera zoom distance
             const isValid = distance >= earthRadius - 0.5 && distance <= pickingRadius + 0.5;
-            // console.log("🎯 Intersection:", {
-            //   country: intersect.object.userData.countryName,
-            //   distance: distance,
-            //   earthRadius: earthRadius,
-            //   pickingRadius: pickingRadius,
-            //   isValid: isValid,
-            //   point3D: `(${intersect.point.x.toFixed(2)}, ${intersect.point.y.toFixed(2)}, ${intersect.point.z.toFixed(2)})`
-            // });
             return isValid;
           })
           .sort((a, b) => a.distance - b.distance);
-
-        // Add visual marker at the click point
-        // if (intersects.length > 0) {
-        //   const clickPoint = intersects[0].point;
-        //   const geometry = new THREE.SphereGeometry(0.05, 8, 8);
-        //   const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        //   const marker = new THREE.Mesh(geometry, material);
-        //   marker.position.copy(clickPoint);
-        //   marker.name = 'clickMarker';
-          
-        //   // Remove previous markers
-        //   const oldMarkers = scene.children.filter(child => child.name === 'clickMarker');
-        //   oldMarkers.forEach(marker => scene.remove(marker));
-          
-        //   scene.add(marker);
-        //   console.log(`🔴 Added red marker at: (${clickPoint.x.toFixed(2)}, ${clickPoint.y.toFixed(2)}, ${clickPoint.z.toFixed(2)})`);
-        // }
-
-        // console.log("🎯 Valid intersections after filtering:", intersects.length);
-        // console.log("🎯 All valid countries found:", intersects.map(i => ({
-        //   name: i.object.userData.countryName,
-        //   distance: i.distance.toFixed(3),
-        //   point: `(${i.point.x.toFixed(2)}, ${i.point.y.toFixed(2)}, ${i.point.z.toFixed(2)})`
-        // })));
 
         if (intersects.length > 0) {
           // Enhanced selection algorithm for overlapping meshes with geographic validation
@@ -1309,13 +1141,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
                 countryIntersects.set(country, []);
               }
               countryIntersects.get(country).push(intersect);
-            } else {
-              // console.log(`🚫 Rejected ${country} at invalid position: (${point.x.toFixed(2)}, ${point.y.toFixed(2)}, ${point.z.toFixed(2)})`);
             }
           });
-          
-          // console.log(`🎯 Found ${countryIntersects.size} unique countries at click point:`, 
-          //   Array.from(countryIntersects.keys()));
           
           // For each country, find the best intersection (closest to expected distance)
           const bestCountryMatches = Array.from(countryIntersects.entries()).map(([country, countryIntersects]) => {
@@ -1336,15 +1163,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           // Sort by distance difference (best match first)
           bestCountryMatches.sort((a, b) => a.distanceDiff - b.distanceDiff);
           
-          // console.log(`🎯 Best matches per country:`, bestCountryMatches.slice(0, 3).map(match => ({
-          //   country: match.country,
-          //   distanceDiff: match.distanceDiff.toFixed(4),
-          //   meshCount: match.meshCount
-          // })));
-          
           // Check if we have any valid countries after geographic validation
           if (bestCountryMatches.length === 0) {
-            // console.log("🚫 No valid countries found after geographic validation");
             return; // Exit early if no valid countries
           }
           
@@ -1352,7 +1172,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           const bestMatch = bestCountryMatches[0];
           const bestIntersect = bestMatch.intersect;
           const clickedName = bestMatch.country;
-          // console.log("🎯 Selected country (best match):", clickedName, "distance diff:", Math.abs(bestIntersect.point.length() - 10.3).toFixed(3));
           if (!clickedName) return;
 
           // Hide previous highlights
@@ -1408,8 +1227,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             currentlyHighlightedCountry = clickedName;
           }
 
-          // console.log("🎯 Clicked country:", clickedName);
-
           // Enhanced country name display with better animations
           const countryNameDiv = document.getElementById('countryNameDisplay');
           if (countryNameDiv) {
@@ -1439,7 +1256,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         controls.update();
 
         // Smooth rotation
-  // group.rotateY(0.001 * params.speedFactor); // Disabled automatic earth rotation
         clouds.rotateY(0.0005 * params.cloudSpeed);
 
         // Enhanced atmosphere breathing effect

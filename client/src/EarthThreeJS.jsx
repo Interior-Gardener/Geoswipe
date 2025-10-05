@@ -11,10 +11,24 @@ const getSocket = (() => {
   return () => {
     if (!socket) {
       socket = io("http://localhost:3000", {
-        autoConnect: false,
+        autoConnect: true, // Enable auto connect for gesture controls
         reconnection: true,
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
+        transports: ['websocket', 'polling']
+      });
+      
+      // Add connection event handlers for debugging
+      socket.on('connect', () => {
+        console.log('🔌 Frontend connected to gesture server');
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('🔌 Frontend disconnected from gesture server');
+      });
+      
+      socket.on('connect_error', (error) => {
+        console.error('🔌 Frontend connection error:', error);
       });
     }
     return socket;

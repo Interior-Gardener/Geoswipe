@@ -271,6 +271,7 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
         ...site.view360,
         iframeUrl: streetViewUrl
       } : null,
+
       model3d: site.model3d,
       media: site.media,
       visitor_info: site.visitor_info
@@ -283,79 +284,49 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
   }
 });
 
-//Optimized Socket.IO logic with error handling and rate limiting
-const socketRateLimits = new Map();
-const SOCKET_RATE_LIMIT = 100; // messages per minute per socket
-const RATE_WINDOW = 60 * 1000; // 1 minute
+//Optimized Socket.IO logic with NO rate limiting for gesture controls
+const socketConnections = new Set(); // Track connections for cleanup only
 
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  console.log(`🤝 Client connected: ${socket.id}`);
   
-  // Initialize rate limiting for this socket
-  socketRateLimits.set(socket.id, {
-    count: 0,
-    resetTime: Date.now() + RATE_WINDOW
-  });
-
-  // Rate limiting helper
-  const checkRateLimit = (socketId) => {
-    const now = Date.now();
-    const limit = socketRateLimits.get(socketId);
-    
-    if (!limit) return false;
-    
-    if (now > limit.resetTime) {
-      limit.count = 0;
-      limit.resetTime = now + RATE_WINDOW;
-    }
-    
-    if (limit.count >= SOCKET_RATE_LIMIT) {
-      return false; // Rate limited
-    }
-    
-    limit.count++;
-    return true; // Within limits
-  };
+  // Add to connection tracking
+  socketConnections.add(socket.id);
 
   socket.on('gesture', (data) => {
     try {
-      if (!checkRateLimit(socket.id)) {
-        console.warn(`Rate limit exceeded for socket ${socket.id}`);
-        return;
-      }
-
+      // NO RATE LIMITING - Allow unlimited gesture controls for full website accessibility
       if (!data || typeof data !== 'object') {
-        console.warn('Invalid gesture data received');
+        console.warn('⚠️ Invalid gesture data received');
         return;
       }
 
-      console.log("Gesture from Python:", data);
-      socket.broadcast.emit('gesture', data); // Broadcast to all other clients
+      console.log("👋 Gesture from Python:", data.gesture || data);
+      // Broadcast to all other clients for full gesture accessibility
+      socket.broadcast.emit('gesture', data);
     } catch (error) {
-      console.error('Error handling gesture:', error);
+      console.error('❌ Error handling gesture:', error);
     }
   });
 
   socket.on('cursor', (data) => {
     try {
-      if (!checkRateLimit(socket.id)) {
-        return; // Silently drop cursor updates if rate limited
-      }
-
+      // NO RATE LIMITING - Allow unlimited cursor updates for smooth gesture navigation
       if (!data || typeof data !== 'object') {
-        return; // Silently ignore invalid cursor data
+        return; // Silently ignore invalid cursor data (high frequency event)
       }
 
-      // Forward index finger position to all other clients (not sender)
+      // Forward cursor position to all clients for gesture-controlled navigation
       socket.broadcast.emit('cursor', data);
     } catch (error) {
-      console.error('Error handling cursor:', error);
+      console.error('❌ Error handling cursor:', error);
     }
   });
 
   socket.on('disconnect', (reason) => {
-    console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
-    socketRateLimits.delete(socket.id);
+    console.log(`👋 Client disconnected: ${socket.id}, reason: ${reason}`);
+    // Clean up connection tracking
+    socketConnections.delete(socket.id);
   });
 
   socket.on('error', (error) => {

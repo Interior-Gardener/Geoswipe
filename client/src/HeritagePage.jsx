@@ -352,7 +352,10 @@ const HeritagePage = () => {
   };
 
   useEffect(() => {
-    if (map.current) return;
+    if (map.current) {
+      console.log('Map already initialized, skipping...');
+      return;
+    }
     console.log('Initializing map...');
     const apiKey = 'UItNGCy3GRgJ70RLvqlZ';
     
@@ -452,7 +455,7 @@ const HeritagePage = () => {
         console.error('Error initializing map:', error);
       }
 
-      map.current.on('load', () => {
+        map.current.on('load', () => {
         console.log('Map loaded successfully');
         
         setTimeout(() => {
@@ -475,21 +478,132 @@ const HeritagePage = () => {
   
             try {
               console.log('Map sources available:', Object.keys(map.current.getStyle()?.sources || {}));
-  
-              // Add heritage sites source
+
+              // Load heritage site category icons - simplified approach
+              const iconCategories = [
+                { category: 'UNESCO World Heritage', file: 'UNESCO World Heritage.png', id: 'unesco-heritage' },
+                { category: 'Historic Fort', file: 'Historic Forts.png', id: 'historic-fort' },
+                { category: 'Rock-cut Cave', file: 'Rock-cut Caves.png', id: 'rock-cave' },
+                { category: 'Temple', file: 'Temples.png', id: 'temple' },
+                { category: 'Monument', file: 'Monuments.png', id: 'monument' },
+                { category: 'Palace', file: 'Palaces & Museums.png', id: 'palace' },
+                { category: 'Museum', file: 'Palaces & Museums.png', id: 'museum' },
+                { category: 'Historic Building', file: 'Historic Buildings.png', id: 'historic-building' }
+              ];
+
+              // Create a simple fallback icon with proper size
+              const createFallbackIcon = () => {
+                const size = 24; // Smaller size to avoid issues
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw a simple circle icon
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.arc(size/2, size/2, size/2 - 2, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                return canvas;
+              };
+
+              // Add fallback icon with error handling
+              try {
+                if (!map.current.hasImage('fallback-icon')) {
+                  const fallbackCanvas = createFallbackIcon();
+                  map.current.addImage('fallback-icon', fallbackCanvas);
+                  console.log('✅ Added fallback icon');
+                }
+              } catch (error) {
+                console.warn('⚠️ Failed to add fallback icon:', error);
+              }
+
+              // Function to resize image to appropriate size for map icons
+              const resizeImage = (img, maxSize = 64) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate new size maintaining aspect ratio
+                let { width, height } = img;
+                if (width > height) {
+                  if (width > maxSize) {
+                    height = (height * maxSize) / width;
+                    width = maxSize;
+                  }
+                } else {
+                  if (height > maxSize) {
+                    width = (width * maxSize) / height;
+                    height = maxSize;
+                  }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw resized image
+                ctx.drawImage(img, 0, 0, width, height);
+                return canvas;
+              };
+
+              // Load each icon image with resizing
+              const loadIconPromises = iconCategories.map(({ category, file, id }) => {
+                return new Promise((resolve) => {
+                  const iconUrl = `/assets/${file}`;
+                  
+                  console.log(`🔄 Loading icon: ${iconUrl} as ID: ${id}`);
+                  
+                  const img = new Image();
+                  img.crossOrigin = 'anonymous';
+                  
+                  img.onload = () => {
+                    try {
+                      console.log(`📏 Original image size: ${img.width}x${img.height}`);
+                      
+                      // Resize the image to appropriate size
+                      const resizedCanvas = resizeImage(img, 48); // 48px max size
+                      console.log(`📏 Resized to: ${resizedCanvas.width}x${resizedCanvas.height}`);
+                      
+                      if (!map.current.hasImage(id)) {
+                        map.current.addImage(id, resizedCanvas);
+                        console.log(`✅ Successfully loaded and resized icon: ${category} -> ${id}`);
+                      }
+                      resolve(true);
+                    } catch (error) {
+                      console.warn(`❌ Failed to process icon for ${category}:`, error);
+                      resolve(true); // Still resolve as we have fallback
+                    }
+                  };
+                  
+                  img.onerror = (error) => {
+                    console.warn(`❌ Failed to load image for ${category}:`, error);
+                    resolve(true); // Still resolve as we have fallback
+                  };
+                  
+                  img.src = iconUrl;
+                });
+              });
+
+              // Add heritage sites source first
               if (!map.current.getSource('heritage-sites-source')) {
                 map.current.addSource('heritage-sites-source', { 
                   'type': 'geojson', 
                   'data': heritageSites || { type: 'FeatureCollection', features: [] }
                 });
-              } else {  ////////////////////////////////
+                console.log('✅ Heritage sites source added');
+              } else {
                 // Update existing source with new data
                 map.current.getSource('heritage-sites-source').setData(heritageSites || { type: 'FeatureCollection', features: [] });
+                console.log('✅ Heritage sites source updated');
               }
               console.log('🗺️ Heritage sites source data:', heritageSites);
               console.log('📍 Number of features:', heritageSites?.features?.length || 0);
-  
-              // Add circle layer
+
+              // First, let's add a simple circle layer that we know works
               if (!map.current.getLayer('heritage-sites-circles')) {
                 map.current.addLayer({
                   'id': 'heritage-sites-circles',
@@ -498,28 +612,142 @@ const HeritagePage = () => {
                   'paint': {
                     'circle-radius': [
                       'interpolate', ['linear'], ['zoom'],
-                      6, 4,
-                      10, 8,
-                      14, 16
+                      6, 6,
+                      10, 10,
+                      14, 18
                     ],
                     'circle-color': [
                       'case',
                       ['==', ['get', 'category'], 'UNESCO World Heritage'], '#ff6b6b',
                       ['==', ['get', 'category'], 'Historic Fort'], '#4ecdc4',
                       ['==', ['get', 'category'], 'Rock-cut Cave'], '#45b7d1',
-                    ['==', ['get', 'category'], 'Temple'], '#f9ca24',
-                    ['==', ['get', 'category'], 'Monument'], '#6c5ce7',
-                    ['==', ['get', 'category'], 'Palace'], '#a29bfe',
-                    ['==', ['get', 'category'], 'Museum'], '#a29bfe',
-                    ['==', ['get', 'category'], 'Historic Building'], '#fd79a8',
-                    '#74b9ff'
-                  ],
-                  'circle-stroke-width': 2,
-                  'circle-stroke-color': '#ffffff',
-                  'circle-opacity': 0.8
+                      ['==', ['get', 'category'], 'Temple'], '#f9ca24',
+                      ['==', ['get', 'category'], 'Monument'], '#6c5ce7',
+                      ['==', ['get', 'category'], 'Palace'], '#a29bfe',
+                      ['==', ['get', 'category'], 'Museum'], '#a29bfe',
+                      ['==', ['get', 'category'], 'Historic Building'], '#fd79a8',
+                      '#74b9ff'
+                    ],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff',
+                    'circle-opacity': 0.8
+                  }
+                });
+                console.log('✅ Heritage sites circle layer added');
+              }
+
+              // For now, let's skip the complex icon loading and just use circles
+              // We'll add icons back once we get the basic functionality working
+              
+              // TODO: Add icon loading back later
+              console.log('� Icon loading temporarily disabled, using circles for now');
+
+            // Load icons properly after basic setup
+            setTimeout(() => {
+              console.log('🔄 Starting safe icon loading...');
+              
+              const loadIconSafely = (category, fileName, iconId) => {
+                return new Promise((resolve) => {
+                  const img = new Image();
+                  img.crossOrigin = 'anonymous';
+                  
+                  img.onload = () => {
+                    try {
+                      const canvas = document.createElement('canvas');
+                      const ctx = canvas.getContext('2d');
+                      const size = 32;
+                      canvas.width = size;
+                      canvas.height = size;
+                      
+                      // Clear canvas and draw resized image
+                      ctx.clearRect(0, 0, size, size);
+                      ctx.drawImage(img, 0, 0, size, size);
+                      
+                      // Create ImageData object (this is what MapLibre expects)
+                      const imageData = ctx.getImageData(0, 0, size, size);
+                      
+                      // Create proper image object for MapLibre
+                      const mapImage = {
+                        width: size,
+                        height: size,
+                        data: imageData.data
+                      };
+                      
+                      if (!map.current.hasImage(iconId)) {
+                        map.current.addImage(iconId, mapImage);
+                        console.log(`✅ Loaded: ${category} (${size}x${size})`);
+                      }
+                      resolve(true);
+                    } catch (error) {
+                      console.warn(`⚠️ Error processing ${category}:`, error);
+                      resolve(false);
+                    }
+                  };
+                  
+                  img.onerror = () => resolve(false);
+                  img.src = `/assets/${fileName}`;
+                });
+              };
+
+              // Load icons and add layer
+              Promise.all([
+                loadIconSafely('UNESCO World Heritage', 'UNESCO World Heritage.png', 'unesco-icon'),
+                loadIconSafely('Historic Fort', 'Historic Forts.png', 'fort-icon'),
+                loadIconSafely('Rock-cut Cave', 'Rock-cut Caves.png', 'cave-icon'),
+                loadIconSafely('Temple', 'Temples.png', 'temple-icon'),
+                loadIconSafely('Monument', 'Monuments.png', 'monument-icon'),
+                loadIconSafely('Palace', 'Palaces & Museums.png', 'palace-icon'),
+                loadIconSafely('Historic Building', 'Historic Buildings.png', 'building-icon')
+              ]).then((results) => {
+                const loaded = results.filter(Boolean).length;
+                console.log(`📊 Loaded ${loaded}/7 icons`);
+                
+                if (loaded > 0 && !map.current.getLayer('heritage-sites-icons')) {
+                  map.current.addLayer({
+                    'id': 'heritage-sites-icons',
+                    'type': 'symbol',
+                    'source': 'heritage-sites-source',
+                    'layout': {
+                      'icon-image': [
+                        'case',
+                        ['==', ['get', 'category'], 'UNESCO World Heritage'], 'unesco-icon',
+                        ['==', ['get', 'category'], 'Historic Fort'], 'fort-icon',
+                        ['==', ['get', 'category'], 'Rock-cut Cave'], 'cave-icon',
+                        ['==', ['get', 'category'], 'Temple'], 'temple-icon',
+                        ['==', ['get', 'category'], 'Monument'], 'monument-icon',
+                        ['==', ['get', 'category'], 'Palace'], 'palace-icon',
+                        ['==', ['get', 'category'], 'Museum'], 'palace-icon',
+                        ['==', ['get', 'category'], 'Historic Building'], 'building-icon',
+                        'monument-icon'
+                      ],
+                      'icon-size': [
+                        'interpolate', ['linear'], ['zoom'],
+                        6, 0.8,
+                        10, 1.0,
+                        14, 1.4
+                      ],
+                      'icon-allow-overlap': true
+                    }
+                  });
+                  
+                  // Hide circles now that we have icons
+                  if (map.current.getLayer('heritage-sites-circles')) {
+                    map.current.setLayoutProperty('heritage-sites-circles', 'visibility', 'none');
+                  }
+                  
+                  // Ensure text labels are visible and properly positioned for icons
+                  if (map.current.getLayer('heritage-sites-layer')) {
+                    // Update text layer to work better with icons
+                    map.current.setLayoutProperty('heritage-sites-layer', 'text-offset', [0, 2]);
+                    map.current.setLayoutProperty('heritage-sites-layer', 'text-anchor', 'top');
+                    map.current.setLayoutProperty('heritage-sites-layer', 'visibility', 'visible');
+                    console.log('✅ Text labels repositioned for icons');
+                  }
+                  
+                  console.log('🎉 Icons and labels are now visible!');
                 }
               });
-            }
+            }, 1000);
 
             // Add text labels
             if (!map.current.getLayer('heritage-sites-layer')) {
@@ -529,50 +757,62 @@ const HeritagePage = () => {
                 'source': 'heritage-sites-source', 
                 'layout': { 
                   'text-field': ['get', 'name'],
-                  'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
-                  'text-radial-offset': 0.5,
-                  'text-justify': 'auto',
+                  'text-anchor': 'top',
+                  'text-offset': [0, 1.5],
                   'text-size': [
                     'interpolate', ['linear'], ['zoom'],
                     6, 10,
                     10, 12,
                     14, 16
                   ],
-                  'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular']
+                  'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+                  'text-max-width': 10,
+                  'text-line-height': 1.2
                 }, 
                 'paint': { 
                   'text-color': '#ffffff',
                   'text-halo-color': '#000000',
-                  'text-halo-width': 1
+                  'text-halo-width': 2
                 } 
               });
+              console.log('✅ Text labels layer added');
             }
 
-            // Enhanced click interaction
-            map.current.on('click', 'heritage-sites-circles', async (e) => {
-                const properties = e.features[0].properties;
-                const coordinates = e.features[0].geometry.coordinates.slice();
-  
-                console.log('📍 Heritage site clicked:', properties.name);
-                const details = await fetchDetails(properties.name);
-                
-                setSidebarData({
-                  name: properties.name,
-                  category: properties.category,
-                  year: properties.year,
-                  ...details
-                });
-                setSidebarOpen(true);
-              });
-  
-              // Enhanced hover effects
-              map.current.on('mouseenter', 'heritage-sites-circles', (e) => { 
-                map.current.getCanvas().style.cursor = 'pointer';
-              });
+            // Enhanced click interaction for both icons and circles
+            const handleSiteClick = async (e) => {
+              const properties = e.features[0].properties;
+              const coordinates = e.features[0].geometry.coordinates.slice();
+
+              console.log('📍 Heritage site clicked:', properties.name);
+              const details = await fetchDetails(properties.name);
               
-              map.current.on('mouseleave', 'heritage-sites-circles', () => { 
-                map.current.getCanvas().style.cursor = '';
+              setSidebarData({
+                name: properties.name,
+                category: properties.category,
+                year: properties.year,
+                ...details
               });
+              setSidebarOpen(true);
+            };
+
+            // Enhanced hover effects for both icons and circles
+            const handleMouseEnter = (e) => { 
+              map.current.getCanvas().style.cursor = 'pointer';
+            };
+            
+            const handleMouseLeave = () => { 
+              map.current.getCanvas().style.cursor = '';
+            };
+
+            // Add event listeners for both layer types
+            map.current.on('click', 'heritage-sites-icons', handleSiteClick);
+            map.current.on('click', 'heritage-sites-circles', handleSiteClick);
+            map.current.on('mouseenter', 'heritage-sites-icons', handleMouseEnter);
+            map.current.on('mouseenter', 'heritage-sites-circles', handleMouseEnter);
+            map.current.on('mouseleave', 'heritage-sites-icons', handleMouseLeave);
+            map.current.on('mouseleave', 'heritage-sites-circles', handleMouseLeave);
+            
+            console.log('✅ Event handlers attached to both icon and circle layers');
   
               // Initialize site counts
               updateSiteCounts();
@@ -954,35 +1194,77 @@ const HeritagePage = () => {
         boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
         zIndex: 10,
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        maxWidth: '200px'
+        maxWidth: '220px'
       }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>🗺️ Site Categories</h4>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#ff6b6b' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/UNESCO World Heritage.png" 
+            alt="UNESCO" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ff6b6b', display: 'none' }}></div>
           <span>UNESCO World Heritage</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#4ecdc4' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Historic Forts.png" 
+            alt="Fort" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#4ecdc4', display: 'none' }}></div>
           <span>Historic Forts</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#45b7d1' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Rock-cut Caves.png" 
+            alt="Cave" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#45b7d1', display: 'none' }}></div>
           <span>Rock-cut Caves</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#f9ca24' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Temples.png" 
+            alt="Temple" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#f9ca24', display: 'none' }}></div>
           <span>Temples</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#6c5ce7' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Monuments.png" 
+            alt="Monument" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#6c5ce7', display: 'none' }}></div>
           <span>Monuments</span>
-          </div>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#a29bfe' }}></div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Palaces & Museums.png" 
+            alt="Palace" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#a29bfe', display: 'none' }}></div>
           <span>Palaces & Museums</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0', fontSize: '12px' }}>
-          <div style={{ width: '15px', height: '15px', borderRadius: '50%', marginRight: '8px', backgroundColor: '#fd79a8' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Historic Buildings.png" 
+            alt="Building" 
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#fd79a8', display: 'none' }}></div>
           <span>Historic Buildings</span>
         </div>
       </div>

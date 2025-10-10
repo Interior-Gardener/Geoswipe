@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EarthThreeJS from "./EarthThreeJS";
 import CountryQuiz from "./CountryQuiz";
+import GestureButton from "./GestureButton";
 
 const QuizPage = () => {
   const navigate = useNavigate();
@@ -33,20 +34,49 @@ const QuizPage = () => {
         <CountryQuiz selectedCountry={selectedCountry}  clearSelection={() => setSelectedCountry(null)}/>
       </div>
 
+      {/* 📝 Gesture Instructions for Quiz Mode */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "130px",
+          right: "20px",
+          zIndex: 1000,
+          background: "rgba(0, 20, 40, 0.9)",
+          padding: "12px 16px",
+          borderRadius: "8px",
+          color: "rgba(255, 255, 255, 0.9)",
+          fontSize: "12px",
+          fontFamily: "'Orbitron', sans-serif",
+          border: "1px solid rgba(0, 212, 255, 0.3)",
+          backdropFilter: "blur(10px)",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          maxWidth: "250px",
+        }}
+      >
+        <div style={{ fontWeight: "bold", color: "#00d4ff", marginBottom: "8px" }}>
+          🎮 Gesture Controls
+        </div>
+        <div style={{ lineHeight: "1.4" }}>
+          ✋ Open palm: Move cursor<br/>
+          👌 OK sign: Click buttons<br/>
+          🌍 Click countries to answer
+        </div>
+      </div>
+
       {/* 🔙 Back Button */}
-      <button
+      <GestureButton
         onClick={() => navigate(-1)} // Go back to previous page
         style={{
           position: "absolute",
-          bottom: "20px",
-          left: "20px",
+          bottom: "70px",
+          left: "90px",
           zIndex: 1000,
           background: "linear-gradient(135deg, rgba(0, 40, 80, 0.9), rgba(0, 20, 40, 0.9))",
           color: "#00d4ff",
           border: "2px solid rgba(0, 212, 255, 0.4)",
-          padding: "12px 20px",
+          padding: "18px 26px",
           borderRadius: "12px",
-          fontSize: "16px",
+          fontSize: "20px",
           fontWeight: "bold",
           fontFamily: "'Orbitron', sans-serif",
           cursor: "pointer",
@@ -71,7 +101,7 @@ const QuizPage = () => {
       >
         <span style={{ fontSize: "18px" }}>⬅️</span>
         Back
-      </button>
+      </GestureButton>
     </div>
   );
 };

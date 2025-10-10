@@ -1,17 +1,18 @@
 import React, { useState, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import EarthThreeJS from "./EarthThreeJS";
+import GestureButton from "./GestureButton";
 
 // Memoized button component to prevent unnecessary re-renders
 const QuizButton = memo(({ onClick }) => (
-  <button
+  <GestureButton
     onClick={onClick}
     style={{
       position: "absolute",
-      bottom: "20px",
-      left: "20px",
-      padding: "12px 24px",
-      fontSize: "18px",
+      bottom: "100px",
+      left: "40px",
+      padding: "18px 30px",
+      fontSize: "20px",
       fontWeight: "bold",
       background: "linear-gradient(135deg, #00d4ff, #0080ff)",
       color: "white",
@@ -32,7 +33,7 @@ const QuizButton = memo(({ onClick }) => (
     }}
   >
     Start Quiz
-  </button>
+  </GestureButton>
 ));
 
 QuizButton.displayName = 'QuizButton';

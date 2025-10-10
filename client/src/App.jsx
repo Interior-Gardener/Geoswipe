@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
+import GlobalGestureCursor from "./GlobalGestureCursor";
 
 // Lazy load components for better performance
 const LandingPage = lazy(() => import("./LandingPage"));
@@ -38,6 +39,8 @@ function App() {
           <Route path="/how-to-reach/:name" element={<HowToReachPage />} />
         </Routes>
       </Suspense>
+      {/* Global gesture cursor - appears on all pages */}
+      <GlobalGestureCursor />
     </Router>
   );
 }

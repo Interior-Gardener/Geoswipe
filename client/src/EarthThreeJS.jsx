@@ -392,7 +392,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         🖱 <strong>Click to explore countries</strong><br>
         🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
         ✋ <strong>Open palm: Move blue cursor dot</strong><br>
-        🖐 <strong>Four fingers (no thumb): Click where cursor points</strong><br>
+        � <strong>OK sign: Click where cursor points (Countries & Buttons!)</strong><br>
         🤏 <strong>Pinch/Zoom with scale limits (0.3x - 3.0x)</strong><br>
         🌟 <strong>Press 'B' for bright mode</strong><br>
         ⌨ <strong>Use GUI panel for fine-tuning</strong>
@@ -1427,22 +1427,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         background: 'linear-gradient(135deg, #000000, #001122)',
       }}
     >
-      {/* Render gesture-controlled cursor dot - always visible */}
-      <div
-        style={{
-          position: 'absolute',
-          left: cursorPos.x - 12,
-          top: cursorPos.y - 12,
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          background: 'rgba(0,212,255,0.8)',
-          boxShadow: '0 0 16px 4px #00d4ff',
-          pointerEvents: 'none',
-          zIndex: 2001,
-          border: '2px solid #fff',
-        }}
-      />
     </div>
   );
 };

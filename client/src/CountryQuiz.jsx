@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import GestureButton from "./GestureButton";
 
 const TOTAL_QUESTIONS = 25;
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -107,7 +108,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
     <div style={{ padding: "20px", color: "white", textAlign: "center" }}>
       <h3 style={{ color: "#ff6b6b" }}>Error Loading Question</h3>
       <p>{error}</p>
-      <button 
+      <GestureButton 
         onClick={fetchQuestion}
         style={{
           padding: "10px 20px",
@@ -121,7 +122,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
         }}
       >
         Try Again
-      </button>
+      </GestureButton>
     </div>
   );
 
@@ -135,7 +136,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
         <div style={{ fontSize: "18px", color: "#00d4ff" }}>
           {scoreDisplay.percentage}% - {scoreDisplay.message}
         </div>
-        <button
+        <GestureButton
           onClick={() => window.location.reload()}
           style={{
             padding: "12px 24px",
@@ -150,7 +151,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
           }}
         >
           Play Again
-        </button>
+        </GestureButton>
       </div>
     );
   }
@@ -158,7 +159,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
   if (!question) return (
     <div style={{ padding: "20px", color: "white", textAlign: "center" }}>
       <p>No question available.</p>
-      <button onClick={fetchQuestion} style={{
+      <GestureButton onClick={fetchQuestion} style={{
         padding: "10px 20px",
         background: "#00d4ff",
         color: "white",
@@ -167,7 +168,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
         cursor: "pointer"
       }}>
         Retry
-      </button>
+      </GestureButton>
     </div>
   );
 
@@ -178,7 +179,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
         background: "rgba(0,20,40,0.85)",
         borderRadius: "12px",
         color: "white",
-        maxWidth: "500px",
+        maxWidth: "400px",
       }}
     >
       <h3>
@@ -224,11 +225,12 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
       )}
 
       <div style={{ marginTop: "16px" }}>
-        <button
+        <GestureButton
           onClick={nextQuestion}
           style={{
             padding: "10px 18px",
             marginRight: "10px",
+            marginLeft: "250px",
             fontSize: "16px",
             fontWeight: "bold",
             border: "none",
@@ -239,7 +241,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
           }}
         >
           {answered ? "Next" : "Skip"}
-        </button>
+        </GestureButton>
         <span style={{ fontSize: "18px", marginLeft: "10px" }}>
           Score: {score}
         </span>

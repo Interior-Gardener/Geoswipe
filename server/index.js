@@ -350,9 +350,10 @@ app.get("/api/heritage-sites", async (req, res) => {
 // Get specific heritage site by name
 app.get("/api/heritage/:name", async (req, res) => {
   try {
-    const siteName = decodeURIComponent(req.params.name);
+    let siteName = decodeURIComponent(req.params.name).replace(/-/g, ' ').toLowerCase();
     const site = await HeritageSite.findOne({ 
-      name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+       name: { $regex: new RegExp(siteName, 'i') } 
+      //name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
     });
     
     if (!site) {

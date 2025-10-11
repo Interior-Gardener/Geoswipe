@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import GlobalGestureCursor from "./GlobalGestureCursor";
+import HeritageStoryBook from "./HeritageStoryBook";
+import StoryBookDemo from "./StoryBookDemo";
 
 // Lazy load components for better performance
 const LandingPage = lazy(() => import("./LandingPage"));
@@ -37,6 +39,8 @@ function App() {
           <Route path="/heritage" element={<HeritagePage />} />
           <Route path="/sketchfab/:uid" element={<SketchfabViewer />} />
           <Route path="/how-to-reach/:name" element={<HowToReachPage />} />
+          <Route path="/heritage-storybook/:name" element={<HeritageStoryBook />} />
+          <Route path="/storybook-demo" element={<StoryBookDemo />} />
         </Routes>
       </Suspense>
       {/* Global gesture cursor - appears on all pages */}

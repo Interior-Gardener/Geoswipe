@@ -8,6 +8,27 @@ const HeritagePage = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
   
+  // Check if a storybook JSON exists for a site
+  const checkStoryBookAvailable = async (siteName) => {
+    const formattedName = siteName.toLowerCase().replace(/\s+/g, '-');
+    const tryPaths = [
+      `/chapters/${siteName}.json`,
+      `/chapters/${formattedName}.json`
+    ];
+    
+    for (const path of tryPaths) {
+      try {
+        const res = await fetch(path);
+        if (res.ok) {
+          return true;
+        }
+      } catch (_) {
+        // continue checking next path
+      }
+    }
+    return false;
+  };
+  
   // Sidebar state
   const [sidebarData, setSidebarData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -980,6 +1001,41 @@ const HeritagePage = () => {
           {/* Map Container */}
           <div ref={mapContainer} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%', zIndex: 1 }} />
     
+          {/* StoryBook Demo Button */}
+          <button 
+            onClick={() => navigate('/storybook-demo')}
+            style={{
+              position: 'absolute',
+              bottom: '30px',
+              right: '30px',
+              background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '12px 24px',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              zIndex: 10,
+              boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+            }}
+          >
+            📖 Open Heritage Storybook
+          </button>
+
           {/* Home Navigation Button */}
           <button 
             onClick={() => navigate('/')}
@@ -1335,7 +1391,15 @@ const HeritagePage = () => {
               icon="📄"
               title="Information"
               summary={sidebarData.info.summary}
-              onClick={() => setInfoModalOpen(true)}
+              onClick={async () => {
+                const hasStoryBook = await checkStoryBookAvailable(sidebarData.name);
+                if (hasStoryBook) {
+                  const formattedName = sidebarData.name.toLowerCase().replace(/\s+/g, '-');
+                  navigate(`/heritage-storybook/${formattedName}`);
+                } else {
+                  setInfoModalOpen(true);
+                }
+              }}
             />
           )}
           

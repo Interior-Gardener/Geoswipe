@@ -1,0 +1,105 @@
+[
+    { 
+      "title": "Chapter 1: About",
+    "text": "Shaniwar Wada is a historic fortification in the heart of Pune, India. Built in 1732, it served as the seat of the mighty Peshwa rulers of the Maratha Empire. More than just a residence, it became a symbol of power, politics, and culture, witnessing the grandeur and turmoil of 18th-century India",
+      "image": {
+        "url": "/images/shaniwarwada-ch1.jpg",
+        "alt": "Front view of Shaniwar Wada fort",
+        "caption": "Shaniwar Wada, Pune",
+        "focalPoint": { "x": 0.5, "y": 0.5 },
+        "fit": "cover",
+        "kenBurns": { "enabled": true, "zoomStart": 1.0, "zoomEnd": 1.1, "durationMs": 10000 }
+      },
+      "audio": {
+        "url": "/audio/shaniwarwada-ch1.mp3",
+        "captions": [
+         { "startMs": 0, "endMs": 7333, "text": "Shaniwar Wada is a historic fortification in the heart of Pune, India." },
+         { "startMs": 7333, "endMs": 14666, "text": "Built in 1732, it served as the seat of the mighty Peshwa rulers of the Maratha Empire." },
+         { "startMs": 14666, "endMs": 22000, "text": "More than just a residence, it became a symbol of power, politics, and culture, witnessing the grandeur and turmoil of 18th-century India" }
+        ]
+      }
+    },
+    {
+      "title": "Chapter 2: History",
+    "text": "Commissioned by Peshwa Bajirao the First, Shaniwar Wada was completed in 1732. It became the political capital of the Maratha Empire, from where strategies and campaigns were planned. In 1773, Narayanrao Peshwa was tragically assassinated within its walls, a story still whispered in Pune’s folklore. Later, in 1828, a devastating fire destroyed much of the palace, leaving behind haunting ruins that we see today.",
+      "image": {
+        "url": "/images/shaniwarwada-ch2.jpg",
+        "alt": "Historic painting of Shaniwar Wada",
+        "caption": "Shaniwar Wada in the 18th century",
+        "focalPoint": { "x": 0.4, "y": 0.3 },
+        "fit": "cover",
+        "kenBurns": { "enabled": true, "zoomStart": 1.0, "zoomEnd": 1.12, "durationMs": 12000 }
+      },
+      "audio": {
+        "url": "/audio/shaniwarwada-ch2.mp3",
+        "captions": [
+         { "startMs": 0, "endMs": 7750, "text": "Commissioned by Peshwa Bajirao the First, Shaniwar Wada was completed in 1732." },
+         { "startMs": 7750, "endMs": 15500, "text": "It became the political capital of the Maratha Empire, from where strategies and campaigns were planned." },
+         { "startMs": 15500, "endMs": 23250, "text": "In 1773, Narayanrao Peshwa was tragically assassinated within its walls, a story still whispered in Pune’s folklore." },
+         { "startMs": 23250, "endMs": 31000, "text": "Later, in 1828, a devastating fire destroyed much of the palace, leaving behind haunting ruins that we see today." }
+        ]
+      }
+    },
+    {
+      "title": "Chapter 3: Architecture",
+    "text": "Shaniwar Wada was a masterpiece of Maratha architecture. Built with stone and teak wood, it featured strong bastions, massive gateways, and beautifully carved halls. The grand Delhi Darwaza, its main gate, was so formidable that even war elephants could not breach it. Intricate floral and geometric designs once decorated its walls, showcasing the refinement of Maratha artistry.",
+      "image": {
+        "url": "/images/shaniwarwada-ch3.jpg",
+        "alt": "Intricate Maratha design at Shaniwar Wada",
+        "caption": "Carvings and arches inside Shaniwar Wada",
+        "focalPoint": { "x": 0.5, "y": 0.4 },
+        "fit": "cover",
+        "kenBurns": { "enabled": true, "zoomStart": 1.0, "zoomEnd": 1.08, "durationMs": 10000 }
+      },
+      "audio": {
+        "url": "/audio/shaniwarwada-ch3.mp3",
+        "captions": [
+         { "startMs": 0, "endMs": 7250, "text": "Shaniwar Wada was a masterpiece of Maratha architecture." },
+         { "startMs": 7250, "endMs": 14500, "text": "Built with stone and teak wood, it featured strong bastions, massive gateways, and beautifully carved halls." },
+         { "startMs": 14500, "endMs": 21750, "text": "The grand Delhi Darwaza, its main gate, was so formidable that even war elephants could not breach it." },
+         { "startMs": 21750, "endMs": 29000, "text": "Intricate floral and geometric designs once decorated its walls, showcasing the refinement of Maratha artistry." }
+        ]
+      }
+    },
+    {
+      "title": "Chapter 4: Significance",
+    "text": "In its time, Shaniwar Wada symbolized Maratha pride and political authority. It was here that crucial decisions shaping the destiny of India were made. Today, although much of it lies in ruins, it remains a cultural landmark of Pune, attracting thousands of visitors who come to walk through history and witness the echoes of its glorious past.",
+      "image": {
+        "url": "/images/shaniwarwada-ch4.jpg",
+        "alt": "Tourists at Shaniwar Wada",
+        "caption": "Cultural significance of Shaniwar Wada",
+        "focalPoint": { "x": 0.6, "y": 0.5 },
+        "fit": "cover",
+        "kenBurns": { "enabled": true, "zoomStart": 1.0, "zoomEnd": 1.15, "durationMs": 11000 }
+      },
+      "audio": {
+        "url": "/audio/shaniwarwada-ch4.mp3",
+        "captions": [
+         { "startMs": 0, "endMs": 8333, "text": "In its time, Shaniwar Wada symbolized Maratha pride and political authority." },
+         { "startMs": 8333, "endMs": 16666, "text": "It was here that crucial decisions shaping the destiny of India were made." },
+         { "startMs": 16666, "endMs": 25000, "text": "Today, although much of it lies in ruins, it remains a cultural landmark of Pune, attracting thousands of visitors who come to walk through history and witness the echoes of its glorious past." }
+        ]
+      }
+    },
+    {
+      "title": "Chapter 5: Visiting Tips",
+    "text": "The best time to visit Shaniwar Wada is early in the morning or late afternoon, when the sunlight casts a golden glow on its walls. Wear comfortable shoes, as the fort complex requires plenty of walking, and carry water in the summer months. To truly understand its history, hire a local guide. And don’t miss the evening light and sound show, where the dramatic story of Shaniwar Wada comes alive under the stars.",
+      "image": {
+        "url": "/images/shaniwarwada-ch5.jpg",
+        "alt": "Visitors at Shaniwar Wada",
+        "caption": "Shaniwar Wada today",
+        "focalPoint": { "x": 0.5, "y": 0.6 },
+        "fit": "cover",
+        "kenBurns": { "enabled": false }
+      },
+      "audio": {
+        "url": "/audio/shaniwarwada-ch5.mp3",
+        "captions": [
+         { "startMs": 0, "endMs": 9666, "text": "The best time to visit Shaniwar Wada is early in the morning or late afternoon, when the sunlight casts a golden glow on its walls." },
+         { "startMs": 9666, "endMs": 19333, "text": "Wear comfortable shoes, as the fort complex requires plenty of walking, and carry water in the summer months." },
+         { "startMs": 19333, "endMs": 29000, "text": "To truly understand its history, hire a local guide. And don’t miss the evening light and sound show, where the dramatic story of Shaniwar Wada comes alive under the stars." }
+        ]
+      }
+    }
+  ]
+  

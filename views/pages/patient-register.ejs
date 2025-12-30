@@ -1,0 +1,88 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Register New Patient</h2>
+    </div>
+
+    <form action="/patients/register" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" class="form-control" name="firstName" required>
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" class="form-control" name="lastName" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date of Birth *</label>
+          <input type="date" class="form-control" name="dob" required>
+        </div>
+        <div class="form-group">
+          <label>Gender *</label>
+          <select class="form-control" name="gender" required>
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" class="form-control" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" class="form-control" name="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <textarea class="form-control" name="address" rows="3"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Blood Group</label>
+          <select class="form-control" name="bloodGroup">
+            <option value="">Select Blood Group</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Emergency Contact</label>
+          <input type="tel" class="form-control" name="emergencyContact">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Known Allergies</label>
+        <textarea class="form-control" name="allergies" rows="2" placeholder="List any known allergies..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary">Register Patient</button>
+        <a href="/patients" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

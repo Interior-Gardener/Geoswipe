@@ -1,0 +1,57 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">OPD Queue Management</h2>
+      <a href="/opd/new" class="btn btn-primary">➕ New OPD Visit</a>
+    </div>
+
+    <div class="alert alert-info">
+      <strong>Current Queue Status:</strong> <%= opdQueue.length %> patients in queue
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Token No.</th>
+            <th>Patient Name</th>
+            <th>Department</th>
+            <th>Doctor</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% opdQueue.forEach(visit => { %>
+          <tr>
+            <td><strong><%= visit.token %></strong></td>
+            <td><%= visit.patient %></td>
+            <td><%= visit.department %></td>
+            <td><%= visit.doctor %></td>
+            <td>
+              <% if (visit.status === 'Consulting') { %>
+                <span class="badge badge-warning"><%= visit.status %></span>
+              <% } else if (visit.status === 'Waiting') { %>
+                <span class="badge badge-info"><%= visit.status %></span>
+              <% } else { %>
+                <span class="badge badge-success"><%= visit.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">Call Next</button>
+                <button class="btn btn-success">Complete</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

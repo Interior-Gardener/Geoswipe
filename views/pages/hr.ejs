@@ -1,0 +1,77 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Human Resources Management</h2>
+      <a href="/hr/add" class="btn btn-primary">➕ Add Staff Member</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Staff ID</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Role</th>
+            <th>Shift</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% staff.forEach(member => { %>
+          <tr>
+            <td><strong><%= member.id %></strong></td>
+            <td><%= member.name %></td>
+            <td><%= member.department %></td>
+            <td><%= member.role %></td>
+            <td><%= member.shift %></td>
+            <td>
+              <% if (member.status === 'On Duty') { %>
+                <span class="badge badge-success"><%= member.status %></span>
+              <% } else { %>
+                <span class="badge badge-warning"><%= member.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View Profile</button>
+                <button class="btn btn-secondary">Attendance</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+      <h3 class="card-title">HR Management Features</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">👥 Staff Management</h4>
+        <p style="color: #666; font-size: 0.9rem;">Manage doctors, nurses, and support staff</p>
+      </div>
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">📅 Shift Scheduling</h4>
+        <p style="color: #666; font-size: 0.9rem;">Automated shift planning and roster management</p>
+      </div>
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">⏰ Attendance Tracking</h4>
+        <p style="color: #666; font-size: 0.9rem;">Real-time attendance and leave management</p>
+      </div>
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">💰 Payroll Integration</h4>
+        <p style="color: #666; font-size: 0.9rem;">Salary processing and payroll management</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

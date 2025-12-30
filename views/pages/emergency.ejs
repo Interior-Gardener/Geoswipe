@@ -1,0 +1,61 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">🚑 Emergency Department</h2>
+      <a href="/emergency/new" class="btn btn-danger">➕ New Emergency Case</a>
+    </div>
+
+    <div class="alert alert-error">
+      <strong>⚠️ Active Emergency Cases:</strong> <%= emergencyCases.length %> patients require immediate attention
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Case No.</th>
+            <th>Patient Name</th>
+            <th>Age</th>
+            <th>Condition</th>
+            <th>Severity</th>
+            <th>Arrival Time</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% emergencyCases.forEach(case_ => { %>
+          <tr>
+            <td><strong><%= case_.id %></strong></td>
+            <td><%= case_.patient %></td>
+            <td><%= case_.age %></td>
+            <td><%= case_.condition %></td>
+            <td>
+              <span class="badge badge-danger"><%= case_.severity %></span>
+            </td>
+            <td><%= case_.arrival %></td>
+            <td>
+              <% if (case_.status === 'Stabilized') { %>
+                <span class="badge badge-success"><%= case_.status %></span>
+              <% } else { %>
+                <span class="badge badge-warning"><%= case_.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-danger">Priority</button>
+                <button class="btn btn-primary">View</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,71 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Electronic Medical Records (EMR)</h2>
+      <a href="/emr/new" class="btn btn-primary">➕ Create New Record</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>EMR ID</th>
+            <th>Patient Name</th>
+            <th>Blood Group</th>
+            <th>Known Allergies</th>
+            <th>Total Records</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% emrRecords.forEach(record => { %>
+          <tr>
+            <td><strong><%= record.id %></strong></td>
+            <td><%= record.patient %></td>
+            <td><span class="badge badge-danger"><%= record.bloodGroup %></span></td>
+            <td><%= record.allergies %></td>
+            <td><%= record.records %></td>
+            <td><%= record.lastUpdated %></td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View Full EMR</button>
+                <button class="btn btn-success">Add Note</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+      <h3 class="card-title">EMR Features</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">📋 Medical History</h4>
+        <p style="color: #666; font-size: 0.9rem;">Complete patient medical history and visit records</p>
+      </div>
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">💊 Prescription History</h4>
+        <p style="color: #666; font-size: 0.9rem;">All past and current medications prescribed</p>
+      </div>
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">🧪 Lab Results</h4>
+        <p style="color: #666; font-size: 0.9rem;">Complete laboratory test results and trends</p>
+      </div>
+      <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 0.5rem;">📷 Imaging Reports</h4>
+        <p style="color: #666; font-size: 0.9rem;">Radiology scans and diagnostic imaging</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

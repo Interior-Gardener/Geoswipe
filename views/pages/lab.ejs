@@ -1,0 +1,53 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Laboratory Management</h2>
+      <a href="/lab/new" class="btn btn-primary">➕ Order Lab Test</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Test ID</th>
+            <th>Patient Name</th>
+            <th>Test Name</th>
+            <th>Ordered On</th>
+            <th>Status</th>
+            <th>Result</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% labTests.forEach(test => { %>
+          <tr>
+            <td><strong><%= test.id %></strong></td>
+            <td><%= test.patient %></td>
+            <td><%= test.test %></td>
+            <td><%= test.ordered %></td>
+            <td>
+              <% if (test.status === 'Completed') { %>
+                <span class="badge badge-success"><%= test.status %></span>
+              <% } else { %>
+                <span class="badge badge-warning"><%= test.status %></span>
+              <% } %>
+            </td>
+            <td><%= test.result %></td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View Report</button>
+                <button class="btn btn-secondary">Print</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

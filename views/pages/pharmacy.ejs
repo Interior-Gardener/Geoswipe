@@ -1,0 +1,53 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Pharmacy Management</h2>
+      <a href="/pharmacy/new" class="btn btn-primary">➕ New Order</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Patient Name</th>
+            <th>Medication</th>
+            <th>Quantity</th>
+            <th>Prescribed On</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pharmacyOrders.forEach(order => { %>
+          <tr>
+            <td><strong><%= order.id %></strong></td>
+            <td><%= order.patient %></td>
+            <td><%= order.medication %></td>
+            <td><%= order.quantity %></td>
+            <td><%= order.prescribed %></td>
+            <td>
+              <% if (order.status === 'Dispensed') { %>
+                <span class="badge badge-success"><%= order.status %></span>
+              <% } else { %>
+                <span class="badge badge-warning"><%= order.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-success">Dispense</button>
+                <button class="btn btn-secondary">Print</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,154 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <!-- Stats Cards -->
+  <div class="dashboard-grid">
+    <div class="stat-card blue">
+      <div class="stat-label">Total Patients</div>
+      <div class="stat-value"><%= stats.totalPatients %></div>
+      <div class="stat-change">↑ 12% from last month</div>
+    </div>
+
+    <div class="stat-card green">
+      <div class="stat-label">Active OPD</div>
+      <div class="stat-value"><%= stats.activeOPD %></div>
+      <div class="stat-change">Currently consulting</div>
+    </div>
+
+    <div class="stat-card purple">
+      <div class="stat-label">Admitted (IPD)</div>
+      <div class="stat-value"><%= stats.admittedIPD %></div>
+      <div class="stat-change"><%= bedStatus.general.occupied + bedStatus.icu.occupied + bedStatus.emergency.occupied + bedStatus.maternity.occupied %> beds occupied</div>
+    </div>
+
+    <div class="stat-card red">
+      <div class="stat-label">Emergency Cases</div>
+      <div class="stat-value"><%= stats.emergencyCases %></div>
+      <div class="stat-change">Active now</div>
+    </div>
+
+    <div class="stat-card orange">
+      <div class="stat-label">Lab Tests Today</div>
+      <div class="stat-value"><%= stats.labTests %></div>
+      <div class="stat-change">↑ 8% from yesterday</div>
+    </div>
+
+    <div class="stat-card teal">
+      <div class="stat-label">Revenue Today</div>
+      <div class="stat-value">₹<%= (stats.revenueToday / 1000).toFixed(0) %>K</div>
+      <div class="stat-change">↑ 15% from yesterday</div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 2rem;">
+    
+    <!-- Recent Activities -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Activities</h2>
+        <button class="btn btn-secondary">View All</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Activity</th>
+              <th>Patient</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentActivities.forEach(activity => { %>
+            <tr>
+              <td><%= activity.time %></td>
+              <td><%= activity.activity %></td>
+              <td><%= activity.patient %></td>
+              <td>
+                <% if (activity.type === 'registration') { %>
+                  <span class="badge badge-primary">New</span>
+                <% } else if (activity.type === 'lab') { %>
+                  <span class="badge badge-success">Completed</span>
+                <% } else if (activity.type === 'admission') { %>
+                  <span class="badge badge-warning">Admitted</span>
+                <% } else if (activity.type === 'surgery') { %>
+                  <span class="badge badge-info">Scheduled</span>
+                <% } else { %>
+                  <span class="badge badge-success">Cleared</span>
+                <% } %>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bed Occupancy Status -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Bed Occupancy</h2>
+      </div>
+      <div>
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong>General Ward</strong>
+            <span><%= bedStatus.general.occupied %>/<%= bedStatus.general.total %></span>
+          </div>
+          <div style="background: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden;">
+            <div style="width: <%= (bedStatus.general.occupied / bedStatus.general.total * 100) %>%; background: #3498db; height: 100%;"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong>ICU</strong>
+            <span><%= bedStatus.icu.occupied %>/<%= bedStatus.icu.total %></span>
+          </div>
+          <div style="background: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden;">
+            <div style="width: <%= (bedStatus.icu.occupied / bedStatus.icu.total * 100) %>%; background: #e74c3c; height: 100%;"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong>Emergency</strong>
+            <span><%= bedStatus.emergency.occupied %>/<%= bedStatus.emergency.total %></span>
+          </div>
+          <div style="background: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden;">
+            <div style="width: <%= (bedStatus.emergency.occupied / bedStatus.emergency.total * 100) %>%; background: #f39c12; height: 100%;"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong>Maternity</strong>
+            <span><%= bedStatus.maternity.occupied %>/<%= bedStatus.maternity.total %></span>
+          </div>
+          <div style="background: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden;">
+            <div style="width: <%= (bedStatus.maternity.occupied / bedStatus.maternity.total * 100) %>%; background: #9b59b6; height: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+      <h2 class="card-title">Quick Actions</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <a href="/patients/register" class="btn btn-primary">➕ Register Patient</a>
+      <a href="/opd/new" class="btn btn-success">🏥 New OPD Visit</a>
+      <a href="/ipd/admit" class="btn btn-warning">🛏️ Admit Patient</a>
+      <a href="/emergency/new" class="btn btn-danger">🚑 Emergency Case</a>
+      <a href="/lab/new" class="btn btn-primary">🧪 New Lab Test</a>
+      <a href="/billing/new" class="btn btn-success">💳 Create Bill</a>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

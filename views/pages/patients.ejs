@@ -1,0 +1,57 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Patient Management</h2>
+      <a href="/patients/register" class="btn btn-primary">➕ Register New Patient</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Patient ID</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Phone</th>
+            <th>Last Visit</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% patients.forEach(patient => { %>
+          <tr>
+            <td><%= patient.id %></td>
+            <td><strong><%= patient.name %></strong></td>
+            <td><%= patient.age %></td>
+            <td><%= patient.gender %></td>
+            <td><%= patient.phone %></td>
+            <td><%= patient.lastVisit %></td>
+            <td>
+              <% if (patient.status === 'Active') { %>
+                <span class="badge badge-success"><%= patient.status %></span>
+              <% } else if (patient.status === 'Admitted') { %>
+                <span class="badge badge-warning"><%= patient.status %></span>
+              <% } else { %>
+                <span class="badge badge-info"><%= patient.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <a href="/patients/<%= patient.id %>" class="btn btn-primary">View</a>
+                <a href="/emr?patient=<%= patient.id %>" class="btn btn-secondary">EMR</a>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

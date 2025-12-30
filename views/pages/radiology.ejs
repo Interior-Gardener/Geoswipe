@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Radiology Department</h2>
+      <a href="/radiology/new" class="btn btn-primary">➕ Order Scan</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Scan ID</th>
+            <th>Patient Name</th>
+            <th>Scan Type</th>
+            <th>Ordered On</th>
+            <th>Radiologist</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% radiologyScans.forEach(scan => { %>
+          <tr>
+            <td><strong><%= scan.id %></strong></td>
+            <td><%= scan.patient %></td>
+            <td><%= scan.scan %></td>
+            <td><%= scan.ordered %></td>
+            <td><%= scan.radiologist %></td>
+            <td>
+              <% if (scan.status === 'Completed') { %>
+                <span class="badge badge-success"><%= scan.status %></span>
+              <% } else if (scan.status === 'In Progress') { %>
+                <span class="badge badge-warning"><%= scan.status %></span>
+              <% } else { %>
+                <span class="badge badge-info"><%= scan.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View Images</button>
+                <button class="btn btn-secondary">Report</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

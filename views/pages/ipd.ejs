@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">IPD (In-Patient Department)</h2>
+      <a href="/ipd/admit" class="btn btn-primary">➕ Admit Patient</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>IPD No.</th>
+            <th>Patient Name</th>
+            <th>Bed No.</th>
+            <th>Ward</th>
+            <th>Admitted On</th>
+            <th>Doctor</th>
+            <th>Condition</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ipdPatients.forEach(patient => { %>
+          <tr>
+            <td><strong><%= patient.id %></strong></td>
+            <td><%= patient.patient %></td>
+            <td><%= patient.bed %></td>
+            <td><%= patient.ward %></td>
+            <td><%= patient.admitted %></td>
+            <td><%= patient.doctor %></td>
+            <td>
+              <% if (patient.condition === 'Critical') { %>
+                <span class="badge badge-danger"><%= patient.condition %></span>
+              <% } else { %>
+                <span class="badge badge-success"><%= patient.condition %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View</button>
+                <button class="btn btn-warning">Discharge</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,74 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Billing Management</h2>
+      <a href="/billing/new" class="btn btn-primary">➕ Create Bill</a>
+    </div>
+
+    <div class="dashboard-grid" style="margin-bottom: 2rem;">
+      <div class="stat-card green">
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-value">₹485K</div>
+        <div class="stat-change">Today</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Pending Bills</div>
+        <div class="stat-value">23</div>
+        <div class="stat-change">To be collected</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Processed Today</div>
+        <div class="stat-value">156</div>
+        <div class="stat-change">Bills generated</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Bill No.</th>
+            <th>Patient Name</th>
+            <th>Amount</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% bills.forEach(bill => { %>
+          <tr>
+            <td><strong><%= bill.id %></strong></td>
+            <td><%= bill.patient %></td>
+            <td>₹<%= bill.amount.toLocaleString() %></td>
+            <td><%= bill.type %></td>
+            <td><%= bill.date %></td>
+            <td>
+              <% if (bill.status === 'Paid') { %>
+                <span class="badge badge-success"><%= bill.status %></span>
+              <% } else if (bill.status === 'Pending') { %>
+                <span class="badge badge-danger"><%= bill.status %></span>
+              <% } else { %>
+                <span class="badge badge-warning"><%= bill.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View</button>
+                <button class="btn btn-success">Collect</button>
+                <button class="btn btn-secondary">Print</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

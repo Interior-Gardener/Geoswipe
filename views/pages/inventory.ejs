@@ -1,0 +1,85 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Inventory Management</h2>
+      <a href="/inventory/add" class="btn btn-primary">➕ Add Item</a>
+    </div>
+
+    <div class="alert alert-error">
+      <strong>⚠️ Low Stock Alert:</strong> 1 item below reorder level - immediate action required
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Item ID</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Reorder Level</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% inventory.forEach(item => { %>
+          <tr>
+            <td><strong><%= item.id %></strong></td>
+            <td><%= item.item %></td>
+            <td><%= item.category %></td>
+            <td><%= item.quantity %></td>
+            <td><%= item.reorderLevel %></td>
+            <td>
+              <% if (item.status === 'Low Stock') { %>
+                <span class="badge badge-danger"><%= item.status %></span>
+              <% } else { %>
+                <span class="badge badge-success"><%= item.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">Update Stock</button>
+                <button class="btn btn-warning">Reorder</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+      <h3 class="card-title">Inventory Categories</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div class="stat-card blue">
+        <div class="stat-label">Medical Supplies</div>
+        <div class="stat-value">245</div>
+        <div class="stat-change">Items in stock</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Pharmacy Items</div>
+        <div class="stat-value">1,520</div>
+        <div class="stat-change">Medications</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Surgical Equipment</div>
+        <div class="stat-value">89</div>
+        <div class="stat-change">Instruments</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Consumables</div>
+        <div class="stat-value">456</div>
+        <div class="stat-change">Daily use items</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

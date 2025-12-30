@@ -1,0 +1,57 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Operation Theater Schedule</h2>
+      <a href="/ot/schedule" class="btn btn-primary">➕ Schedule Surgery</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>OT No.</th>
+            <th>Patient Name</th>
+            <th>Surgery Type</th>
+            <th>Surgeon</th>
+            <th>Theater</th>
+            <th>Scheduled Time</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% otSchedule.forEach(surgery => { %>
+          <tr>
+            <td><strong><%= surgery.id %></strong></td>
+            <td><%= surgery.patient %></td>
+            <td><%= surgery.surgery %></td>
+            <td><%= surgery.surgeon %></td>
+            <td><%= surgery.theater %></td>
+            <td><%= surgery.scheduled %></td>
+            <td>
+              <% if (surgery.status === 'In Progress') { %>
+                <span class="badge badge-warning"><%= surgery.status %></span>
+              <% } else if (surgery.status === 'Scheduled') { %>
+                <span class="badge badge-info"><%= surgery.status %></span>
+              <% } else { %>
+                <span class="badge badge-success"><%= surgery.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">Details</button>
+                <button class="btn btn-secondary">Reschedule</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<%- include('../partials/nav') %>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Insurance Claims Management</h2>
+      <a href="/insurance/new" class="btn btn-primary">➕ Submit New Claim</a>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Claim ID</th>
+            <th>Patient Name</th>
+            <th>Insurance Provider</th>
+            <th>Claim Amount</th>
+            <th>Submitted On</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% insuranceClaims.forEach(claim => { %>
+          <tr>
+            <td><strong><%= claim.id %></strong></td>
+            <td><%= claim.patient %></td>
+            <td><%= claim.provider %></td>
+            <td>₹<%= claim.claimAmount.toLocaleString() %></td>
+            <td><%= claim.submitted %></td>
+            <td>
+              <% if (claim.status === 'Approved') { %>
+                <span class="badge badge-success"><%= claim.status %></span>
+              <% } else if (claim.status === 'Under Review') { %>
+                <span class="badge badge-warning"><%= claim.status %></span>
+              <% } else { %>
+                <span class="badge badge-info"><%= claim.status %></span>
+              <% } %>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-primary">View Details</button>
+                <button class="btn btn-secondary">Track</button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -31,7 +31,7 @@ const HeritageStoryBook = () => {
     const fetchSiteData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:3000/api/heritage/${encodeURIComponent(name)}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/heritage/${encodeURIComponent(name)}`);
         
         if (!response.ok) {
           throw new Error('Site not found');

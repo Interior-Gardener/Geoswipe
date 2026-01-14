@@ -10,7 +10,7 @@ const getSocket = (() => {
   let socket = null;
   return () => {
     if (!socket) {
-      socket = io("http://localhost:3000", {
+      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
         autoConnect: true, // Enable auto connect for gesture controls
         reconnection: true,
         reconnectionAttempts: 5,

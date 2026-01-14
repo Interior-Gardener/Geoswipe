@@ -156,7 +156,7 @@ const heritageSitesData = [
       summary: '3D model available.',
       url: '/3dmodels/ellora',
       full: 'Explore the 3D model of Ellora Caves.',
-      sketchfabId: 'a1b2c3d4e5f67890123456789abcdef0' // Example, replace with real ID
+      sketchfabId: '1a5ec1e212f9451e80dc051e97164d17' 
     },    
     media: {
       panorama_url: "https://images.unsplash.com/photo-1580500550469-4e3b05b1aaa4?w=1200&h=600&fit=crop"

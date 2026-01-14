@@ -4,6 +4,11 @@ import mediapipe as mp
 import socketio
 import time
 import numpy as np
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Connect to Node.js Socket.IO server
 sio = socketio.Client()
@@ -16,11 +21,16 @@ def connect():
     connected = True
     print("Connected to server.")
 
-sio.connect('http://localhost:3000')
+# Get server URL from environment variable
+SOCKET_SERVER_URL = os.getenv('SOCKET_SERVER_URL', 'http://localhost:3000')
+sio.connect(SOCKET_SERVER_URL)
 
 # MediaPipe setup
+MIN_DETECTION_CONFIDENCE = float(os.getenv('MIN_DETECTION_CONFIDENCE', '0.7'))
+MIN_TRACKING_CONFIDENCE = float(os.getenv('MIN_TRACKING_CONFIDENCE', '0.7'))
+
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+hands = mp_hands.Hands(min_detection_confidence=MIN_DETECTION_CONFIDENCE, min_tracking_confidence=MIN_TRACKING_CONFIDENCE)
 mp_draw = mp.solutions.drawing_utils
 
 # Gesture classification using landmarks

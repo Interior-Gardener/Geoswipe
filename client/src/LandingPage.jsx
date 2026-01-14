@@ -1,4 +1,4 @@
-import React, { useCallback, memo } from 'react';
+ import React, { useCallback, memo } from 'react';
 import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
 

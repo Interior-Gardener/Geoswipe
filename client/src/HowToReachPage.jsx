@@ -10,7 +10,7 @@ const HowToReachPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:3000/api/heritage/${encodeURIComponent(name)}`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/heritage/${encodeURIComponent(name)}`)
       .then(res => {
         if (!res.ok) throw new Error('Not found');
         return res.json();

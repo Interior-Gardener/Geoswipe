@@ -9,9 +9,14 @@ pnpm-debug.log*
 # Environment variables
 .env
 .env.local
+.env.development
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
+server/.env
+client/.env.development
+client/.env.production
 
 # Build outputs
 dist/
@@ -51,6 +56,29 @@ gesture-control/.env
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# MongoDB data directories
+data/
+data/db/
+mongodb/
+mongo-data/
+*.lock
+mongod.lock
+
+# Database dumps and backups
+*.dump
+*.bak
+*.sql
+*.mongodb
+db-backup/
+backups/
+
+# Data population scripts with sensitive Sketchfab IDs
+server/populate-heritage-sites_only_India.js
+server/populate-heritage-sites_only_maharshtra.js
 
 # Temporary files
 *.tmp

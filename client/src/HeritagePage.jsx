@@ -379,7 +379,7 @@ const HeritagePage = () => {
       return;
     }
     console.log('Initializing map...');
-    const apiKey = 'UItNGCy3GRgJ70RLvqlZ';
+    const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
     
     // Color mapping for different categories
     const categoryColors = {

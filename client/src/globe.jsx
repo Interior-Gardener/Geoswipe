@@ -3,7 +3,7 @@ import Globe from 'three-globe';
 import { io } from "socket.io-client";
 
 // Connect to backend
-const socket = io("http://localhost:3000");
+const socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000");
 
 // Setup Three.js scene
 const scene = new THREE.Scene();

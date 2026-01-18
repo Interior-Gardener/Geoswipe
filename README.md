@@ -1,7 +1,10 @@
 # GeoSwipe - Optimized Version 🌍
 
 An interactive 3D Earth exploration application with gesture control, optimized for performance and maintainability.
-# Demo video - https://drive.google.com/file/d/1NzUjonejcssivGZTnOTxkJuZuxzxwtFT/view?usp=sharing
+## 🎬 Demo Video
+
+[![Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-GeoSwipe-blue?style=for-the-badge)](https://drive.google.com/file/d/1NzUjonejcssivGZTnOTxkJuZuxzxwtFT/view?usp=sharing)
+
 ## 🚀 Performance Optimizations
 
 ### Frontend Optimizations

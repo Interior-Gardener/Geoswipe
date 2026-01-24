@@ -52,7 +52,7 @@ const NightLights = '/assets/night_lights_modified.png';
 const GaiaSky = '/assets/Gaia_EDR3_darkened.png';
 const CountriesData = '/assets/countrieslite.geo.json';
 
-const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideControls = false }) => {
+const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideControls = false, onBackToHome = null }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
   const rendererRef = useRef(null);
@@ -60,6 +60,37 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
   const animationIdRef = useRef(null);
   const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
   const cursorPosRef = useRef({ x: 400, y: 300 }); // Ref to store current cursor position for gesture handlers
+  
+  // Initialize guard to prevent double initialization
+  const initializingRef = useRef(false);
+  const initializedRef = useRef(false);
+  
+  // Stable params object - using useRef to maintain object identity across renders
+  const paramsRef = useRef({
+    sunIntensity: 1.8,
+    speedFactor: 0.3,
+    metalness: 0.2,
+    roughness: 0.3,
+    atmOpacity: { value: 0.8 },
+    atmPowFactor: { value: 4.5 },
+    atmMultiplier: { value: 12.0 },
+    borderOpacity: 0.7,
+    highlightIntensity: 2.0,
+    cloudSpeed: 0.1,
+    enableGlow: true,
+    brightEarthMode: false,
+    brightIntensity: 2.0,
+    brightModeBorderColor: 0x00ffff,
+    brightModeBorderOpacity: 1.0,
+    normalModeBorderColor: 0x40e0ff,
+  });
+  
+  // Store refs for cleanup
+  const cleanupRefs = useRef({
+    gui: null,
+    style: null,
+    cleanupFunctions: []
+  });
 
   // Memoize callback to prevent unnecessary re-renders
   const handleCountrySelect = useCallback((country) => {
@@ -107,45 +138,48 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
   }, [countryBounds]);
 
   useEffect(() => {
+    // Prevent double initialization
+    if (initializingRef.current || initializedRef.current) {
+      return;
+    }
+    initializingRef.current = true;
+
     // Store cleanup functions
     let cleanupFunctions = [];
+    cleanupRefs.current.cleanupFunctions = cleanupFunctions;
     
-    // Add Google Font for Bungee Spice dynamically
-    const link = document.createElement('link');
-    link.href = "https://fonts.googleapis.com/css2?family=Bungee+Spice&family=Orbitron:wght@400;700;900&display=swap";
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
+    // Add Google Font for Bungee Spice dynamically (only if not already loaded)
+    let link = document.getElementById('geoswipe-fonts');
+    if (!link) {
+      link = document.createElement('link');
+      link.href = "https://fonts.googleapis.com/css2?family=Bungee+Spice&family=Orbitron:wght@400;700;900&display=swap";
+      link.rel = 'stylesheet';
+      link.id = 'geoswipe-fonts'; // Add ID for cleanup
+      document.head.appendChild(link);
+    }
+    // Don't store font link for cleanup since it might be shared
 
-    // Parameters with CORRECTED rotation speeds
-    const params = {
-      sunIntensity: 1.8,
-      speedFactor: 0.3,
-      metalness: 0.2,
-      roughness: 0.3,
-      atmOpacity: { value: 0.8 },
-      atmPowFactor: { value: 4.5 },
-      atmMultiplier: { value: 12.0 },
-      borderOpacity: 0.7,
-      highlightIntensity: 2.0,
-      cloudSpeed: 0.1,
-      enableGlow: true,
-      brightEarthMode: false,
-      brightIntensity: 2.0,
-      brightModeBorderColor: 0x00ffff,
-      brightModeBorderOpacity: 1.0,
-      normalModeBorderColor: 0x40e0ff,
-    };
+    // Use stable params reference
+    const params = paramsRef.current;
 
     // Scene, Renderer, Camera
     const scene = new THREE.Scene();
     sceneRef.current = scene;
     
-    const renderer = createRenderer({ antialias: true, alpha: true }, (_renderer) => {
+    const renderer = createRenderer({ 
+      antialias: false, // Disable for better performance
+      alpha: true,
+      powerPreference: "high-performance", // Use dedicated GPU if available
+      stencil: false, // Disable stencil buffer if not needed
+      depth: true,
+      logarithmicDepthBuffer: false // Disable if not needed
+    }, (_renderer) => {
       _renderer.outputColorSpace = THREE.SRGBColorSpace;
-      _renderer.shadowMap.enabled = true;
+      _renderer.shadowMap.enabled = false; // Disable shadows for better performance
       _renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       _renderer.toneMapping = THREE.ACESFilmicToneMapping;
       _renderer.toneMappingExposure = 1.2;
+      _renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio
     });
     rendererRef.current = renderer;
 
@@ -234,6 +268,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
     // Add Enhanced CSS Styles for Loading and GUI (FIXED GUI TITLES)
     const style = document.createElement('style');
     style.type = 'text/css';
+    cleanupRefs.current.style = style; // Store for cleanup
     style.innerHTML = `
       .earth-spinner {
         border: 6px solid rgba(255, 255, 255, 0.1);
@@ -335,6 +370,12 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
     cleanupFunctions.push(() => window.removeEventListener('resize', handleResize));
 
     // Enhanced UI Elements
+    // Remove any existing country name display to prevent duplicates
+    const existingCountryDisplay = document.getElementById('countryNameDisplay');
+    if (existingCountryDisplay) {
+      existingCountryDisplay.remove();
+    }
+    
     const countryNameDisplay = document.createElement('div');
     countryNameDisplay.id = 'countryNameDisplay';
     countryNameDisplay.textContent = 'Click a country!';
@@ -357,6 +398,15 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       cursor: pointer;
       user-select: none;
       transform: translateZ(0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 200px;
+      min-height: 60px;
+      text-align: center;
+      line-height: 1.2;
+      word-wrap: break-word;
+      overflow: hidden;
     `;
     container.appendChild(countryNameDisplay);
 
@@ -384,6 +434,48 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       user-select: none;
     `;
     container.appendChild(title);
+
+    // Add Back to Home button if callback provided
+    if (onBackToHome) {
+      const backButton = document.createElement('button');
+      backButton.innerHTML = '← Back to Home';
+      backButton.style.cssText = `
+        position: absolute;
+        top: 15px;
+        left: 120px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3));
+        color: #00d4ff;
+        border: 2px solid rgba(0, 212, 255, 0.5);
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 1001;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        user-select: none;
+      `;
+      
+      // Add hover effects
+      backButton.onmouseenter = () => {
+        backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
+        backButton.style.transform = 'scale(1.05)';
+        backButton.style.boxShadow = '0 6px 16px rgba(0, 212, 255, 0.3)';
+      };
+      
+      backButton.onmouseleave = () => {
+        backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3))';
+        backButton.style.transform = 'scale(1)';
+        backButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+      };
+      
+      backButton.onclick = onBackToHome;
+      container.appendChild(backButton);
+    }
 
     // Enhanced Instructions - only show if not hidden
     if (!hideInstructions) {
@@ -674,7 +766,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         }
       }
 
-      let earthGeo = new THREE.SphereGeometry(10, 128, 128);
+      let earthGeo = new THREE.SphereGeometry(10, 64, 64); // Reduced from 128x128 to 64x64
       let earthMat;
       if (texturesLoaded) {
         earthMat = new THREE.MeshStandardMaterial({
@@ -692,11 +784,11 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         earthMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
       }
       earth = new THREE.Mesh(earthGeo, earthMat);
-      earth.receiveShadow = true;
+      earth.receiveShadow = false; // Disable for better performance
       group.add(earth);
 
       // Clouds
-      let cloudGeo = new THREE.SphereGeometry(10.08, 64, 64);
+      let cloudGeo = new THREE.SphereGeometry(10.08, 32, 32); // Reduced from 64x64 to 32x32
       let cloudsMat = texturesLoaded
         ? new THREE.MeshStandardMaterial({
             alphaMap: cloudsMap,
@@ -712,7 +804,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       clouds.rotateY(-0.3);
 
       // Atmosphere
-      let atmosGeo = new THREE.SphereGeometry(12.8, 64, 64);
+      let atmosGeo = new THREE.SphereGeometry(12.8, 32, 32); // Reduced from 64x64 to 32x32
       let atmosMat = new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader,
@@ -751,7 +843,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           if (camera && controls) {
             // Get current camera distance from target
             const currentDistance = camera.position.distanceTo(controls.target);
-            const newDistance = Math.min(currentDistance * 1.05, controls.maxDistance); // Slower zoom out
+            const newDistance = Math.min(currentDistance * 1.0125, controls.maxDistance); // Slower, smoother zoom out
             
             // Move camera away from target
             const direction = camera.position.clone().sub(controls.target).normalize();
@@ -767,7 +859,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           if (camera && controls) {
             // Get current camera distance from target
             const currentDistance = camera.position.distanceTo(controls.target);
-            const newDistance = Math.max(currentDistance * 0.95, controls.minDistance); // Slower zoom in
+            const newDistance = Math.max(currentDistance * 0.9875, controls.minDistance); // Slower, smoother zoom in
             
             // Move camera closer to target
             const direction = camera.position.clone().sub(controls.target).normalize();
@@ -822,8 +914,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             // Get current camera position relative to target
             const offset = camera.position.clone().sub(controls.target);
             
-            // Create rotation matrix for Y-axis rotation
-            const rotationMatrix = new THREE.Matrix4().makeRotationY(0.1);
+            // Create rotation matrix for Y-axis rotation (slower, smoother movement)
+            const rotationMatrix = new THREE.Matrix4().makeRotationY(0.01875);
             
             // Apply rotation to camera offset
             offset.applyMatrix4(rotationMatrix);
@@ -843,8 +935,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             // Get current camera position relative to target
             const offset = camera.position.clone().sub(controls.target);
             
-            // Create rotation matrix for Y-axis rotation
-            const rotationMatrix = new THREE.Matrix4().makeRotationY(-0.1);
+            // Create rotation matrix for Y-axis rotation (slower, smoother movement)
+            const rotationMatrix = new THREE.Matrix4().makeRotationY(-0.01875);
             
             // Apply rotation to camera offset
             offset.applyMatrix4(rotationMatrix);
@@ -865,7 +957,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             const offset = camera.position.clone().sub(controls.target);
             
             // Create rotation matrix for X-axis rotation (slower movement for better control)
-            const rotationMatrix = new THREE.Matrix4().makeRotationX(0.05);
+            const rotationMatrix = new THREE.Matrix4().makeRotationX(0.0125);
             
             // Apply rotation to camera offset
             offset.applyMatrix4(rotationMatrix);
@@ -886,7 +978,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             const offset = camera.position.clone().sub(controls.target);
             
             // Create rotation matrix for X-axis rotation (slower movement for better control)
-            const rotationMatrix = new THREE.Matrix4().makeRotationX(-0.05);
+            const rotationMatrix = new THREE.Matrix4().makeRotationX(-0.0125);
             
             // Apply rotation to camera offset
             offset.applyMatrix4(rotationMatrix);
@@ -906,7 +998,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
 
       // Enhanced GUI with better styling
       gui = new dat.GUI();
-      gui.domElement.style.cssText = 'position: fixed; top: 0; right: 0; z-index: 1000;';
+      cleanupRefs.current.gui = gui; // Store for cleanup
+      gui.domElement.style.cssText = 'position: fixed; top: 0; right: 0; z-index: 1003;'; // Increased z-index to be above performance display
 
       const lightingFolder = gui.addFolder('🌞 Lighting Controls');
       lightingFolder.add(params, "sunIntensity", 0.0, 5.0, 0.1).onChange(v => {
@@ -1095,8 +1188,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
 
       // Enhanced country picking and highlighting with improved accuracy
       const raycaster = new THREE.Raycaster();
-      raycaster.params.Line = { threshold: 0.2 }; // Reduced threshold for more precise picking
-      raycaster.params.Points = { threshold: 0.2 };
+      raycaster.params.Line = { threshold: 0.5 }; // Increase threshold to reduce precision but improve performance
+      raycaster.params.Points = { threshold: 0.5 };
       const mouse = new THREE.Vector2();
 
       const handleClick = (event) => {
@@ -1265,16 +1358,27 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           }
 
           // Enhanced country name display with better animations
-          const countryNameDiv = document.getElementById('countryNameDisplay');
-          if (countryNameDiv) {
-            countryNameDiv.style.transform = 'scale(1.15) rotateZ(2deg)';
-            countryNameDiv.style.background = 'linear-gradient(135deg, rgba(255, 68, 68, 0.95), rgba(255, 136, 68, 0.95), rgba(68, 255, 68, 0.95))';
-            countryNameDiv.style.boxShadow = '0 15px 50px rgba(255, 68, 68, 0.4), 0 0 50px rgba(255, 136, 68, 0.3)';
-            countryNameDiv.textContent = clickedName;
+          // Use direct reference to the div we created instead of getElementById
+          if (countryNameDisplay) {
+            // Clear any existing content completely
+            countryNameDisplay.innerHTML = '';
+            countryNameDisplay.textContent = '';
+            // Force layout recalculation
+            countryNameDisplay.offsetHeight;
+            // Now set the new content
+            countryNameDisplay.textContent = clickedName;
+            
+            // Apply animation styles
+            countryNameDisplay.style.transform = 'scale(1.15) rotateZ(2deg)';
+            countryNameDisplay.style.background = 'linear-gradient(135deg, rgba(255, 68, 68, 0.95), rgba(255, 136, 68, 0.95), rgba(68, 255, 68, 0.95))';
+            countryNameDisplay.style.boxShadow = '0 15px 50px rgba(255, 68, 68, 0.4), 0 0 50px rgba(255, 136, 68, 0.3)';
+            countryNameDisplay.style.zIndex = '1500'; // Increase z-index to ensure it's on top
+            
             setTimeout(() => {
-              countryNameDiv.style.transform = 'scale(1) rotateZ(0deg)';
-              countryNameDiv.style.background = 'linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95))';
-              countryNameDiv.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.1)';
+              countryNameDisplay.style.transform = 'scale(1) rotateZ(0deg)';
+              countryNameDisplay.style.background = 'linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95))';
+              countryNameDisplay.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 212, 255, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.1)';
+              countryNameDisplay.style.zIndex = '1000'; // Reset z-index
             }, 400);
           }
           handleCountrySelect(clickedName);
@@ -1286,32 +1390,79 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       cleanupFunctions.push(() => window.removeEventListener('keydown', handleKeydown));
       cleanupFunctions.push(() => window.removeEventListener('click', handleClick));
 
-      // Enhanced animation loop with throttled updates for better performance
+      // Enhanced animation loop with adaptive FPS management and better performance optimizations
       let lastFrameTime = 0;
-      const targetFPS = 60;
+      const targetFPS = 120; // Increase target FPS
       const frameInterval = 1000 / targetFPS;
+      
+      // Add performance optimization variables
+      let frameCount = 0;
+      let lastPerformanceCheck = 0;
+      let adaptiveFPS = targetFPS;
+      
+      // Add performance monitor display
+      const performanceDisplay = document.createElement('div');
+      performanceDisplay.style.cssText = `
+        position: absolute;
+        top: 60px;
+        left: 10px;
+        color: #00ff00;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 12px;
+        z-index: 1002;
+        background: rgba(0,0,0,0.7);
+        padding: 5px;
+        border-radius: 3px;
+      `;
+      container.appendChild(performanceDisplay);
 
       const animate = (currentTime = 0) => {
         if (!isMounted) return;
         
-        // Throttle animation to target FPS
-        if (currentTime - lastFrameTime >= frameInterval) {
+        // Adaptive FPS based on performance
+        frameCount++;
+        if (currentTime - lastPerformanceCheck > 1000) { // Check every second
+          const actualFPS = frameCount;
+          frameCount = 0;
+          lastPerformanceCheck = currentTime;
+          
+          // Update performance display
+          performanceDisplay.textContent = `FPS: ${Math.round(actualFPS)} | Target: ${Math.round(adaptiveFPS)}`;
+          
+          // Adjust rendering frequency based on actual performance
+          if (actualFPS < 50) {
+            // Reduce update frequency for heavy operations
+            adaptiveFPS = Math.max(30, actualFPS * 0.9);
+          } else if (actualFPS > 90) {
+            // Can handle higher FPS
+            adaptiveFPS = Math.min(120, targetFPS);
+          }
+        }
+        
+        // Use adaptive frame interval
+        const currentFrameInterval = 1000 / adaptiveFPS;
+        
+        if (currentTime - lastFrameTime >= currentFrameInterval) {
           stats.update();
           controls.update();
 
-          // Smooth rotation (reduced frequency for performance)
-          if (clouds) {
-            clouds.rotateY(0.0005 * params.cloudSpeed);
+          // Reduce frequency of expensive operations
+          const isHeavyFrame = frameCount % 3 === 0; // Every 3rd frame
+          const isLightFrame = frameCount % 6 === 0; // Every 6th frame
+
+          // Smooth rotation (only on light frames)
+          if (clouds && isLightFrame) {
+            clouds.rotateY(0.003 * params.cloudSpeed); // Compensate for lower frequency
           }
 
-          // Enhanced atmosphere breathing effect (less frequent updates)
-          if (atmos && !params.brightEarthMode && currentTime % 100 < frameInterval) {
+          // Enhanced atmosphere breathing effect (even less frequent)
+          if (atmos && !params.brightEarthMode && isLightFrame) {
             const time = performance.now() * 0.001;
             atmos.material.uniforms.atmOpacity.value = params.atmOpacity.value + Math.sin(time * 0.7) * 0.08;
           }
 
-          // Dynamic lighting (less frequent updates)
-          if (dirLight && !params.brightEarthMode && currentTime % 200 < frameInterval) {
+          // Dynamic lighting (only on heavy frames)
+          if (dirLight && !params.brightEarthMode && isHeavyFrame) {
             const rotationAngle = group.rotation.y;
             dirLight.position.x = -50 * Math.cos(rotationAngle * 0.1);
             dirLight.position.z = 30 * Math.sin(rotationAngle * 0.1);
@@ -1325,21 +1476,29 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         animationIdRef.current = animationId;
       };
       animate();
+      
+      // Mark as fully initialized
+      initializingRef.current = false;
+      initializedRef.current = true;
     })();
 
     // Enhanced cleanup with proper memory management
     return () => {
+      console.log('🧹 EarthThreeJS cleanup started');
       isMounted = false;
+      initializedRef.current = false;
+      initializingRef.current = false;
       
       // Cancel animation frame
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
       }
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
       
-      // Clean up socket listeners to prevent memory leaks
+      // Clean up socket listeners to prevent memory leaks (but don't disconnect global socket)
       socket.off("cursor");
       socket.off("gesture");
       
@@ -1351,8 +1510,22 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           }
           if (child.material) {
             if (Array.isArray(child.material)) {
-              child.material.forEach(material => material.dispose());
+              child.material.forEach(material => {
+                if (material.map) material.map.dispose();
+                if (material.bumpMap) material.bumpMap.dispose();
+                if (material.normalMap) material.normalMap.dispose();
+                if (material.roughnessMap) material.roughnessMap.dispose();
+                if (material.alphaMap) material.alphaMap.dispose();
+                if (material.emissiveMap) material.emissiveMap.dispose();
+                material.dispose();
+              });
             } else {
+              if (child.material.map) child.material.map.dispose();
+              if (child.material.bumpMap) child.material.bumpMap.dispose();
+              if (child.material.normalMap) child.material.normalMap.dispose();
+              if (child.material.roughnessMap) child.material.roughnessMap.dispose();
+              if (child.material.alphaMap) child.material.alphaMap.dispose();
+              if (child.material.emissiveMap) child.material.emissiveMap.dispose();
               child.material.dispose();
             }
           }
@@ -1360,6 +1533,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             child.texture.dispose();
           }
         });
+        sceneRef.current.clear();
+        sceneRef.current = null;
       }
       
       // Dispose renderer
@@ -1372,45 +1547,159 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             console.warn('Error removing renderer element:', e);
           }
         }
+        rendererRef.current = null;
       }
 
-      // Clean up all UI elements
-      const elementsToRemove = ['countryNameDisplay', 'loadingOverlay'];
-      elementsToRemove.forEach(id => {
-        const element = document.getElementById(id);
-        if (element && element.parentNode) {
-          try {
-            element.parentNode.removeChild(element);
-          } catch (e) {
-            console.warn(`Error removing element ${id}:`, e);
+      // Clean up dat.GUI completely
+      if (cleanupRefs.current.gui) {
+        try {
+          // Force close all folders and remove event listeners
+          cleanupRefs.current.gui.__closeButton?.click?.();
+          
+          // Remove GUI domElement from DOM if it exists
+          if (cleanupRefs.current.gui.domElement) {
+            const guiElement = cleanupRefs.current.gui.domElement;
+            if (guiElement.parentNode) {
+              guiElement.parentNode.removeChild(guiElement);
+            }
+            // Also try removing from document.body as fallback
+            if (document.body.contains(guiElement)) {
+              document.body.removeChild(guiElement);
+            }
           }
-        }
-      });
-
-      // Clean up event listeners and refs
-      cleanupFunctions.forEach(cleanup => {
-        try {
-          cleanup();
-        } catch (e) {
-          console.warn('Error during cleanup:', e);
-        }
-      });
-
-      if (gui) {
-        try {
-          gui.destroy();
+          
+          // Destroy the GUI instance
+          cleanupRefs.current.gui.destroy();
+          cleanupRefs.current.gui = null;
         } catch (e) {
           console.warn('Error destroying GUI:', e);
         }
       }
       
-      if (stats && stats.dom && stats.dom.parentNode) {
+      // Additional cleanup: only remove GUI elements that belong to this instance
+      // Be more conservative to avoid breaking other potential GUI instances
+      try {
+        const potentialGUIElements = document.querySelectorAll('.dg.main');
+        potentialGUIElements.forEach(element => {
+          // Only remove if it's definitely from our instance (check positioning)
+          if (element.style.position === 'fixed' && 
+              element.style.top === '0px' && 
+              element.style.right === '0px') {
+            try {
+              if (element.parentNode) {
+                element.parentNode.removeChild(element);
+              }
+            } catch (e) {
+              console.warn('Error removing specific GUI element:', e);
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Error in conservative GUI cleanup:', e);
+      }
+
+      // Clean up style element
+      if (cleanupRefs.current.style) {
         try {
-          stats.dom.parentNode.removeChild(stats.dom);
+          if (cleanupRefs.current.style.parentNode) {
+            cleanupRefs.current.style.parentNode.removeChild(cleanupRefs.current.style);
+          }
+          cleanupRefs.current.style = null;
         } catch (e) {
-          console.warn('Error removing stats:', e);
+          console.warn('Error removing style element:', e);
         }
       }
+
+      // Additional cleanup: remove any remaining font links with our ID
+      // DON'T remove shared font links as other components might need them
+      // const existingFontLinks = document.querySelectorAll('#geoswipe-fonts');
+      // existingFontLinks.forEach(link => {
+      //   try {
+      //     if (link.parentNode) {
+      //       link.parentNode.removeChild(link);
+      //     }
+      //   } catch (e) {
+      //     console.warn('Error removing existing font link:', e);
+      //   }
+      // });
+
+      // Clean up all UI elements from container
+      if (mountRef.current) {
+        try {
+          // Clear all children from the container
+          while (mountRef.current.firstChild) {
+            mountRef.current.removeChild(mountRef.current.firstChild);
+          }
+        } catch (e) {
+          console.warn('Error clearing container children:', e);
+          
+          // Fallback: try to remove specific elements
+          const elementsToRemove = ['countryNameDisplay', 'loadingOverlay'];
+          elementsToRemove.forEach(id => {
+            const element = document.getElementById(id);
+            if (element && element.parentNode === mountRef.current) {
+              try {
+                mountRef.current.removeChild(element);
+              } catch (e2) {
+                console.warn(`Error removing element ${id}:`, e2);
+              }
+            }
+          });
+          
+          // Remove stats.dom if it exists
+          const statsElements = mountRef.current.querySelectorAll('[style*="z-index: 1001"]');
+          statsElements.forEach(element => {
+            try {
+              if (element.parentNode) {
+                element.parentNode.removeChild(element);
+              }
+            } catch (e2) {
+              console.warn('Error removing stats element:', e2);
+            }
+          });
+          
+          // Remove all other elements
+          const allElements = mountRef.current.querySelectorAll('*');
+          allElements.forEach(element => {
+            try {
+              if (element.parentNode === mountRef.current) {
+                mountRef.current.removeChild(element);
+              }
+            } catch (e2) {
+              console.warn('Error removing element:', e2);
+            }
+          });
+        }
+      }
+
+      // Clean up event listeners and refs
+      if (cleanupRefs.current.cleanupFunctions) {
+        cleanupRefs.current.cleanupFunctions.forEach(cleanup => {
+          try {
+            cleanup();
+          } catch (e) {
+            console.warn('Error during cleanup:', e);
+          }
+        });
+        cleanupRefs.current.cleanupFunctions = [];
+      }
+      
+      console.log('🧹 EarthThreeJS cleanup completed');
+      
+      // Additional cleanup with delay to ensure navigation has completed
+      setTimeout(() => {
+        // Final sweep for any remaining GUI elements (be more specific)
+        const remainingGUIElements = document.querySelectorAll('.dg.main[style*="position: fixed"][style*="right: 0"]');
+        remainingGUIElements.forEach(element => {
+          try {
+            if (element.parentNode && element.style.zIndex === '1000') {
+              element.parentNode.removeChild(element);
+            }
+          } catch (e) {
+            console.warn('Error in final GUI cleanup:', e);
+          }
+        });
+      }, 100);
     };
   }, []);
 

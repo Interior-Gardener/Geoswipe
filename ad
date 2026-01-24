@@ -1,0 +1,49 @@
+[33mdf831fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbranch2[m[33m)[m Fixed components
+[33me7315fd[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Update SECURITY_ENV_GUIDE.md
+[33mcc3a78c[m Add demo video section to README
+[33mff04fdb[m Add demo video link to README
+[33m7cbad1a[m Final-3 commit for making repo public
+[33me4462c2[m Final-2 Commit for making repo public
+[33md4b92d6[m Final commit for public
+[33m0f7f938[m Commit for public
+[33md656ff1[m storyBook implemented for heritage sites, as of now only shaniwar wada json file is created
+[33mf81be5c[m Change document title to 'Geoswipe'
+[33m3f945bc[m next and other button working with gesture added and some bug fix
+[33me1310dd[m I dont make mistakes
+[33mf303e9e[m Error mile toh khud ko doubt karo
+[33m41d503b[m This is the most optimization i can perform at my level
+[33ma1cdf45[m Light weight slightly now
+[33m64f361b[m if(error) {console.log(Khud thik krle)} else {console.log(I know cause  dont make mistakes)}
+[33ma44d419[m Sab sahi hai agar kuch na chale toh khud pe doubt karo :)
+[33m6a174ab[m Bug Fix & more 3d model added
+[33m56fff0f[m info and howToReach improved
+[33m634986d[m Added heritage sites seed script and data And Implemented 360 view feature
+[33m9efffb1[m Works on my machine™
+[33mc155b46[m information tab added
+[33m121acca[m back button added
+[33md9396e7[m Side bar and #d model added ;)
+[33m5b72228[m Resolve merge conflicts - integrate heritage page functionality
+[33m6904746[m added the maharashtra map with some sites kuch sites pe click karne pe unsplash se random image aati hai heritage wale object mien right scroll krke dekh lne kaunsi hai flying working hai click working hai sab working hai :)
+[33m587661a[m Hand gesture selecting added fixed bug
+[33m27f7f92[m gesture added
+[33md3ab022[m 2work
+[33m2363b78[m work
+[33m44d0cb9[m quiz page created
+[33m7507574[m fix
+[33md226a56[m bug fix
+[33mf0104c3[m update
+[33m5372593[m fix
+[33m81dfa13[m Merge branch 'main' of https://github.com/Interior-Gardener/Geoswipe t merge {branch_name}
+[33mccf91ff[m all integrated and bug fixed
+[33mc3f2176[m Updated
+[33m97324f6[m Added quiz logic and page routing
+[33m22bd81c[m Update README.md
+[33mb2eb896[m new earth added
+[33me3ef790[m final earth complete hogaya :)
+[33m220a424[m Add earth5 folder with LFS
+[33mbc91e1a[m update
+[33m0c6459d[m readme updated
+[33m76c4117[m readme updated
+[33m6f26478[m Merge remote README with local project
+[33mce17732[m Initial commit: 3-part gesture-controlled globe game
+[33m6b5171f[m Initial commit

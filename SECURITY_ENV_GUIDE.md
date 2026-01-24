@@ -66,11 +66,7 @@ MIN_TRACKING_CONFIDENCE=0.7
 - **Current Usage:**
   - `server/index.js` - `/api/country-question` endpoint
 
-### Note on maharashtra_heritage_map.html
-The file `maharashtra_heritage_map.html` is a standalone HTML file that currently has a hardcoded MapTiler API key at line 227:
-```javascript
-const apiKey = 'Vgab3vK39KZDFqcYVOBA';
-```
+
 
 **Options:**
 1. **Remove from repository** - If this is a demo file

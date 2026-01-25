@@ -1,135 +1,230 @@
-# GeoSwipe - Optimized Version 🌍
+# GeoSwipe 🌍 - Interactive Heritage & Geography Explorer
 
-An interactive 3D Earth exploration application with gesture control, optimized for performance and maintainability.
+A modern, interactive web application that combines 3D Earth visualization, cultural heritage exploration, geography learning, and gesture-controlled navigation. Discover UNESCO World Heritage sites, historic monuments, and geographical wonders through an immersive map experience.
+
 ## 🎬 Demo Video
 
 [![Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-GeoSwipe-blue?style=for-the-badge)](https://drive.google.com/file/d/1NzUjonejcssivGZTnOTxkJuZuxzxwtFT/view?usp=sharing)
 
-## 🚀 Performance Optimizations
+## ✨ Key Features
 
-### Frontend Optimizations
-- **Lazy Loading**: All route components are lazy-loaded to reduce initial bundle size
-- **Memoization**: Components use `React.memo`, `useCallback`, and `useMemo` to prevent unnecessary re-renders
-- **Code Splitting**: Vendor libraries are split into separate chunks for better caching
-- **Memory Management**: Proper disposal of Three.js resources (geometries, materials, textures)
-- **Frame Rate Limiting**: Throttled animation loop targeting 60 FPS
+### 🗺️ **Interactive Heritage Map**
+- Explore **UNESCO World Heritage Sites**, historic forts, temples, palaces, and monuments
+- **Multiple map styles**: Satellite, Street, Terrain, and Dark modes
+- **Custom category icons** for different heritage site types
+- **Detailed information panels** with images, descriptions, and historical context
 
-### Backend Optimizations
-- **Connection Pooling**: MongoDB connection with optimized pool settings
-- **Caching**: In-memory caching for country data with TTL
-- **Rate Limiting**: Per-IP and per-socket rate limiting to prevent abuse
-- **Error Handling**: Comprehensive error handling with graceful degradation
+### 🌍 **3D Earth Globe**
+- **Three.js powered** interactive 3D Earth visualization
+- **Smooth country selection** with real-time highlighting
+- **Performance optimized** rendering with 60 FPS target
 
-### Tech Stack:
-- Python (MediaPipe) → Gesture Detection
-- Node.js + Express + Socket.IO → Optimized Real-time Server
-- React + Three.js + Vite → Interactive Globe UI
-- MongoDB → Optimized Database Layer
+### 🎮 **Advanced Gesture Control**
+- **Hand gesture navigation** using MediaPipe and OpenCV
+- **Real-time gesture recognition** for map interactions
+- **Gesture button system** for enhanced user experience
+
+### 📚 **Educational Features**
+- **Geography Quiz Mode** with country-based questions
+- **Heritage StoryBooks** with detailed historical narratives
+- **"How to Reach"** guides for heritage sites
+- **Explore Mode** for free-form discovery
+
+### 🛠️ **Technical Excellence**
+- **React 19** with modern hooks and performance optimizations
+- **MapLibre GL JS** for professional-grade mapping
+- **Socket.IO** for real-time communication
+- **MongoDB** for heritage site data management
+- **Vite** for lightning-fast development builds
 
 ---
 
-## 📦 Optimized Setup Instructions
+## 🚀 Quick Start for Developers
 
 ### Prerequisites
-- Node.js ≥ 18.0.0
-- Python 3.8+
-- MongoDB
+- **Node.js** ≥ 18.0.0
+- **Python** 3.8+ (for gesture control)
+- **MongoDB** (local or cloud instance)
+- **Git**
 
-### 1. Clone and Install
+### 1️⃣ Clone & Navigate
 ```bash
-git clone https://github.com/Interior-Gardener/Geoswipe.git
+git clone <your-repository-url>
 cd Geoswipe
 ```
 
-### 2. Install Python Dependencies (Gesture Control)
+### 2️⃣ Install Dependencies
 ```bash
+# Install main project dependencies
+npm install
+
+# Install client dependencies
+cd client
+npm install
+cd ..
+
+# Install server dependencies
+cd server
+npm install
+cd ..
+
+# Install Python dependencies for gesture control
 cd gesture-control
 python -m venv geovenv
-geovenv\Scripts\activate  # Windows
-# source geovenv/bin/activate  # Linux/Mac
+# On Windows:
+geovenv\Scripts\activate
+# On macOS/Linux:
+# source geovenv/bin/activate
 pip install -r requirements.txt
+cd ..
 ```
 
-### 3. Install & Configure Server
-```bash
-cd ../server
-npm install
-# Start MongoDB if using local instance
-mongod
-```
+### 3️⃣ Environment Setup
+Create necessary environment files:
+- Add your **MapTiler API key** for map services
+- Configure **MongoDB connection** in server
+- Set up **port configurations** if needed
 
-### 4. Install & Configure Client
-```bash
-cd ../client
-npm install
-# Copy environment configuration
-cp .env.example .env.development
-```
+### 4️⃣ Launch the Application
 
-### 5. Development Mode (Optimized)
+#### Option A: Run Everything at Once (Recommended)
 ```bash
-# Terminal 1: Start optimized server
+npm start
+```
+This will start:
+- ✅ Client on `http://localhost:5173`
+- ✅ Server on `http://localhost:3001`
+- ✅ Gesture control system
+
+#### Option B: Run Components Separately
+```bash
+# Terminal 1: Start the server
 cd server
 npm run dev
 
-# Terminal 2: Start optimized client with HMR
+# Terminal 2: Start the client
 cd client
 npm run dev
 
 # Terminal 3: Start gesture control (optional)
 cd gesture-control
-geovenv\Scripts\activate
+geovenv\Scripts\activate  # Windows
+# source geovenv/bin/activate  # macOS/Linux
 python detect.py
 ```
 
-## 🎮 Features
-
-### Core Features
-- **Interactive 3D Earth**: Rotate, zoom, and explore with smooth controls
-- **Country Selection**: Click on countries with improved accuracy
-- **Quiz Mode**: Geography quiz with enhanced error handling
-- **Heritage Mode**: Explore cultural heritage sites globally
-- **Gesture Control**: Optimized hand gesture navigation
-
-### Performance Features
-- **Progressive Loading**: Critical assets load first
-- **Memory Monitoring**: Built-in memory usage tracking
-- **Asset Caching**: Intelligent caching system
-- **Error Recovery**: Graceful handling of network issues
-- **Frame Rate Optimization**: Consistent 60 FPS performance
-
-## 🛠 Development Scripts
-
-### Client Scripts
-```bash
-npm run dev          # Start optimized development server
-npm run build        # Production build with optimizations
-npm run build:analyze # Build with bundle analysis
-npm run lint         # Lint code
-npm run lint:fix     # Fix linting issues
-npm run preview      # Preview production build
-```
-
-### Server Scripts
-```bash
-npm start           # Start production server
-npm run dev         # Start development server with nodemon
-```
-
-## 📊 Performance Metrics
-
-### Optimization Results
-- **Bundle Size**: ~60% reduction through code splitting
-- **Initial Load**: ~40% faster with lazy loading
-- **Memory Usage**: ~50% reduction with proper cleanup
-- **Frame Rate**: Stable 60 FPS with throttling
-- **API Response**: ~30% faster with caching
-
-## 📄 License
-
-This project is licensed under the ISC License.
+### 5️⃣ Access the Application
+- **Main App**: http://localhost:5173
+- **Server API**: http://localhost:3001
+- **Gesture Control**: Runs in background with webcam access
 
 ---
 
-**Note**: This optimized version maintains all original functionalities while significantly improving performance, memory management, and code maintainability.
+## 🏗️ Project Structure
+
+```
+Geoswipe/
+├── client/                 # React frontend application
+│   ├── src/
+│   │   ├── LandingPage.jsx        # Home page
+│   │   ├── HeritagePage.jsx       # Main heritage map interface
+│   │   ├── ExplorePage.jsx        # 3D Earth exploration
+│   │   ├── QuizPage.jsx           # Geography quiz
+│   │   ├── HeritageStoryBook.jsx  # Historical narratives
+│   │   └── components/            # Reusable components
+│   ├── public/assets/             # Images, icons, audio files
+│   └── package.json
+├── server/                 # Node.js backend
+│   ├── index.js                   # Main server file
+│   ├── models/                    # MongoDB models
+│   └── package.json
+├── gesture-control/        # Python gesture recognition
+│   ├── detect.py                  # Main gesture detection script
+│   ├── requirements.txt
+│   └── geovenv/                   # Python virtual environment
+└── package.json           # Root project configuration
+```
+
+---
+
+## 🛠️ Development Commands
+
+### Root Project
+```bash
+npm start              # Launch all services
+npm run start:client   # Start only React client
+npm run start:server   # Start only Node.js server
+npm run start:gesture  # Start only gesture control
+```
+
+### Client Development
+```bash
+cd client
+npm run dev           # Development server with hot reload
+npm run build         # Production build
+npm run preview       # Preview production build
+npm run lint          # Code linting
+npm run lint:fix      # Auto-fix linting issues
+```
+
+### Server Development
+```bash
+cd server
+npm run dev           # Development with auto-restart
+npm start             # Production server
+```
+
+---
+
+## 🌟 Usage Guide
+
+1. **🏠 Landing Page**: Navigate between different modes (Heritage, Explore, Quiz)
+2. **🗺️ Heritage Mode**: 
+   - Browse heritage sites on interactive map
+   - Filter by categories (UNESCO, Forts, Temples, etc.)
+   - Click sites for detailed information
+   - Use gesture controls for navigation
+3. **🌍 Explore Mode**: Interact with 3D Earth globe and learn about countries
+4. **❓ Quiz Mode**: Test your geography knowledge
+5. **📖 StoryBook**: Read detailed historical narratives
+
+---
+
+## 🎯 Key Technologies
+
+- **Frontend**: React 19, Three.js, MapLibre GL JS, Socket.IO Client
+- **Backend**: Node.js, Express, MongoDB, Socket.IO
+- **Gesture Control**: Python, OpenCV, MediaPipe
+- **Build Tools**: Vite, ESLint
+- **Deployment**: Optimized for modern web hosting
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the ISC License - see the LICENSE file for details.
+
+---
+
+## 🚀 What's Next?
+
+- 🌐 PWA support for offline usage
+- 📱 Mobile-responsive gesture controls
+- 🎨 Additional map themes and customization
+- 🔍 Advanced search and filtering
+- 📊 Analytics and user engagement metrics
+
+---
+
+**Built with ❤️ for heritage preservation and geographical education**
 

@@ -52,10 +52,18 @@ const ExplorePage = () => {
     navigate("/quiz");
   }, [navigate]);
 
+  // Memoize back to home callback
+  const handleBackToHome = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       {/* 🌍 Earth Visualization */}
-      <EarthThreeJS setSelectedCountry={handleCountrySelect} />
+      <EarthThreeJS 
+        setSelectedCountry={handleCountrySelect}
+        onBackToHome={handleBackToHome}
+      />
       
       {/* 🚀 Start Quiz Button */}
       <QuizButton onClick={handleQuizNavigation} />

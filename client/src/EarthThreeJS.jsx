@@ -439,17 +439,18 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
     if (onBackToHome) {
       const backButton = document.createElement('button');
       backButton.innerHTML = '← Back to Home';
+      backButton.id = 'back-to-home-button'; // Add ID for easier gesture targeting
       backButton.style.cssText = `
         position: absolute;
-        top: 15px;
+        top: 55px;
         left: 120px;
         background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3));
         color: #00d4ff;
         border: 2px solid rgba(0, 212, 255, 0.5);
-        padding: 8px 16px;
+        padding: 12px 20px;
         border-radius: 8px;
         font-family: 'Orbitron', sans-serif;
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 600;
         cursor: pointer;
         z-index: 1001;
@@ -458,22 +459,55 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         user-select: none;
+        min-width: 160px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
       `;
       
-      // Add hover effects
+      // Enhanced hover effects for better visual feedback
       backButton.onmouseenter = () => {
         backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
         backButton.style.transform = 'scale(1.05)';
         backButton.style.boxShadow = '0 6px 16px rgba(0, 212, 255, 0.3)';
+        backButton.style.borderColor = 'rgba(0, 212, 255, 0.8)';
       };
       
       backButton.onmouseleave = () => {
         backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3))';
         backButton.style.transform = 'scale(1)';
         backButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        backButton.style.borderColor = 'rgba(0, 212, 255, 0.5)';
       };
       
-      backButton.onclick = onBackToHome;
+      // Add visual feedback for gesture clicks
+      backButton.onmousedown = () => {
+        backButton.style.transform = 'scale(0.95)';
+        backButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.3), rgba(0, 212, 255, 0.4))';
+      };
+      
+      backButton.onmouseup = () => {
+        backButton.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+          backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
+        }, 100);
+      };
+      
+      // Main click handler - works for both mouse and gesture clicks
+      backButton.onclick = (e) => {
+        console.log('🏠 Back to Home button clicked via:', e.isTrusted ? 'mouse' : 'gesture');
+        
+        // Add click animation
+        backButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.5), rgba(0, 212, 255, 0.6))';
+        backButton.style.boxShadow = '0 8px 20px rgba(0, 255, 128, 0.4)';
+        
+        setTimeout(() => {
+          onBackToHome();
+        }, 150); // Small delay for visual feedback
+      };
+      
       container.appendChild(backButton);
     }
 
@@ -881,6 +915,42 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             const absoluteClickX = Math.round(currentCursorPos.x + rect.left);
             const absoluteClickY = Math.round(currentCursorPos.y + rect.top);
             
+            console.log("🎯 Gesture click detected at:", { absoluteClickX, absoluteClickY, cursorPos: currentCursorPos });
+            
+            // Check if cursor is over the Back to Home button first
+            const backButton = document.getElementById('back-to-home-button');
+            if (backButton) {
+              const buttonRect = backButton.getBoundingClientRect();
+              const isOverButton = currentCursorPos.x >= (buttonRect.left - rect.left) &&
+                                 currentCursorPos.x <= (buttonRect.right - rect.left) &&
+                                 currentCursorPos.y >= (buttonRect.top - rect.top) &&
+                                 currentCursorPos.y <= (buttonRect.bottom - rect.top);
+              
+              console.log("🔘 Back button check:", { 
+                buttonRect, 
+                isOverButton, 
+                buttonLeft: buttonRect.left - rect.left,
+                buttonRight: buttonRect.right - rect.left,
+                buttonTop: buttonRect.top - rect.top,
+                buttonBottom: buttonRect.bottom - rect.top
+              });
+              
+              if (isOverButton) {
+                console.log("✅ Gesture clicking Back to Home button!");
+                // Add visual feedback for button click
+                backButton.style.transform = 'scale(0.95)';
+                backButton.style.filter = 'brightness(1.2)';
+                setTimeout(() => {
+                  backButton.style.transform = '';
+                  backButton.style.filter = '';
+                }, 150);
+                
+                // Trigger the button's click event
+                backButton.click();
+                return; // Don't continue with canvas click
+              }
+            }
+            
             // Add a visual debug marker to show where gesture thinks it's clicking
             const debugMarker = document.createElement('div');
             debugMarker.style.cssText = `
@@ -898,6 +968,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             document.body.appendChild(debugMarker);
             setTimeout(() => debugMarker.remove(), 2000); // Remove after 2 seconds
             
+            // If not over button, dispatch click to canvas for country selection
             const event = new MouseEvent('click', {
               clientX: absoluteClickX,
               clientY: absoluteClickY,

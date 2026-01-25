@@ -1,6 +1,39 @@
- import React, { useCallback, memo } from 'react';
+ import React, { useCallback, memo, useState, useEffect, useRef } from 'react';
 import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
+
+// Memoize socket connection to prevent reconnections
+const getSocket = (() => {
+  let socket = null;
+  return () => {
+    if (!socket) {
+      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        transports: ['websocket', 'polling']
+      });
+      
+      // Add connection event handlers for debugging
+      socket.on('connect', () => {
+        console.log('🔗 Socket connected to backend for gesture control');
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('🔌 Socket disconnected from backend');
+      });
+      
+      socket.on('connect_error', (error) => {
+        console.log('❌ Socket connection error:', error);
+      });
+    }
+    return socket;
+  };
+})();
+
+const socket = getSocket();
 
 // Memoized feature component
 const Feature = memo(({ icon, title, description, onClick, clickable = false }) => (
@@ -19,6 +52,8 @@ Feature.displayName = 'Feature';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const cursorPosRef = useRef({ x: 400, y: 300 }); // Ref to store current cursor position for gesture handlers
+  const containerRef = useRef(null);
 
   // Memoize navigation callbacks
   const handleStartExploration = useCallback(() => {
@@ -29,8 +64,153 @@ const LandingPage = () => {
     navigate("/heritage");
   }, [navigate]);
 
+  // Setup gesture control listeners
+  useEffect(() => {
+    // Store cleanup functions
+    const cleanupFunctions = [];
+
+    // Handle cursor movement - only track position for click detection
+    const handleCursor = (data) => {
+      const container = containerRef.current;
+      if (!container) return;
+      
+      // Handle clearing cursor when data.x or data.y is None/null
+      if (data.x === null || data.y === null) {
+        return; // Keep cursor position but don't update
+      }
+      
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      // Improved mapping with calibration adjustments for better edge detection
+      const calibrationPadding = 0.1; // 10% padding for better edge detection
+      
+      // Map with expanded range, then clamp to screen bounds
+      let x = (data.x - calibrationPadding) / (1 - 2 * calibrationPadding) * width;
+      let y = (data.y - calibrationPadding) / (1 - 2 * calibrationPadding) * height;
+      
+      // Clamp to screen boundaries
+      x = Math.max(0, Math.min(width, x));
+      y = Math.max(0, Math.min(height, y));
+      
+      console.log("📍 Landing page cursor position:", { 
+        originalX: data.x,
+        originalY: data.y,
+        mappedX: x,
+        mappedY: y,
+        screenWidth: width,
+        screenHeight: height
+      });
+      
+      // Update only the ref for click detection (GlobalGestureCursor handles display)
+      cursorPosRef.current = { x, y };
+    };
+
+    // Handle gesture clicks
+    const handleGesture = (data) => {
+      if (data.gesture === "click") {
+        const currentCursorPos = cursorPosRef.current;
+        console.log("🎯 Landing page gesture click detected at:", currentCursorPos);
+        
+        // Get the element at cursor position
+        const elementAtCursor = document.elementFromPoint(currentCursorPos.x, currentCursorPos.y);
+        
+        if (elementAtCursor) {
+          console.log("🔘 Element at cursor:", elementAtCursor);
+          
+          // Find the closest clickable element (button, feature, or nav link)
+          let clickableElement = elementAtCursor;
+          
+          // Traverse up to find clickable parent
+          while (clickableElement && clickableElement !== document.body) {
+            if (
+              clickableElement.tagName === 'BUTTON' ||
+              clickableElement.classList.contains('feature') ||
+              clickableElement.classList.contains('clickable') ||
+              clickableElement.tagName === 'A' ||
+              clickableElement.onclick
+            ) {
+              console.log("✅ Found clickable element:", clickableElement);
+              
+              // Add visual feedback
+              const originalTransform = clickableElement.style.transform;
+              const originalFilter = clickableElement.style.filter;
+              clickableElement.style.transform = 'scale(0.95)';
+              clickableElement.style.filter = 'brightness(1.2)';
+              
+              setTimeout(() => {
+                clickableElement.style.transform = originalTransform;
+                clickableElement.style.filter = originalFilter;
+              }, 150);
+              
+              // Trigger click
+              clickableElement.click();
+              break;
+            }
+            clickableElement = clickableElement.parentElement;
+          }
+        }
+        
+        // Add visual debug marker
+        const debugMarker = document.createElement('div');
+        debugMarker.style.cssText = `
+          position: fixed;
+          left: ${currentCursorPos.x - 5}px;
+          top: ${currentCursorPos.y - 5}px;
+          width: 10px;
+          height: 10px;
+          background: lime;
+          border: 2px solid black;
+          border-radius: 50%;
+          z-index: 10000;
+          pointer-events: none;
+        `;
+        document.body.appendChild(debugMarker);
+        setTimeout(() => debugMarker.remove(), 2000);
+      }
+    };
+
+    // Listen for cursor and gesture events
+    socket.on("cursor", handleCursor);
+    socket.on("gesture", handleGesture);
+    
+    cleanupFunctions.push(() => {
+      socket.off("cursor", handleCursor);
+      socket.off("gesture", handleGesture);
+    });
+
+    // Cleanup function
+    return () => {
+      cleanupFunctions.forEach(cleanup => cleanup());
+    };
+  }, []);
+
   return (
-    <div className="landing-page">
+    <div className="landing-page" ref={containerRef}>
+      {/* Gesture Instructions */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: 'linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95))',
+          color: '#00d4ff',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontFamily: 'Orbitron, sans-serif',
+          fontWeight: '600',
+          zIndex: 1000,
+          backdropFilter: 'blur(10px)',
+          border: '2px solid rgba(0, 212, 255, 0.3)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
+          lineHeight: '1.4'
+        }}
+      >
+        ✋ <strong>Open palm:</strong> Move blue cursor<br/>
+        👌 <strong>OK sign:</strong> Click buttons & features
+      </div>
 
       {/* Sleek Themed Header */}
       <header className="header">

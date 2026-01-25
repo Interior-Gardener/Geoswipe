@@ -10,7 +10,7 @@ const QuizButton = memo(({ onClick }) => (
     style={{
       position: "absolute",
       bottom: "100px",
-      left: "40px",
+      left: "140px",
       padding: "18px 30px",
       fontSize: "20px",
       fontWeight: "bold",

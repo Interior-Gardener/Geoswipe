@@ -242,7 +242,7 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
         >
           {answered ? "Next" : "Skip"}
         </GestureButton>
-        <span style={{ fontSize: "18px", marginLeft: "10px" }}>
+        <span style={{ fontSize: "18px", marginLeft: "3px" }}>
           Score: {score}
         </span>
       </div>

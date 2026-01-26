@@ -187,36 +187,13 @@ const LandingPage = () => {
 
   return (
     <div className="landing-page" ref={containerRef}>
-      {/* Gesture Instructions */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: 'linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95))',
-          color: '#00d4ff',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontFamily: 'Orbitron, sans-serif',
-          fontWeight: '600',
-          zIndex: 1000,
-          backdropFilter: 'blur(10px)',
-          border: '2px solid rgba(0, 212, 255, 0.3)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-          textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
-          lineHeight: '1.4'
-        }}
-      >
-        ✋ <strong>Open palm:</strong> Move blue cursor<br/>
-        👌 <strong>OK sign:</strong> Click buttons & features
-      </div>
 
       {/* Sleek Themed Header */}
       <header className="header">
         <div className="logo">🌐 GeoSwipe</div>
         <nav className="nav-links">
           <a href="#features">Features</a>
+          <a href="#gestures">Gesture Controls</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -251,6 +228,88 @@ const LandingPage = () => {
             onClick={handleHeritageMode}
             clickable={true}
           />
+        </div>
+
+        {/* Hand Gesture Controls Section */}
+        <div className="gesture-controls-section" id="gestures">
+          <h2 className="section-title">✋ Hand Gesture Controls</h2>
+          <p className="section-subtitle">Control the Earth globe with simple hand gestures</p>
+          
+          <div className="gesture-grid">
+            {/* Thumbs Up */}
+            <div className="gesture-card">
+              <div className="gesture-icon">👍</div>
+              <h3 className="gesture-name">Thumbs Up</h3>
+              <p className="gesture-description">Rotate Earth upward</p>
+            </div>
+
+            {/* Thumbs Down */}
+            <div className="gesture-card">
+              <div className="gesture-icon">👎</div>
+              <h3 className="gesture-name">Thumbs Down</h3>
+              <p className="gesture-description">Rotate Earth downward</p>
+            </div>
+
+            {/* Two Fingers Right Tilt */}
+            <div className="gesture-card">
+              <div className="gesture-icon">🤞➡️</div>
+              <h3 className="gesture-name">Two Fingers Right</h3>
+              <p className="gesture-description">Rotate Earth to the right</p>
+            </div>
+
+            {/* Two Fingers Left Tilt */}
+            <div className="gesture-card">
+              <div className="gesture-icon">🤞⬅️</div>
+              <h3 className="gesture-name">Two Fingers Left</h3>
+              <p className="gesture-description">Rotate Earth to the left</p>
+            </div>
+
+            {/* Pinch */}
+            <div className="gesture-card">
+              <div className="gesture-icon">🤏</div>
+              <h3 className="gesture-name">Pinch</h3>
+              <p className="gesture-description">Zoom out from Earth</p>
+            </div>
+
+            {/* L Sign - Zoom In */}
+            <div className="gesture-card">
+              <div className="gesture-icon">👆</div>
+              <h3 className="gesture-name">L Sign</h3>
+              <p className="gesture-description">Index finger up + thumb open = Zoom in</p>
+            </div>
+
+            {/* Palm - Move Cursor */}
+            <div className="gesture-card">
+              <div className="gesture-icon">🖐️</div>
+              <h3 className="gesture-name">Palm</h3>
+              <p className="gesture-description">Move cursor around the screen</p>
+            </div>
+
+            {/* OK Sign - Click */}
+            <div className="gesture-card">
+              <div className="gesture-icon">👌</div>
+              <h3 className="gesture-name">OK Sign</h3>
+              <p className="gesture-description">Click on elements</p>
+            </div>
+          </div>
+        </div>
+
+        {/* About Section */}
+        <div className="about-section" id="about">
+          <h2 className="section-title">About GeoSwipe</h2>
+          <p className="about-text">
+            GeoSwipe is an innovative web application that combines 3D Earth visualization 
+            with gesture-based controls. Experience a new way to explore our planet using 
+            simple hand gestures captured through your webcam.
+          </p>
+        </div>
+
+        {/* Contact Section */}
+        <div className="contact-section" id="contact">
+          <h2 className="section-title">Contact Us</h2>
+          <p className="contact-text">
+            Have questions or feedback? We'd love to hear from you!
+          </p>
         </div>
       </div>
     </div>

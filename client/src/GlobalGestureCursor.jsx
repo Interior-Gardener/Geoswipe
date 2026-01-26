@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
 // Reuse the same socket connection pattern
@@ -19,8 +20,14 @@ const getSocket = (() => {
 })();
 
 const GlobalGestureCursor = () => {
+  const location = useLocation();
   const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 });
   const [isVisible, setIsVisible] = useState(false);
+
+  // Hide cursor on Heritage page
+  const shouldHideCursor = location.pathname === '/heritage' || 
+                          location.pathname.startsWith('/heritage-storybook') ||
+                          location.pathname.startsWith('/how-to-reach');
 
   useEffect(() => {
     const socket = getSocket();
@@ -55,7 +62,8 @@ const GlobalGestureCursor = () => {
     };
   }, []);
 
-  if (!isVisible) return null;
+  // Don't render cursor on Heritage-related pages
+  if (!isVisible || shouldHideCursor) return null;
 
   return (
     <div

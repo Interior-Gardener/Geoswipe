@@ -1,10 +1,17 @@
 /* LandingPage.css */
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
 .landing-page {
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
   color: white;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
 }
 
@@ -23,8 +30,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100vh;
+  justify-content: flex-start;
+  min-height: 100vh;
   padding: 2rem;
   position: relative;
   z-index: 1;
@@ -217,4 +224,170 @@
 
 .nav-links a:hover {
   color: #00c2ff; /* Accent hover color */
+}
+
+/* Gesture Controls Section */
+.gesture-controls-section {
+  max-width: 1200px;
+  width: 100%;
+  margin: 5rem auto;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  background: linear-gradient(45deg, #64b5f6, #42a5f5, #2196f3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: #64b5f6;
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  color: #90caf9;
+  margin: 0 0 3rem 0;
+  font-weight: 300;
+}
+
+.gesture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.gesture-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 2.5rem 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.gesture-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 20px 50px rgba(33, 150, 243, 0.4);
+  border-color: rgba(33, 150, 243, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.gesture-icon {
+  font-size: 4.5rem;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 0 20px rgba(33, 150, 243, 0.7));
+  animation: floatAnimation 3s ease-in-out infinite;
+}
+
+@keyframes floatAnimation {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.gesture-card:hover .gesture-icon {
+  animation: none;
+  transform: scale(1.15) rotate(5deg);
+}
+
+.gesture-name {
+  font-size: 1.5rem;
+  color: #64b5f6;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.gesture-description {
+  color: #b0bec5;
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* About Section */
+.about-section {
+  max-width: 900px;
+  width: 100%;
+  margin: 5rem auto;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.about-text {
+  font-size: 1.1rem;
+  color: #b0bec5;
+  line-height: 1.8;
+  margin: 1.5rem 0;
+}
+
+/* Contact Section */
+.contact-section {
+  max-width: 900px;
+  width: 100%;
+  margin: 5rem auto 3rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.contact-text {
+  font-size: 1.1rem;
+  color: #b0bec5;
+  line-height: 1.8;
+  margin: 1.5rem 0;
+}
+
+/* Responsive Design for Gesture Controls */
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 2rem;
+  }
+  
+  .section-subtitle {
+    font-size: 1rem;
+  }
+  
+  .gesture-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .gesture-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .gesture-icon {
+    font-size: 3.5rem;
+  }
+  
+  .gesture-name {
+    font-size: 1.3rem;
+  }
+  
+  .gesture-description {
+    font-size: 0.9rem;
+  }
+  
+  .about-text,
+  .contact-text {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .gesture-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .gesture-controls-section,
+  .about-section,
+  .contact-section {
+    padding: 2rem 1rem;
+  }
 }

@@ -511,36 +511,303 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       container.appendChild(backButton);
     }
 
-    // Enhanced Instructions - only show if not hidden
+    // Instructions Button and Modal - only show if not hidden
     if (!hideInstructions) {
-      const instructions = document.createElement('div');
-      instructions.innerHTML = `
-        🖱 <strong>Click to explore countries</strong><br>
-        🌍 <strong>Drag to rotate • Scroll to zoom</strong><br>
-        ✋ <strong>Open palm: Move blue cursor dot</strong><br>
-        � <strong>OK sign: Click where cursor points (Countries & Buttons!)</strong><br>
-        🤏 <strong>Pinch/Zoom with scale limits (0.3x - 3.0x)</strong><br>
-        🌟 <strong>Press 'B' for bright mode</strong><br>
-        ⌨ <strong>Use GUI panel for fine-tuning</strong>
-      `;
-      instructions.style.cssText = `
+      // Create Instructions Button
+      const instructionsButton = document.createElement('button');
+      instructionsButton.innerHTML = '📖 Controls & Instructions';
+      instructionsButton.id = 'instructions-button';
+      instructionsButton.style.cssText = `
         position: absolute;
-        bottom: 140px;
-        left: 20px;
-        color: rgba(255, 255, 255, 0.9);
+        bottom: 160px;
+        left: 80px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3));
+        color: #00d4ff;
+        border: 2px solid rgba(0, 212, 255, 0.5);
+        padding: 12px 20px;
+        border-radius: 8px;
         font-family: 'Orbitron', sans-serif;
-        font-size: 14px;
-        font-weight: 400;
-        z-index: 100;
-        background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(0, 40, 80, 0.9));
-        padding: 16px 20px;
-        border-radius: 12px;
-        border: 2px solid rgba(0, 212, 255, 0.3);
-        backdrop-filter: blur(15px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.1);
-        line-height: 1.6;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 1001;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        user-select: none;
+        min-width: 220px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
-      container.appendChild(instructions);
+      
+      // Create Instructions Modal
+      const instructionsModal = document.createElement('div');
+      instructionsModal.id = 'instructions-modal';
+      instructionsModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Orbitron', sans-serif;
+      `;
+      
+      // Modal Content
+      instructionsModal.innerHTML = `
+        <div style="
+          background: linear-gradient(135deg, rgb(0, 212, 255), rgb(0, 128, 255))
+          border: 2px solid rgba(0, 212, 255, 0.4);
+          border-radius: 20px;
+          padding: 40px;
+          max-width: 800px;
+          max-height: 85vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.2);
+          position: relative;
+        ">
+          <!-- Close Button -->
+          <button id="close-instructions-modal" style="
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 68, 68, 0.3);
+            border: 2px solid rgba(255, 68, 68, 0.5);
+            color: #ff4444;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+          ">×</button>
+          
+          <!-- Title -->
+          <h1 style="
+            color: #00d4ff;
+            font-size: 32px;
+            margin: 0 0 30px 0;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+            text-align: center;
+          ">🌍 Controls & Instructions</h1>
+          
+          <!-- Mouse Controls Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="
+              color: #00d4ff;
+              font-size: 24px;
+              margin: 0 0 15px 0;
+              border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+              padding-bottom: 10px;
+            ">🖱️ Mouse Controls</h2>
+            <div style="color: rgba(255, 255, 255, 0.9); font-size: 16px; line-height: 2;">
+              <p><strong>🖱 Left Click:</strong> Select and explore countries</p>
+              <p><strong>🖱 Drag:</strong> Rotate the Earth globe</p>
+              <p><strong>🖱 Scroll:</strong> Zoom in and out</p>
+              <p><strong>⌨️ Press 'B':</strong> Toggle bright Earth mode</p>
+            </div>
+          </div>
+          
+          <!-- Hand Gesture Controls Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="
+              color: #00d4ff;
+              font-size: 24px;
+              margin: 0 0 15px 0;
+              border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+              padding-bottom: 10px;
+            ">✋ Hand Gesture Controls</h2>
+            <div style="color: rgba(255, 255, 255, 0.9); font-size: 16px; line-height: 2;">
+              <p><strong>👍 Thumbs Up:</strong> Rotate Earth upward</p>
+              <p><strong>👎 Thumbs Down:</strong> Rotate Earth downward</p>
+              <p><strong>🤞➡️ Two Fingers Right Tilt:</strong> Rotate Earth to the right</p>
+              <p><strong>🤞⬅️ Two Fingers Left Tilt:</strong> Rotate Earth to the left</p>
+              <p><strong>🤏 Pinch:</strong> Zoom out from Earth</p>
+              <p><strong>👆👍 L Sign:</strong> Index finger up + thumb open = Zoom in</p>
+              <p><strong>🖐️ Palm (Open Hand):</strong> Move the blue cursor dot around the screen</p>
+              <p><strong>👌 OK Sign:</strong> Click where the cursor points (works on countries and buttons!)</p>
+            </div>
+          </div>
+          
+          <!-- Features Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="
+              color: #00d4ff;
+              font-size: 24px;
+              margin: 0 0 15px 0;
+              border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+              padding-bottom: 10px;
+            ">⚙️ Features</h2>
+            <div style="color: rgba(255, 255, 255, 0.9); font-size: 16px; line-height: 2;">
+              <p><strong>🌟 Bright Mode:</strong> Press 'B' key for enhanced lighting</p>
+              <p><strong>🔧 GUI Panel:</strong> Use the right-side panel for fine-tuning</p>
+              <p><strong>📊 Performance Stats:</strong> FPS counter shown at top-left</p>
+              <p><strong>🎯 Country Selection:</strong> Click any country to highlight and explore</p>
+              <p><strong>🔄 Auto-Rotation:</strong> Enable via GUI panel for hands-free viewing</p>
+            </div>
+          </div>
+          
+          <!-- Tips Section -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="
+              color: #00d4ff;
+              font-size: 24px;
+              margin: 0 0 15px 0;
+              border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+              padding-bottom: 10px;
+            ">💡 Pro Tips</h2>
+            <div style="color: rgba(255, 255, 255, 0.9); font-size: 16px; line-height: 2;">
+              <p>• Use hand gestures for a futuristic, hands-free experience</p>
+              <p>• Combine mouse and gestures for precise control</p>
+              <p>• Zoom limits: 0.3x to 3.0x for optimal viewing</p>
+              <p>• Country borders change color when selected</p>
+              <p>• Blue cursor shows where gesture clicks will land</p>
+            </div>
+          </div>
+          
+          <!-- Close Button at Bottom -->
+          <div style="text-align: center; margin-top: 30px;">
+            <button id="close-instructions-modal-bottom" style="
+              background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 128, 255, 0.4));
+              color: #00d4ff;
+              border: 2px solid rgba(0, 212, 255, 0.5);
+              padding: 12px 30px;
+              border-radius: 8px;
+              font-family: 'Orbitron', sans-serif;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            ">Got It!</button>
+          </div>
+        </div>
+      `;
+      
+      // Button hover effects - Enhanced for better visual feedback
+      instructionsButton.onmouseenter = () => {
+        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
+        instructionsButton.style.transform = 'scale(1.05)';
+        instructionsButton.style.boxShadow = '0 6px 16px rgba(0, 212, 255, 0.3)';
+        instructionsButton.style.borderColor = 'rgba(0, 212, 255, 0.8)';
+      };
+      
+      instructionsButton.onmouseleave = () => {
+        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3))';
+        instructionsButton.style.transform = 'scale(1)';
+        instructionsButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        instructionsButton.style.borderColor = 'rgba(0, 212, 255, 0.5)';
+      };
+      
+      // Add visual feedback for gesture clicks
+      instructionsButton.onmousedown = () => {
+        instructionsButton.style.transform = 'scale(0.95)';
+        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.3), rgba(0, 212, 255, 0.4))';
+      };
+      
+      instructionsButton.onmouseup = () => {
+        instructionsButton.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+          instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
+        }, 100);
+      };
+      
+      // Open modal function
+      const openModal = () => {
+        instructionsModal.style.display = 'flex';
+        // Add fade-in animation
+        instructionsModal.style.opacity = '0';
+        setTimeout(() => {
+          instructionsModal.style.transition = 'opacity 0.3s ease';
+          instructionsModal.style.opacity = '1';
+        }, 10);
+      };
+      
+      // Close modal function
+      const closeModal = () => {
+        instructionsModal.style.opacity = '0';
+        setTimeout(() => {
+          instructionsModal.style.display = 'none';
+        }, 300);
+      };
+      
+      // Main click handler - works for both mouse and gesture clicks
+      instructionsButton.onclick = (e) => {
+        console.log('📖 Instructions button clicked via:', e.isTrusted ? 'mouse' : 'gesture');
+        
+        // Add click animation
+        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.5), rgba(0, 212, 255, 0.6))';
+        instructionsButton.style.boxShadow = '0 8px 20px rgba(0, 255, 128, 0.4)';
+        
+        setTimeout(() => {
+          openModal();
+        }, 150); // Small delay for visual feedback
+      };
+      
+      // Close button clicks
+      const attachCloseHandlers = () => {
+        const closeButtonTop = instructionsModal.querySelector('#close-instructions-modal');
+        const closeButtonBottom = instructionsModal.querySelector('#close-instructions-modal-bottom');
+        
+        if (closeButtonTop) {
+          closeButtonTop.onclick = closeModal;
+          closeButtonTop.onmouseenter = (e) => {
+            e.target.style.background = 'rgba(255, 68, 68, 0.5)';
+            e.target.style.transform = 'scale(1.1) rotate(90deg)';
+          };
+          closeButtonTop.onmouseleave = (e) => {
+            e.target.style.background = 'rgba(255, 68, 68, 0.3)';
+            e.target.style.transform = 'scale(1) rotate(0deg)';
+          };
+        }
+        
+        if (closeButtonBottom) {
+          closeButtonBottom.onclick = closeModal;
+          closeButtonBottom.onmouseenter = (e) => {
+            e.target.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.5), rgba(0, 128, 255, 0.6))';
+            e.target.style.transform = 'scale(1.05)';
+          };
+          closeButtonBottom.onmouseleave = (e) => {
+            e.target.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 128, 255, 0.4))';
+            e.target.style.transform = 'scale(1)';
+          };
+        }
+      };
+      
+      // Click outside modal to close
+      instructionsModal.onclick = (e) => {
+        if (e.target === instructionsModal) {
+          closeModal();
+        }
+      };
+      
+      // ESC key to close modal
+      const handleEscKey = (e) => {
+        if (e.key === 'Escape' && instructionsModal.style.display === 'flex') {
+          closeModal();
+        }
+      };
+      window.addEventListener('keydown', handleEscKey);
+      cleanupFunctions.push(() => window.removeEventListener('keydown', handleEscKey));
+      
+      // Add to container
+      container.appendChild(instructionsButton);
+      container.appendChild(instructionsModal);
+      
+      // Attach close handlers after modal is added to DOM
+      setTimeout(attachCloseHandlers, 0);
     }
 
     // Lighting
@@ -947,6 +1214,40 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
                 
                 // Trigger the button's click event
                 backButton.click();
+                return; // Don't continue with canvas click
+              }
+            }
+            
+            // Check if cursor is over the Instructions button
+            const instructionsButton = document.getElementById('instructions-button');
+            if (instructionsButton) {
+              const buttonRect = instructionsButton.getBoundingClientRect();
+              const isOverButton = currentCursorPos.x >= (buttonRect.left - rect.left) &&
+                                 currentCursorPos.x <= (buttonRect.right - rect.left) &&
+                                 currentCursorPos.y >= (buttonRect.top - rect.top) &&
+                                 currentCursorPos.y <= (buttonRect.bottom - rect.top);
+              
+              console.log("🔘 Instructions button check:", { 
+                buttonRect, 
+                isOverButton, 
+                buttonLeft: buttonRect.left - rect.left,
+                buttonRight: buttonRect.right - rect.left,
+                buttonTop: buttonRect.top - rect.top,
+                buttonBottom: buttonRect.bottom - rect.top
+              });
+              
+              if (isOverButton) {
+                console.log("✅ Gesture clicking Instructions button!");
+                // Add visual feedback for button click
+                instructionsButton.style.transform = 'scale(0.95)';
+                instructionsButton.style.filter = 'brightness(1.2)';
+                setTimeout(() => {
+                  instructionsButton.style.transform = '';
+                  instructionsButton.style.filter = '';
+                }, 150);
+                
+                // Trigger the button's click event
+                instructionsButton.click();
                 return; // Don't continue with canvas click
               }
             }

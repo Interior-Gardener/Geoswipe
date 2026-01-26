@@ -251,11 +251,9 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
       return res.status(404).json({ error: "Heritage site not found" });
     }
     
-    // Generate Street View URL dynamically using coordinate-based approach
+    // Generate Street View URL dynamically
     const generateStreetViewUrl = (lat, lng, heading = 0, pitch = 0) => {
-      // Using the standard Google Maps embed with Street View mode
-      // This avoids the panorama ID issue by using coordinates directly
-      return `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lng}&heading=${heading}&pitch=${pitch}&fov=80&key=${process.env.GOOGLE_MAPS_API_KEY || 'DEMO_KEY'}`;
+      return `https://www.google.com/maps/embed?pb=!4v${Date.now()}!6m8!1m7!1s${lat},${lng}!2m2!1d${lat}!2d${lng}!3f${heading}!4f${pitch}!5f0.7820865974627469`;
     };
     
     const [lon, lat] = site.location.coordinates;

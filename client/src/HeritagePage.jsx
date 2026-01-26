@@ -1737,16 +1737,77 @@ const HeritagePage = () => {
 
       {/* Sidebar for heritage site details */}
       {sidebarOpen && sidebarData && (
-        <div style={{ position: 'absolute', top: 0, right: 0, width: '350px', height: '100%', background: 'rgba(255,255,255,0.98)', zIndex: 2000, boxShadow: '-4px 0 16px rgba(0,0,0,0.2)', padding: 0, display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          right: 0, 
+          width: '380px', 
+          height: '100%', 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          zIndex: 2000, 
+          boxShadow: '-8px 0 32px rgba(0,0,0,0.4)', 
+          padding: 0, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+          backdropFilter: 'blur(10px)'
+        }}>
           {/* Header */}
-          <div style={{ padding: '20px 20px 10px 20px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ 
+            padding: '24px', 
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))',
+            backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.2)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
             <div>
-              <div style={{ fontWeight: 'bold', fontSize: '20px' }}>{sidebarData.name}</div>
-              <div style={{ color: '#888', fontSize: '14px' }}>{sidebarData.category} • {sidebarData.year}</div>
+              <div style={{ 
+                fontWeight: 'bold', 
+                fontSize: '22px', 
+                color: '#fff',
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                marginBottom: '6px'
+              }}>{sidebarData.name}</div>
+              <div style={{ 
+                color: 'rgba(255,255,255,0.85)', 
+                fontSize: '14px',
+                fontWeight: '500',
+                background: 'rgba(255,255,255,0.2)',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                display: 'inline-block',
+                backdropFilter: 'blur(10px)'
+              }}>{sidebarData.category} • {sidebarData.year}</div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              style={{ background: 'none', border: 'none', fontSize: '28px', color: '#888', cursor: 'pointer', lineHeight: '1' }}
+              style={{ 
+                background: 'rgba(255,255,255,0.2)', 
+                border: 'none', 
+                fontSize: '28px', 
+                color: '#fff', 
+                cursor: 'pointer', 
+                lineHeight: '1',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255,255,255,0.3)';
+                e.target.style.transform = 'rotate(90deg)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255,255,255,0.2)';
+                e.target.style.transform = 'rotate(0deg)';
+              }}
             >
               &times;
             </button>
@@ -1816,8 +1877,22 @@ const HeritagePage = () => {
             )}
 
             {/* Map Viewing Options */}
-            <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px' }}>
-              <h4 style={{ color: '#fff', marginBottom: '15px', fontSize: '16px', fontWeight: '600', textAlign: 'center' }}>🗺️ Map Views</h4>
+            <div style={{ 
+              marginTop: '20px', 
+              borderTop: '2px solid rgba(255,255,255,0.2)', 
+              paddingTop: '20px',
+              marginLeft: '12px',
+              marginRight: '12px'
+            }}>
+              <h4 style={{ 
+                color: '#fff', 
+                marginBottom: '15px', 
+                fontSize: '18px', 
+                fontWeight: '700', 
+                textAlign: 'center',
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                letterSpacing: '0.5px'
+              }}>🗺️ Map Views</h4>
 
               {/* Satellite View */}
               <SidebarBlock
@@ -2067,47 +2142,156 @@ const HeritagePage = () => {
 
       {/* How to Reach Modal */}
       {directionsModalOpen && sidebarData && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', backdropFilter: 'blur(5px)' }}>
+          <div style={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+            borderRadius: '20px', 
+            width: '90%', 
+            maxWidth: '900px', 
+            maxHeight: '90vh', 
+            overflow: 'hidden', 
+            boxShadow: '0 25px 70px rgba(0,0,0,0.5)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
             {/* Modal Header */}
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+            <div style={{ 
+              padding: '28px 36px', 
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))',
+              backdropFilter: 'blur(20px)',
+              borderBottom: '1px solid rgba(255,255,255,0.2)', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+            }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#333' }}>How to Reach {sidebarData.name}</h2>
-                <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#666' }}>Travel directions and transportation options</p>
+                <h2 style={{ 
+                  margin: 0, 
+                  fontSize: '32px', 
+                  fontWeight: 'bold', 
+                  color: '#fff',
+                  textShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                  marginBottom: '8px'
+                }}>How to Reach {sidebarData.name}</h2>
+                <p style={{ 
+                  margin: 0, 
+                  fontSize: '16px', 
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontWeight: '500'
+                }}>Travel directions and transportation options</p>
               </div>
               <button
                 onClick={() => setDirectionsModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: '32px', color: '#666', cursor: 'pointer', padding: '8px', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 0.2s' }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.2)', 
+                  border: 'none', 
+                  fontSize: '32px', 
+                  color: '#fff', 
+                  cursor: 'pointer', 
+                  padding: '8px', 
+                  borderRadius: '50%', 
+                  width: '48px', 
+                  height: '48px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)',
+                  fontWeight: 'bold'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.transform = 'rotate(90deg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.transform = 'rotate(0deg)';
+                }}
               >
                 &times;
               </button>
             </div>
 
             {/* Modal Content */}
-            <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
+            <div style={{ 
+              padding: '36px', 
+              overflowY: 'auto', 
+              flex: 1,
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(255,255,255,0.3) transparent'
+            }} className="modal-scroll">
               {/* Overview */}
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ fontSize: '22px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>Overview</h3>
-                <p style={{ fontSize: '18px', lineHeight: '1.6', color: '#444' }}>
+              <div style={{ marginBottom: '36px' }}>
+                <h3 style={{ 
+                  fontSize: '26px', 
+                  fontWeight: '700', 
+                  color: '#fff', 
+                  marginBottom: '16px',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '30px' }}>🗺️</span>
+                  Overview
+                </h3>
+                <p style={{ 
+                  fontSize: '18px', 
+                  lineHeight: '1.8', 
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)'
+                }}>
                   {sidebarData.howToReach?.full || 'No travel information available.'}
                 </p>
               </div>
 
               {/* By Air */}
               {sidebarData.howToReach?.byAir && (
-                <div style={{ marginBottom: '32px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>✈️ By Air</h3>
-                  <div style={{ background: '#f0f8ff', padding: '20px', borderRadius: '8px', border: '1px solid #b3d9ff' }}>
+                <div style={{ marginBottom: '36px' }}>
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
+                    marginBottom: '16px',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span style={{ fontSize: '28px' }}>✈️</span>
+                    By Air
+                  </h3>
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(135, 206, 250, 0.2) 0%, rgba(30, 144, 255, 0.15) 100%)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
+                    border: '1px solid rgba(135, 206, 250, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                     {sidebarData.howToReach.byAir.nearestAirport && (
-                      <p style={{ marginBottom: '12px' }}><strong>Nearest Airport:</strong> {sidebarData.howToReach.byAir.nearestAirport}</p>
+                      <p style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '16px' }}>
+                        <strong style={{ color: '#fff', fontSize: '17px' }}>Nearest Airport:</strong> {sidebarData.howToReach.byAir.nearestAirport}
+                      </p>
                     )}
                     {sidebarData.howToReach.byAir.distance && (
-                      <p style={{ marginBottom: '12px' }}><strong>Distance:</strong> {sidebarData.howToReach.byAir.distance}</p>
+                      <p style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '16px' }}>
+                        <strong style={{ color: '#fff', fontSize: '17px' }}>Distance:</strong> {sidebarData.howToReach.byAir.distance}
+                      </p>
                     )}
                     {sidebarData.howToReach.byAir.description && (
-                      <p style={{ marginBottom: 0 }}>{sidebarData.howToReach.byAir.description}</p>
+                      <p style={{ marginBottom: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '15px', lineHeight: '1.7' }}>
+                        {sidebarData.howToReach.byAir.description}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -2115,17 +2299,45 @@ const HeritagePage = () => {
 
               {/* By Rail */}
               {sidebarData.howToReach?.byRail && (
-                <div style={{ marginBottom: '32px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>🚂 By Train</h3>
-                  <div style={{ background: '#f0fff0', padding: '20px', borderRadius: '8px', border: '1px solid #90ee90' }}>
+                <div style={{ marginBottom: '36px' }}>
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
+                    marginBottom: '16px',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span style={{ fontSize: '28px' }}>🚂</span>
+                    By Train
+                  </h3>
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(144, 238, 144, 0.2) 0%, rgba(34, 139, 34, 0.15) 100%)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
+                    border: '1px solid rgba(144, 238, 144, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                     {sidebarData.howToReach.byRail.nearestStation && (
-                      <p style={{ marginBottom: '12px' }}><strong>Nearest Railway Station:</strong> {sidebarData.howToReach.byRail.nearestStation}</p>
+                      <p style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '16px' }}>
+                        <strong style={{ color: '#fff', fontSize: '17px' }}>Nearest Railway Station:</strong> {sidebarData.howToReach.byRail.nearestStation}
+                      </p>
                     )}
                     {sidebarData.howToReach.byRail.distance && (
-                      <p style={{ marginBottom: '12px' }}><strong>Distance:</strong> {sidebarData.howToReach.byRail.distance}</p>
+                      <p style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '16px' }}>
+                        <strong style={{ color: '#fff', fontSize: '17px' }}>Distance:</strong> {sidebarData.howToReach.byRail.distance}
+                      </p>
                     )}
                     {sidebarData.howToReach.byRail.description && (
-                      <p style={{ marginBottom: 0 }}>{sidebarData.howToReach.byRail.description}</p>
+                      <p style={{ marginBottom: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '15px', lineHeight: '1.7' }}>
+                        {sidebarData.howToReach.byRail.description}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -2133,23 +2345,76 @@ const HeritagePage = () => {
 
               {/* By Road */}
               {sidebarData.howToReach?.byRoad && (
-                <div style={{ marginBottom: '32px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>🚗 By Road</h3>
-                  <div style={{ background: '#fff8f0', padding: '20px', borderRadius: '8px', border: '1px solid #ffb366' }}>
+                <div style={{ marginBottom: '36px' }}>
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
+                    marginBottom: '16px',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span style={{ fontSize: '28px' }}>🚗</span>
+                    By Road
+                  </h3>
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(255, 179, 102, 0.2) 0%, rgba(255, 140, 0, 0.15) 100%)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
+                    border: '1px solid rgba(255, 179, 102, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
+                  }}>
                     {sidebarData.howToReach.byRoad.fromMajorCities && sidebarData.howToReach.byRoad.fromMajorCities.length > 0 && (
                       <>
-                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>From Major Cities</h4>
+                        <h4 style={{ 
+                          fontSize: '20px', 
+                          fontWeight: '700', 
+                          color: '#fff', 
+                          marginBottom: '20px',
+                          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>From Major Cities</h4>
                         {sidebarData.howToReach.byRoad.fromMajorCities.map((route, index) => (
-                          <div key={index} style={{ marginBottom: '16px', padding: '16px', background: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
-                            <p style={{ fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '8px' }}>From {route.city}</p>
+                          <div key={index} style={{ 
+                            marginBottom: '20px', 
+                            padding: '20px', 
+                            background: 'rgba(255, 255, 255, 0.15)', 
+                            borderRadius: '12px', 
+                            border: '1px solid rgba(255, 255, 255, 0.25)',
+                            backdropFilter: 'blur(5px)',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            e.currentTarget.style.transform = 'translateX(8px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }}>
+                            <p style={{ 
+                              fontSize: '18px', 
+                              fontWeight: '700', 
+                              color: '#fff', 
+                              marginBottom: '12px',
+                              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}>From {route.city}</p>
                             {route.distance && (
-                              <p style={{ marginBottom: '8px' }}><strong>Distance:</strong> {route.distance}</p>
+                              <p style={{ marginBottom: '8px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '15px' }}>
+                                <strong style={{ color: '#fff' }}>Distance:</strong> {route.distance}
+                              </p>
                             )}
                             {route.duration && (
-                              <p style={{ marginBottom: '8px' }}><strong>Duration:</strong> {route.duration}</p>
+                              <p style={{ marginBottom: '8px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '15px' }}>
+                                <strong style={{ color: '#fff' }}>Duration:</strong> {route.duration}
+                              </p>
                             )}
                             {route.route && (
-                              <p style={{ marginBottom: 0 }}><strong>Route:</strong> {route.route}</p>
+                              <p style={{ marginBottom: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '15px', lineHeight: '1.6' }}>
+                                <strong style={{ color: '#fff' }}>Route:</strong> {route.route}
+                              </p>
                             )}
                           </div>
                         ))}
@@ -2157,8 +2422,24 @@ const HeritagePage = () => {
                     )}
                     {sidebarData.howToReach.byRoad.localTransport && (
                       <>
-                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#333', marginBottom: '12px' }}>Local Transport</h4>
-                        <p style={{ marginBottom: 0 }}>{sidebarData.howToReach.byRoad.localTransport}</p>
+                        <h4 style={{ 
+                          fontSize: '20px', 
+                          fontWeight: '700', 
+                          color: '#fff', 
+                          marginBottom: '12px',
+                          marginTop: sidebarData.howToReach.byRoad.fromMajorCities?.length > 0 ? '24px' : '0',
+                          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>Local Transport</h4>
+                        <p style={{ 
+                          marginBottom: 0, 
+                          color: 'rgba(255, 255, 255, 0.9)', 
+                          fontSize: '15px', 
+                          lineHeight: '1.7',
+                          padding: '16px',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(255, 255, 255, 0.2)'
+                        }}>{sidebarData.howToReach.byRoad.localTransport}</p>
                       </>
                     )}
                   </div>
@@ -2167,16 +2448,50 @@ const HeritagePage = () => {
 
               {/* Location Information */}
               {sidebarData.location && (
-                <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '16px' }}>📍 Location</h3>
-                  <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#444', marginBottom: '12px' }}>
+                <div style={{ 
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%)', 
+                  padding: '28px', 
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
+                }}>
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
+                    marginBottom: '20px',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span style={{ fontSize: '28px' }}>📍</span>
+                    Location
+                  </h3>
+                  <p style={{ 
+                    fontSize: '18px', 
+                    lineHeight: '1.6', 
+                    color: 'rgba(255, 255, 255, 0.95)', 
+                    marginBottom: '16px',
+                    fontWeight: '500'
+                  }}>
                     {sidebarData.location.city && `${sidebarData.location.city}, `}
                     {sidebarData.location.state && `${sidebarData.location.state}, `}
                     {sidebarData.location.country}
                   </p>
                   {sidebarData.location.coordinates && (
-                    <p style={{ fontSize: '16px', color: '#666', marginBottom: 0 }}>
-                      <strong>Coordinates:</strong> {sidebarData.location.coordinates[1]}, {sidebarData.location.coordinates[0]}
+                    <p style={{ 
+                      fontSize: '16px', 
+                      color: 'rgba(255, 255, 255, 0.9)', 
+                      marginBottom: 0,
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      fontFamily: 'monospace',
+                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}>
+                      <strong style={{ color: '#fff' }}>Coordinates:</strong> {sidebarData.location.coordinates[1]}, {sidebarData.location.coordinates[0]}
                     </p>
                   )}
                 </div>
@@ -2219,10 +2534,6 @@ const HeritagePage = () => {
         .fly-to-box button:hover {
           background: #005fa3 !important;
         }
-        .sidebar-block:hover {
-          background: #f0f4ff !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        }
         .dropdown-item:hover:not([style*="background-color: #007cba"]) {
           background-color: #f5f5f5 !important;
         }
@@ -2231,8 +2542,55 @@ const HeritagePage = () => {
           border-color: #007cba;
           box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
         }
-        .fly-to-box button:hover {
-          background: #005fa3 !important;
+        
+        /* Sidebar Scroll Styling */
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Pulse Animation for Loading */
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(1.1);
+          }
+        }
+        
+        /* Smooth transitions for sidebar blocks */
+        .sidebar-block {
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .sidebar-block::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.5s ease;
+        }
+        
+        .sidebar-block:hover::before {
+          left: 100%;
         }
       `}} />
     </div>
@@ -2244,41 +2602,83 @@ function SidebarBlock({ icon, title, summary, onClick, isActive = false, isLoadi
     <div
       className="sidebar-block"
       style={{
-        padding: '18px 20px',
-        borderBottom: '1px solid #eee',
+        padding: '16px 20px',
+        margin: '8px 12px',
+        borderRadius: '12px',
         cursor: isLoading ? 'wait' : 'pointer',
         display: 'flex',
         alignItems: 'flex-start',
-        gap: '16px',
-        transition: 'all 0.3s ease',
-        background: isActive ? 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)' : 'transparent',
-        borderRadius: isActive ? '8px' : '0',
-        boxShadow: isActive ? '0 4px 15px rgba(108, 92, 231, 0.3)' : 'none',
+        gap: '14px',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        background: isActive 
+          ? 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.2))' 
+          : 'rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)',
+        border: isActive ? '2px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.15)',
+        boxShadow: isActive 
+          ? '0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)' 
+          : '0 2px 8px rgba(0,0,0,0.1)',
         opacity: isLoading ? 0.7 : 1,
-        color: isActive ? '#fff' : 'inherit'
+        color: '#fff',
+        transform: isActive ? 'translateX(-4px) scale(1.02)' : 'translateX(0) scale(1)'
       }}
       onClick={!isLoading ? onClick : undefined}
       onMouseEnter={(e) => {
         if (!isLoading && !isActive) {
-          e.currentTarget.style.backgroundColor = 'rgba(108, 92, 231, 0.1)';
-          e.currentTarget.style.borderRadius = '8px';
+          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.15))';
+          e.currentTarget.style.transform = 'translateX(-4px) scale(1.01)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isLoading && !isActive) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.borderRadius = '0';
+          e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+          e.currentTarget.style.transform = 'translateX(0) scale(1)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
         }
       }}
     >
-      <span style={{ fontSize: '28px', marginRight: '12px' }}>{icon}</span>
-      <div>
-        <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px', color: isActive ? '#fff' : 'inherit' }}>
+      <span style={{ 
+        fontSize: '32px', 
+        lineHeight: '1',
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+      }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ 
+          fontWeight: '700', 
+          fontSize: '16px', 
+          marginBottom: '6px', 
+          color: '#fff',
+          textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
           {title}
-          {isActive && <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.8 }}>✓</span>}
-          {isLoading && <span style={{ marginLeft: '8px', fontSize: '12px' }}>⏳</span>}
+          {isActive && (
+            <span style={{ 
+              fontSize: '14px', 
+              background: 'rgba(255,255,255,0.3)',
+              padding: '2px 8px',
+              borderRadius: '8px',
+              fontWeight: '600'
+            }}>✓</span>
+          )}
+          {isLoading && (
+            <span style={{ 
+              fontSize: '14px',
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }}>⏳</span>
+          )}
         </div>
-        <div style={{ color: isActive ? 'rgba(255,255,255,0.9)' : '#444', fontSize: '14px' }}>{summary}</div>
+        <div style={{ 
+          color: 'rgba(255,255,255,0.85)', 
+          fontSize: '13px',
+          lineHeight: '1.5',
+          textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+        }}>{summary}</div>
       </div>
     </div>
   );

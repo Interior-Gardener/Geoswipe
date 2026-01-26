@@ -1,4 +1,4 @@
- import React, { useCallback, memo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, memo, useState, useEffect, useRef } from 'react';
 import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
@@ -408,7 +408,7 @@ const LandingPage = () => {
             }}>
               <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Shreeya Sati</h3>
               <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
-                📧 <a href="mailto:shreeya.sati@somaiya.edu" style={{ color: '#00d4ff', textDecoration: 'none' }}>shreeya.sati@somaiya.edu</a>
+                📧 <a href="mailto:shreeya.sati@somaiya.edu" style={{ color: '#00d4ff', textDecoration: 'none' }}>shreeyasati@gmail.com</a>
               </p>
               <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <a href="https://github.com/shreeya-238" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>

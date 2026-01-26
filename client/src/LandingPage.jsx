@@ -302,6 +302,23 @@ const LandingPage = () => {
             with gesture-based controls. Experience a new way to explore our planet using 
             simple hand gestures captured through your webcam.
           </p>
+          <p className="about-text">
+            Discover UNESCO World Heritage Sites, historic monuments, ancient temples, and 
+            architectural marvels from around the globe. Our interactive maps feature multiple 
+            viewing modes including satellite, street, terrain, and dark themes to enhance your 
+            exploration experience.
+          </p>
+          <p className="about-text">
+            Built with cutting-edge technologies like React 19, Three.js for 3D visualization, 
+            and MediaPipe for real-time gesture recognition, GeoSwipe offers an immersive 
+            educational platform. Challenge yourself with geography quizzes, read detailed 
+            heritage storybooks, and plan your visits with integrated "How to Reach" guides.
+          </p>
+          <p className="about-text">
+            Whether you're a student, educator, traveler, or cultural enthusiast, GeoSwipe 
+            transforms the way you learn about world heritage and geography. Join us on this 
+            journey to make global exploration accessible, interactive, and fun for everyone!
+          </p>
         </div>
 
         {/* Contact Section */}
@@ -310,6 +327,98 @@ const LandingPage = () => {
           <p className="contact-text">
             Have questions or feedback? We'd love to hear from you!
           </p>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+            gap: '2rem', 
+            marginTop: '2rem',
+            maxWidth: '1000px',
+            margin: '2rem auto'
+          }}>
+            {/* Kushal */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              transition: 'all 0.3s ease'
+            }}>
+              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Kushal Soni</h3>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
+                📧 <a href="mailto:sonikushal237@gmail.com" style={{ color: '#00d4ff', textDecoration: 'none' }}>sonikushal237@gmail.com</a>
+              </p>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <a href="https://github.com/kushal-s0" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                  </svg>
+                </a>
+              </p>
+            </div>
+
+            {/* Kartik */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              transition: 'all 0.3s ease'
+            }}>
+              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Kartik Verma</h3>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
+                📧 <a href="mailto:kartikverma2204number1@gmail.com" style={{ color: '#00d4ff', textDecoration: 'none' }}>kartikverma2204number1@gmail.com</a>
+              </p>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <a href="https://github.com/Interior-Gardener" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                  </svg>
+                </a>
+              </p>
+            </div>
+
+            {/* Bhavana */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              transition: 'all 0.3s ease'
+            }}>
+              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Bhavana Suthar</h3>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
+                📧 <a href="mailto:bhavnasuthar150@gmail.com" style={{ color: '#00d4ff', textDecoration: 'none' }}>bhavnasuthar150@gmail.com</a>
+              </p>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <a href="https://github.com/bhavna382" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                  </svg>
+                </a>
+              </p>
+            </div>
+
+            {/* Shreeya */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              transition: 'all 0.3s ease'
+            }}>
+              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Shreeya Sati</h3>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
+                📧 <a href="mailto:shreeya.sati@somaiya.edu" style={{ color: '#00d4ff', textDecoration: 'none' }}>shreeya.sati@somaiya.edu</a>
+              </p>
+              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <a href="https://github.com/shreeya-238" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                  </svg>
+                </a>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

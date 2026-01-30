@@ -142,6 +142,13 @@ app.get("/api/country-question", async (req, res) => {
       return res.status(503).json({ error: "Country data not available" });
     }
 
+    // Validate and get difficulty parameter
+    const difficulty = req.query.difficulty;
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    const difficultyParam = difficulty && validDifficulties.includes(difficulty.toLowerCase()) 
+      ? difficulty.toLowerCase() 
+      : null;
+
     let question = null;
     let attempts = 0;
     const maxAttempts = 10; // Limit attempts to avoid infinite loops
@@ -153,8 +160,13 @@ app.get("/api/country-question", async (req, res) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
         
+        // Build API URL with optional difficulty parameter
+        const apiUrl = difficultyParam
+          ? `https://the-trivia-api.com/v2/questions?categories=geography&difficulties=${difficultyParam}&limit=1`
+          : "https://the-trivia-api.com/v2/questions?categories=geography&limit=1";
+        
         const triviaRes = await fetch(
-          "https://the-trivia-api.com/v2/questions?categories=geography&limit=1",
+          apiUrl,
           {
             signal: controller.signal,
             headers: {

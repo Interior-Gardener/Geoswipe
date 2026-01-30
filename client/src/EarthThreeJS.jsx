@@ -519,7 +519,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       instructionsButton.id = 'instructions-button';
       instructionsButton.style.cssText = `
         position: absolute;
-        bottom: 160px;
+        bottom: 170px;
         left: 80px;
         background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3));
         color: #00d4ff;
@@ -617,7 +617,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
               <p><strong>🖱 Left Click:</strong> Select and explore countries</p>
               <p><strong>🖱 Drag:</strong> Rotate the Earth globe</p>
               <p><strong>🖱 Scroll:</strong> Zoom in and out</p>
-              <p><strong>⌨️ Press 'B':</strong> Toggle bright Earth mode</p>
+              // <p><strong>⌨️ Press 'B':</strong> Toggle bright Earth mode</p>
             </div>
           </div>
           

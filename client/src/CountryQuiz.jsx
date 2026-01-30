@@ -12,6 +12,8 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
   const [quizOver, setQuizOver] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [error, setError] = useState(null);
+  const [difficulty, setDifficulty] = useState(null); // null means not selected yet
+  const [showDifficultySelector, setShowDifficultySelector] = useState(true);
 
   // Memoized fetch function to prevent unnecessary re-renders
   const fetchQuestion = useCallback(async () => {
@@ -22,7 +24,12 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      const res = await fetch(`${API_BASE_URL}/api/country-question`, {
+      // Build URL with difficulty parameter if selected
+      const url = difficulty 
+        ? `${API_BASE_URL}/api/country-question?difficulty=${difficulty}`
+        : `${API_BASE_URL}/api/country-question`;
+      
+      const res = await fetch(url, {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
@@ -48,12 +55,14 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [difficulty]);
 
-  // Load first question
+  // Load first question only after difficulty is selected
   useEffect(() => {
-    fetchQuestion();
-  }, []);
+    if (difficulty) {
+      fetchQuestion();
+    }
+  }, [difficulty, fetchQuestion]);
 
   // Whenever user selects a country on the globe
   useEffect(() => {
@@ -78,6 +87,13 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
     fetchQuestion();
   }, [currentQuestionIndex, clearSelection, fetchQuestion]);
 
+  // Handle difficulty selection
+  const handleDifficultySelect = useCallback((selectedDifficulty) => {
+    setDifficulty(selectedDifficulty);
+    setShowDifficultySelector(false);
+    setLoading(true);
+  }, []);
+
   // Memoized score display
   const scoreDisplay = useMemo(() => {
     const percentage = Math.round((score / TOTAL_QUESTIONS) * 100);
@@ -88,6 +104,135 @@ const CountryQuiz = ({ selectedCountry, clearSelection }) => {
     
     return { percentage, message };
   }, [score]);
+
+  // Show difficulty selector before quiz starts
+  if (showDifficultySelector && !difficulty) {
+    return (
+      <div style={{ 
+        padding: "25px", 
+        color: "white", 
+        textAlign: "center",
+        background: "rgba(0, 20, 40, 0.95)",
+        borderRadius: "16px",
+        border: "2px solid rgba(0, 212, 255, 0.3)",
+        backdropFilter: "blur(15px)",
+        maxWidth: "400px",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)"
+      }}>
+        <h2 style={{ 
+          fontFamily: "'Orbitron', sans-serif",
+          color: "#00d4ff",
+          marginBottom: "10px",
+          fontSize: "24px",
+          textShadow: "0 0 10px rgba(0, 212, 255, 0.5)"
+        }}>
+          🎯 Select Difficulty
+        </h2>
+        <p style={{ 
+          marginBottom: "25px", 
+          color: "rgba(255, 255, 255, 0.8)",
+          fontSize: "14px",
+          fontFamily: "'Orbitron', sans-serif"
+        }}>
+          Choose your challenge level
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <GestureButton
+            onClick={() => handleDifficultySelect('easy')}
+            style={{
+              padding: "16px 24px",
+              background: "linear-gradient(135deg, rgba(0, 255, 128, 0.2), rgba(0, 128, 64, 0.3))",
+              color: "#00ff80",
+              border: "2px solid rgba(0, 255, 128, 0.4)",
+              borderRadius: "10px",
+              fontSize: "18px",
+              fontWeight: "bold",
+              fontFamily: "'Orbitron', sans-serif",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+              textShadow: "0 0 8px rgba(0, 255, 128, 0.4)"
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "linear-gradient(135deg, rgba(0, 255, 128, 0.3), rgba(0, 128, 64, 0.4))";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 20px rgba(0, 255, 128, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "linear-gradient(135deg, rgba(0, 255, 128, 0.2), rgba(0, 128, 64, 0.3))";
+              e.target.style.transform = "translateY(0px)";
+              e.target.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.2)";
+            }}
+          >
+            🟢 Easy
+          </GestureButton>
+          
+          <GestureButton
+            onClick={() => handleDifficultySelect('medium')}
+            style={{
+              padding: "16px 24px",
+              background: "linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 128, 0, 0.3))",
+              color: "#ffa500",
+              border: "2px solid rgba(255, 165, 0, 0.4)",
+              borderRadius: "10px",
+              fontSize: "18px",
+              fontWeight: "bold",
+              fontFamily: "'Orbitron', sans-serif",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+              textShadow: "0 0 8px rgba(255, 165, 0, 0.4)"
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 128, 0, 0.4))";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 20px rgba(255, 165, 0, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 128, 0, 0.3))";
+              e.target.style.transform = "translateY(0px)";
+              e.target.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.2)";
+            }}
+          >
+            🟡 Medium
+          </GestureButton>
+          
+          <GestureButton
+            onClick={() => handleDifficultySelect('hard')}
+            style={{
+              padding: "16px 24px",
+              background: "linear-gradient(135deg, rgba(255, 50, 50, 0.2), rgba(200, 0, 0, 0.3))",
+              color: "#ff5050",
+              border: "2px solid rgba(255, 50, 50, 0.4)",
+              borderRadius: "10px",
+              fontSize: "18px",
+              fontWeight: "bold",
+              fontFamily: "'Orbitron', sans-serif",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+              textShadow: "0 0 8px rgba(255, 50, 50, 0.4)"
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "linear-gradient(135deg, rgba(255, 50, 50, 0.3), rgba(200, 0, 0, 0.4))";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 20px rgba(255, 50, 50, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "linear-gradient(135deg, rgba(255, 50, 50, 0.2), rgba(200, 0, 0, 0.3))";
+              e.target.style.transform = "translateY(0px)";
+              e.target.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.2)";
+            }}
+          >
+            🔴 Hard
+          </GestureButton>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div style={{ padding: "20px", color: "white", textAlign: "center" }}>

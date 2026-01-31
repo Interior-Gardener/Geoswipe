@@ -1,0 +1,317 @@
+[
+  {
+    "title": "Chapter 1: About",
+    "text": "Standing majestically on the waterfront of Mumbai's Apollo Bounder, the gateway of India is the city's most iconic landmark. This 26-meter high arch monument overlooks the Arabian Sea, welcoming visitors to India's financial capital. Will to come merit the visit of King George V and Queen Mary in 1911. It has become the symbolic entrance to India by sea. More than an arch, it's where Mumbai's heart beats, where history meets the endless horizon.",
+    "image": {
+      "url": "/images/gateway-of-india-ch1.jpg",
+      "alt": "gateway-of-india chapter 1",
+      "caption": "Gateway of India, Mumbai",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/gateway-of-india-ch1.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5880,
+          "text": "Standing majestically on the waterfront of Mumbai's Apollo Bounder, the gateway of India is the"
+        },
+        {
+          "startMs": 5880,
+          "endMs": 12180,
+          "text": "city's most iconic landmark. This 26-meter high arch monument overlooks the Arabian Sea,"
+        },
+        {
+          "startMs": 12580,
+          "endMs": 18200,
+          "text": "welcoming visitors to India's financial capital. Will to come merit the visit of King George"
+        },
+        {
+          "startMs": 18200,
+          "endMs": 25900,
+          "text": "V and Queen Mary in 1911. It has become the symbolic entrance to India by sea. More than an arch,"
+        },
+        {
+          "startMs": 25900,
+          "endMs": 31020,
+          "text": "it's where Mumbai's heart beats, where history meets the endless horizon."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 2: History",
+    "text": "The foundation stone was laid in 1911 to welcome King George V. Though ironically, the royals only saw a cardboard model during their visit. The actual construction began in 1915 and was completed in 1924, designed by Scottish architect George Witthett. For decades, it served as the ceremonial entrance to India for vice-royers and governors. But history took a poignant turn on February 28, 1948, when the last British troops passed through this gateway, marking the end of British rule in India. The monument that welcomed colonizers witnessed their departure, a perfect circle of history.",
+    "image": {
+      "url": "/images/gateway-of-india-ch2.jpg",
+      "alt": "gateway-of-india chapter 2",
+      "caption": "Where the last British troops departed India",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/gateway-of-india-ch2.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 4580,
+          "text": "The foundation stone was laid in 1911 to welcome King George V."
+        },
+        {
+          "startMs": 5100,
+          "endMs": 10260,
+          "text": "Though ironically, the royals only saw a cardboard model during their visit."
+        },
+        {
+          "startMs": 10840,
+          "endMs": 18980,
+          "text": "The actual construction began in 1915 and was completed in 1924, designed by Scottish architect George Witthett."
+        },
+        {
+          "startMs": 19480,
+          "endMs": 24760,
+          "text": "For decades, it served as the ceremonial entrance to India for vice-royers and governors."
+        },
+        {
+          "startMs": 25560,
+          "endMs": 32460,
+          "text": "But history took a poignant turn on February 28, 1948, when the last British troops passed through"
+        },
+        {
+          "startMs": 32460,
+          "endMs": 38340,
+          "text": "this gateway, marking the end of British rule in India. The monument that welcomed colonizers"
+        },
+        {
+          "startMs": 38340,
+          "endMs": 41440,
+          "text": "witnessed their departure, a perfect circle of history."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 3: Architecture",
+    "text": "The gateway of India is a stunning blend of Indo-Saracenic architecture, combining Hindu and Muslim design elements with European flair, built from yellow basalt and concrete. Its honey gold color glows beautifully at sunset. The central dome rises 48 feet, with intricate latticework inspired by 16th century Gujarati architecture. Four turrets stand at each corner, while the arch spans 26 meters high. The monument can accommodate 600 people at once on its platform. Facing the harbor, the Taj Mahal Palace hotel stands behind it. Together they form Mumbai's most photographed view.",
+    "image": {
+      "url": "/images/gateway-of-india-ch3.jpg",
+      "alt": "gateway-of-india chapter 3",
+      "caption": "Indo-Saracenic architectural marvel",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/gateway-of-india-ch3.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 4040,
+          "text": "The gateway of India is a stunning blend of Indo-Saracenic architecture,"
+        },
+        {
+          "startMs": 4480,
+          "endMs": 7860,
+          "text": "combining Hindu and Muslim design elements with European flair,"
+        },
+        {
+          "startMs": 8380,
+          "endMs": 10360,
+          "text": "built from yellow basalt and concrete."
+        },
+        {
+          "startMs": 10940,
+          "endMs": 13560,
+          "text": "Its honey gold color glows beautifully at sunset."
+        },
+        {
+          "startMs": 14260,
+          "endMs": 21500,
+          "text": "The central dome rises 48 feet, with intricate latticework inspired by 16th century Gujarati architecture."
+        },
+        {
+          "startMs": 22080,
+          "endMs": 26700,
+          "text": "Four turrets stand at each corner, while the arch spans 26 meters high."
+        },
+        {
+          "startMs": 26700,
+          "endMs": 30960,
+          "text": "The monument can accommodate 600 people at once on its platform."
+        },
+        {
+          "startMs": 31840,
+          "endMs": 35640,
+          "text": "Facing the harbor, the Taj Mahal Palace hotel stands behind it."
+        },
+        {
+          "startMs": 36080,
+          "endMs": 38620,
+          "text": "Together they form Mumbai's most photographed view."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 4: Significance",
+    "text": "The gateway of India symbolizes Mumbai's cosmopolitan spirit and India's colonial history. It witnessed the triumphant arrival of British royalty and the bittersweet departure of the last colonial soldiers. Today, it represents resilience. Surviving the 2008 Mumbai terror attacks that targeted the nearby Taj Hotel. For locals, it's a gathering place where fishermen sell their catch, tourists pose for photos and lovers watch the sunset. It's Mumbai's living room, where the city comes together regardless of class or creed. The gateway to dreams in a city that never stops dreaming.",
+    "image": {
+      "url": "/images/gateway-of-india-ch4.jpg",
+      "alt": "gateway-of-india chapter 4",
+      "caption": "Mumbai's symbol of resilience and dreams",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/gateway-of-india-ch4.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5740,
+          "text": "The gateway of India symbolizes Mumbai's cosmopolitan spirit and India's colonial history."
+        },
+        {
+          "startMs": 6120,
+          "endMs": 12720,
+          "text": "It witnessed the triumphant arrival of British royalty and the bittersweet departure of the last colonial soldiers."
+        },
+        {
+          "startMs": 13580,
+          "endMs": 15560,
+          "text": "Today, it represents resilience."
+        },
+        {
+          "startMs": 16239,
+          "endMs": 21500,
+          "text": "Surviving the 2008 Mumbai terror attacks that targeted the nearby Taj Hotel."
+        },
+        {
+          "startMs": 22120,
+          "endMs": 27760,
+          "text": "For locals, it's a gathering place where fishermen sell their catch, tourists pose for photos"
+        },
+        {
+          "startMs": 27760,
+          "endMs": 29860,
+          "text": "and lovers watch the sunset."
+        },
+        {
+          "startMs": 30400,
+          "endMs": 35460,
+          "text": "It's Mumbai's living room, where the city comes together regardless of class or creed."
+        },
+        {
+          "startMs": 35880,
+          "endMs": 38800,
+          "text": "The gateway to dreams in a city that never stops dreaming."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 5: Visiting Tips",
+    "text": "Visit early morning for peaceful photos without crowds or sunset for magical golden light on the monument. The area comes alive in the evening with food vendors, balloon sellers and boat operators. Take a ferry ride to Elefanta Caves, boats depart right from the gateway. Beware of persistent photographers and vendors, politely decline if not interested. The nearby Taj Mahal Palace Hotel offers excellent dining with gateway views. Street food is tempting, but choose vendors carefully. Best months are October to February when Mumbai's weather is pleasant, entry is free and the monument is accessible 24-7. Combine your visit with Colaba Causeway shopping just a short walkaway. Come for the history, stay for the sea breeze.",
+    "image": {
+      "url": "/images/gateway-of-india-ch5.jpg",
+      "alt": "gateway-of-india chapter 5",
+      "caption": "Sunset at the Gateway",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/gateway-of-india-ch5.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6180,
+          "text": "Visit early morning for peaceful photos without crowds or sunset for magical golden light on the monument."
+        },
+        {
+          "startMs": 6860,
+          "endMs": 12220,
+          "text": "The area comes alive in the evening with food vendors, balloon sellers and boat operators."
+        },
+        {
+          "startMs": 13080,
+          "endMs": 17760,
+          "text": "Take a ferry ride to Elefanta Caves, boats depart right from the gateway."
+        },
+        {
+          "startMs": 18480,
+          "endMs": 23640,
+          "text": "Beware of persistent photographers and vendors, politely decline if not interested."
+        },
+        {
+          "startMs": 24500,
+          "endMs": 29340,
+          "text": "The nearby Taj Mahal Palace Hotel offers excellent dining with gateway views."
+        },
+        {
+          "startMs": 30000,
+          "endMs": 33060,
+          "text": "Street food is tempting, but choose vendors carefully."
+        },
+        {
+          "startMs": 33700,
+          "endMs": 42460,
+          "text": "Best months are October to February when Mumbai's weather is pleasant, entry is free and the monument is accessible 24-7."
+        },
+        {
+          "startMs": 43060,
+          "endMs": 47380,
+          "text": "Combine your visit with Colaba Causeway shopping just a short walkaway."
+        },
+        {
+          "startMs": 47780,
+          "endMs": 50160,
+          "text": "Come for the history, stay for the sea breeze."
+        }
+      ]
+    }
+  }
+]

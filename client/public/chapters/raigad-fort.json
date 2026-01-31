@@ -1,0 +1,282 @@
+[
+  {
+    "title": "Chapter 1: About",
+    "text": "Rigat fort rises majestically 2,700 feet above the Syedry mountains in Maharashtra. This wasn't just any hill fort, it was the beating heart of the Maratha Empire. The capital where Chhatrapati Shivaji Maharaj ruled and dreamed of Swaraj here. Perched high in the clouds, it offers breathtaking views of endless valleys and peaks, a throne fit for a king.",
+    "image": {
+      "url": "/images/raigad-fort-ch1.jpg",
+      "alt": "raigad-fort chapter 1",
+      "caption": "Raigad Fort, Capital of the Maratha Empire",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/raigad-fort-ch1.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6600,
+          "text": "Rigat fort rises majestically 2,700 feet above the Syedry mountains in Maharashtra."
+        },
+        {
+          "startMs": 7160,
+          "endMs": 11880,
+          "text": "This wasn't just any hill fort, it was the beating heart of the Maratha Empire."
+        },
+        {
+          "startMs": 12560,
+          "endMs": 17540,
+          "text": "The capital where Chhatrapati Shivaji Maharaj ruled and dreamed of Swaraj here."
+        },
+        {
+          "startMs": 18040,
+          "endMs": 22800,
+          "text": "Perched high in the clouds, it offers breathtaking views of endless valleys and peaks,"
+        },
+        {
+          "startMs": 23220,
+          "endMs": 24460,
+          "text": "a throne fit for a king."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 2: History",
+    "text": "Originally called Rairi, Shivaji captured the strategic fort in 1656 and transformed it into his capital, renaming it Rai-Gad, the King's fort. On June 6, 1674, history was made here, when Shivaji's legendary coronation ceremony established the Maratha Empire. After his death in 1680, his Sonsambeji ruled from these heights until the Mughals captured it in 1689. Today, the fort stands as a silent witness to the rise in fall of empires.",
+    "image": {
+      "url": "/images/raigad-fort-ch2.jpg",
+      "alt": "raigad-fort chapter 2",
+      "caption": "Site of Shivaji Maharaj's coronation",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/raigad-fort-ch2.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 7680,
+          "text": "Originally called Rairi, Shivaji captured the strategic fort in 1656 and transformed it into his capital,"
+        },
+        {
+          "startMs": 8180,
+          "endMs": 15580,
+          "text": "renaming it Rai-Gad, the King's fort. On June 6, 1674, history was made here,"
+        },
+        {
+          "startMs": 15960,
+          "endMs": 22860,
+          "text": "when Shivaji's legendary coronation ceremony established the Maratha Empire. After his death in 1680,"
+        },
+        {
+          "startMs": 23340,
+          "endMs": 28300,
+          "text": "his Sonsambeji ruled from these heights until the Mughals captured it in 1689."
+        },
+        {
+          "startMs": 28300,
+          "endMs": 33400,
+          "text": "Today, the fort stands as a silent witness to the rise in fall of empires."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 3: Architecture",
+    "text": "Rigidfort was a marvel of 17th century engineering, the three massive gates, Mahadharwaja, Palki Darwaja, and Nagarkana Darwaja, predicted the Citadel. Within its walls to the Grand Raj Bhavan Palace, the sacred Samadhi of Shivaji, and the infamous Tukmak Tukkcliff for executions. The fort housed over 300 stone structures, plant streets with markets, temples, and the engineering wonder of Ganga Sagar Lake. Every stone whispers tales of Maratha brilliance.",
+    "image": {
+      "url": "/images/raigad-fort-ch3.jpg",
+      "alt": "raigad-fort chapter 3",
+      "caption": "Massive gates and ancient stone structures",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/raigad-fort-ch3.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6400,
+          "text": "Rigidfort was a marvel of 17th century engineering, the three massive gates, Mahadharwaja,"
+        },
+        {
+          "startMs": 6940,
+          "endMs": 11360,
+          "text": "Palki Darwaja, and Nagarkana Darwaja, predicted the Citadel."
+        },
+        {
+          "startMs": 12000,
+          "endMs": 18020,
+          "text": "Within its walls to the Grand Raj Bhavan Palace, the sacred Samadhi of Shivaji, and the"
+        },
+        {
+          "startMs": 18020,
+          "endMs": 20640,
+          "text": "infamous Tukmak Tukkcliff for executions."
+        },
+        {
+          "startMs": 21300,
+          "endMs": 28080,
+          "text": "The fort housed over 300 stone structures, plant streets with markets, temples, and the"
+        },
+        {
+          "startMs": 28080,
+          "endMs": 30320,
+          "text": "engineering wonder of Ganga Sagar Lake."
+        },
+        {
+          "startMs": 31080,
+          "endMs": 33860,
+          "text": "Every stone whispers tales of Maratha brilliance."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 4: Significance",
+    "text": "This is where the dream of Hindaviswarajya became reality. Raghad represents the courage, strategic genius and administrative vision of Shivaji Maharaj. It's not just a fort, it's a pilgrimage for those who cherish freedom and pride. The coronation ceremony here changed the course of Indian history, creating an empire that would challenge the mighty Mughals and inspire generations.",
+    "image": {
+      "url": "/images/raigad-fort-ch4.jpg",
+      "alt": "raigad-fort chapter 4",
+      "caption": "Where Hindavi Swarajya became reality",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/raigad-fort-ch4.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 3360,
+          "text": "This is where the dream of Hindaviswarajya became reality."
+        },
+        {
+          "startMs": 4220,
+          "endMs": 10240,
+          "text": "Raghad represents the courage, strategic genius and administrative vision of Shivaji Maharaj."
+        },
+        {
+          "startMs": 10820,
+          "endMs": 16100,
+          "text": "It's not just a fort, it's a pilgrimage for those who cherish freedom and pride."
+        },
+        {
+          "startMs": 16820,
+          "endMs": 20240,
+          "text": "The coronation ceremony here changed the course of Indian history,"
+        },
+        {
+          "startMs": 20700,
+          "endMs": 24840,
+          "text": "creating an empire that would challenge the mighty Mughals and inspire generations."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 5: Visiting Tips",
+    "text": "Visit between October and March for perfect weather. From Pashad village at the base, take the thrilling ropeway ride or climb the 1,737 historic stone steps. Carry water. Wear sturdy shoes and don't forget your camera. The views are spectacular. hire a local guide to bring the history alive. Start early to catch the sunrise from the ramparts and allow 3 to 4 hours to explore. The fort closes at sunset, so plan accordingly.",
+    "image": {
+      "url": "/images/raigad-fort-ch5.jpg",
+      "alt": "raigad-fort chapter 5",
+      "caption": "Breathtaking views from the fort ramparts",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/raigad-fort-ch5.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 2680,
+          "text": "Visit between October and March for perfect weather."
+        },
+        {
+          "startMs": 3100,
+          "endMs": 10000,
+          "text": "From Pashad village at the base, take the thrilling ropeway ride or climb the 1,737 historic"
+        },
+        {
+          "startMs": 10000,
+          "endMs": 11000,
+          "text": "stone steps."
+        },
+        {
+          "startMs": 11600,
+          "endMs": 12240,
+          "text": "Carry water."
+        },
+        {
+          "startMs": 12760,
+          "endMs": 15380,
+          "text": "Wear sturdy shoes and don't forget your camera."
+        },
+        {
+          "startMs": 15800,
+          "endMs": 17020,
+          "text": "The views are spectacular."
+        },
+        {
+          "startMs": 17720,
+          "endMs": 20040,
+          "text": "hire a local guide to bring the history alive."
+        },
+        {
+          "startMs": 20580,
+          "endMs": 25880,
+          "text": "Start early to catch the sunrise from the ramparts and allow 3 to 4 hours to explore."
+        },
+        {
+          "startMs": 25880,
+          "endMs": 29480,
+          "text": "The fort closes at sunset, so plan accordingly."
+        }
+      ]
+    }
+  }
+]

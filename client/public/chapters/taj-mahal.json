@@ -1,0 +1,332 @@
+[
+  {
+    "title": "Chapter 1: About",
+    "text": "The Taj Mahal rises like a dream on the banks of the Yamuna River in Agra, India. This ivory-white marble mausoleum is one of the seven wonders of the world and a UNESCO World Heritage Site. Built by Mughal Emperor Shah Jahan for his beloved wife, Mumtaz Mahal, it stands as the greatest monument to love ever created. More than a tomb, its poetry carved in stone, where grief transformed into eternal beauty.",
+    "image": {
+      "url": "/images/tajmahal-ch1.jpg",
+      "alt": "tajmahal chapter 1",
+      "caption": "Taj Mahal, Agra",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/tajmahal-ch1.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5320,
+          "text": "The Taj Mahal rises like a dream on the banks of the Yamuna River in Agra, India."
+        },
+        {
+          "startMs": 5960,
+          "endMs": 12820,
+          "text": "This ivory-white marble mausoleum is one of the seven wonders of the world and a UNESCO World Heritage Site."
+        },
+        {
+          "startMs": 13400,
+          "endMs": 18100,
+          "text": "Built by Mughal Emperor Shah Jahan for his beloved wife, Mumtaz Mahal,"
+        },
+        {
+          "startMs": 18600,
+          "endMs": 21800,
+          "text": "it stands as the greatest monument to love ever created."
+        },
+        {
+          "startMs": 22380,
+          "endMs": 28160,
+          "text": "More than a tomb, its poetry carved in stone, where grief transformed into eternal beauty."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 2: History",
+    "text": "In 1631, Mumtaz Mahal died giving birth to their 14th child, leaving Shah Jahan heartbroken. He vowed to build a monument worthy of his love. Construction began in 1632, employing over 20,000 artisans and craftsmen from across Asia. The finest marble came from Rajasthan, Jade from China, turquoise from Tibet, and Lapis Lazuli from Afghanistan. After 22 years and today's equivalent of billions of dollars, the Taj Mahal was completed in 1653. Legends say his Shah Jahan spent his final years imprisoned by his son, gazing at his creation from across the river.",
+    "image": {
+      "url": "/images/tajmahal-ch2.jpg",
+      "alt": "tajmahal chapter 2",
+      "caption": "Built by Shah Jahan for Mumtaz Mahal",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/tajmahal-ch2.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6660,
+          "text": "In 1631, Mumtaz Mahal died giving birth to their 14th child, leaving Shah Jahan heartbroken."
+        },
+        {
+          "startMs": 7220,
+          "endMs": 9720,
+          "text": "He vowed to build a monument worthy of his love."
+        },
+        {
+          "startMs": 10260,
+          "endMs": 16860,
+          "text": "Construction began in 1632, employing over 20,000 artisans and craftsmen from across Asia."
+        },
+        {
+          "startMs": 17500,
+          "endMs": 23340,
+          "text": "The finest marble came from Rajasthan, Jade from China, turquoise from Tibet, and Lapis"
+        },
+        {
+          "startMs": 23340,
+          "endMs": 24760,
+          "text": "Lazuli from Afghanistan."
+        },
+        {
+          "startMs": 25400,
+          "endMs": 32460,
+          "text": "After 22 years and today's equivalent of billions of dollars, the Taj Mahal was completed in 1653."
+        },
+        {
+          "startMs": 33180,
+          "endMs": 39540,
+          "text": "Legends say his Shah Jahan spent his final years imprisoned by his son, gazing at his creation from across the river."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 3: Architecture",
+    "text": "Visit at sunrise when the marble glows pink and crowds are thinner. The East Gate opens first. Sunset views are equally magical. Avoid visiting on Fridays when the mosque inside holds prayers. Entry tickets can be purchased online to skip cues. Shoe covers are provided near the main mausoleum. Photography is allowed outside but prohibited inside the tomb chamber. The Taj looks stunning from Mithra Bagh across the river. Perfect for that classic photograph. Full moon nights offer special viewing sessions, book in advance. Wear comfortable walking shoes and carry water. Allow 2-3 hours to truly absorb its beauty. Come with patience. Leave with wonder.",
+    "image": {
+      "url": "/images/tajmahal-ch3.jpg",
+      "alt": "tajmahal chapter 3",
+      "caption": "Intricate marble inlay and calligraphy",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/tajmahal-ch3.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 3720,
+          "text": "Visit at sunrise when the marble glows pink and crowds are thinner."
+        },
+        {
+          "startMs": 4360,
+          "endMs": 5760,
+          "text": "The East Gate opens first."
+        },
+        {
+          "startMs": 6740,
+          "endMs": 8740,
+          "text": "Sunset views are equally magical."
+        },
+        {
+          "startMs": 9360,
+          "endMs": 12560,
+          "text": "Avoid visiting on Fridays when the mosque inside holds prayers."
+        },
+        {
+          "startMs": 13440,
+          "endMs": 16360,
+          "text": "Entry tickets can be purchased online to skip cues."
+        },
+        {
+          "startMs": 17200,
+          "endMs": 19840,
+          "text": "Shoe covers are provided near the main mausoleum."
+        },
+        {
+          "startMs": 20440,
+          "endMs": 24460,
+          "text": "Photography is allowed outside but prohibited inside the tomb chamber."
+        },
+        {
+          "startMs": 25100,
+          "endMs": 28240,
+          "text": "The Taj looks stunning from Mithra Bagh across the river."
+        },
+        {
+          "startMs": 28240,
+          "endMs": 30600,
+          "text": "Perfect for that classic photograph."
+        },
+        {
+          "startMs": 30980,
+          "endMs": 33740,
+          "text": "Full moon nights offer special viewing sessions,"
+        },
+        {
+          "startMs": 34080,
+          "endMs": 35060,
+          "text": "book in advance."
+        },
+        {
+          "startMs": 35580,
+          "endMs": 38220,
+          "text": "Wear comfortable walking shoes and carry water."
+        },
+        {
+          "startMs": 38760,
+          "endMs": 41620,
+          "text": "Allow 2-3 hours to truly absorb its beauty."
+        },
+        {
+          "startMs": 42180,
+          "endMs": 42920,
+          "text": "Come with patience."
+        },
+        {
+          "startMs": 43600,
+          "endMs": 44340,
+          "text": "Leave with wonder."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 4: Significance",
+    "text": "The Taj Mahal Transense Architecture, it's a symbol of undying love recognized worldwide. It represents the zenith of Mughal artistic achievement and India's most iconic landmark. Poet Rabindranath Tagore called it, a teardrop on the cheek of time. Every year, millions visit to witness its beauty, making it India's most visited monument. It appears on currency, stamps and in countless films. A cultural ambassador for India. The Taj reminds us that love, when true, can't create something immortal.",
+    "image": {
+      "url": "/images/tajmahal-ch4.jpg",
+      "alt": "tajmahal chapter 4",
+      "caption": "A teardrop on the cheek of time",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/tajmahal-ch4.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5840,
+          "text": "The Taj Mahal Transense Architecture, it's a symbol of undying love recognized worldwide."
+        },
+        {
+          "startMs": 6340,
+          "endMs": 11980,
+          "text": "It represents the zenith of Mughal artistic achievement and India's most iconic landmark."
+        },
+        {
+          "startMs": 12760,
+          "endMs": 17420,
+          "text": "Poet Rabindranath Tagore called it, a teardrop on the cheek of time."
+        },
+        {
+          "startMs": 18020,
+          "endMs": 23500,
+          "text": "Every year, millions visit to witness its beauty, making it India's most visited monument."
+        },
+        {
+          "startMs": 24160,
+          "endMs": 27720,
+          "text": "It appears on currency, stamps and in countless films."
+        },
+        {
+          "startMs": 27720,
+          "endMs": 30040,
+          "text": "A cultural ambassador for India."
+        },
+        {
+          "startMs": 30720,
+          "endMs": 35100,
+          "text": "The Taj reminds us that love, when true, can't create something immortal."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 5: Visiting Tips",
+    "text": "The Taj Mahal is a masterpiece of Mughal architecture, blending Persian, Islamic and Indian styles. The central dome rises 73 meters high, flanked by form in a reds designed to tilt outward, protecting the tomb if they ever fill. The white Macrana marble changes colour with the light, pink at dawn, white by day, and golden under moonlight. Intricate Pietradura in Lehwok features 28 types of precious stones forming floral patterns. The calligraphy on the walls grows larger as it ascends, creating a perfect optical illusion. Perfect symmetry rules everything, except the tombs inside, where Shah Jahan lies beside his queen.",
+    "image": {
+      "url": "/images/tajmahal-ch5.jpg",
+      "alt": "tajmahal chapter 5",
+      "caption": "Visitors at the Taj Mahal",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/tajmahal-ch5.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6460,
+          "text": "The Taj Mahal is a masterpiece of Mughal architecture, blending Persian, Islamic and Indian styles."
+        },
+        {
+          "startMs": 7160,
+          "endMs": 12740,
+          "text": "The central dome rises 73 meters high, flanked by form in a reds designed to tilt outward,"
+        },
+        {
+          "startMs": 13240,
+          "endMs": 18260,
+          "text": "protecting the tomb if they ever fill. The white Macrana marble changes colour with the light,"
+        },
+        {
+          "startMs": 18960,
+          "endMs": 22520,
+          "text": "pink at dawn, white by day, and golden under moonlight."
+        },
+        {
+          "startMs": 23160,
+          "endMs": 29780,
+          "text": "Intricate Pietradura in Lehwok features 28 types of precious stones forming floral patterns."
+        },
+        {
+          "startMs": 30400,
+          "endMs": 35840,
+          "text": "The calligraphy on the walls grows larger as it ascends, creating a perfect optical illusion."
+        },
+        {
+          "startMs": 36480,
+          "endMs": 42580,
+          "text": "Perfect symmetry rules everything, except the tombs inside, where Shah Jahan lies beside his queen."
+        }
+      ]
+    }
+  }
+]

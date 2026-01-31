@@ -1,0 +1,292 @@
+[
+  {
+    "title": "Chapter 1: About",
+    "text": "Nestled at the foothills of the Brahma-Giri mountains in Nashik-Maharashtra, Tremba-Kishwar temple is one of the 12 sacred Jottalingas of Lord Shiva. Built in the 18th century, this ancient temple sits at the source of the Holy Godavari River, India's second longest river. More than a place of worship, it's where mythology, spirituality and natural beauty converge, drawing millions of devotees seeking divine blessings.",
+    "image": {
+      "url": "/images/trimbakeshwar-temple-ch1.jpg",
+      "alt": "trimbakeshwar-temple chapter 1",
+      "caption": "Trimbakeshwar Temple, Nashik",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/trimbakeshwar-temple-ch1.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6360,
+          "text": "Nestled at the foothills of the Brahma-Giri mountains in Nashik-Maharashtra, Tremba-Kishwar temple"
+        },
+        {
+          "startMs": 6880,
+          "endMs": 12800,
+          "text": "is one of the 12 sacred Jottalingas of Lord Shiva. Built in the 18th century, this ancient"
+        },
+        {
+          "startMs": 12800,
+          "endMs": 17940,
+          "text": "temple sits at the source of the Holy Godavari River, India's second longest river."
+        },
+        {
+          "startMs": 18620,
+          "endMs": 24420,
+          "text": "More than a place of worship, it's where mythology, spirituality and natural beauty converge,"
+        },
+        {
+          "startMs": 24420,
+          "endMs": 27740,
+          "text": "drawing millions of devotees seeking divine blessings."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 2: History",
+    "text": "Legend says that the sage gotama performed penance here, and Lord Shiva blessed this land by residing as a Geotalinga. The current temple structure was built by Peshwabalaji Bhajirao in 1755 after the original ancient shrine. According to Hindu mythology, this is where Ganga, Yamuna and Saraswati meet secretly as the Goda-wari river originates from the Brahma-Girapi. The temple has witnessed centuries of devotion, royal patronage and the eternal flow of faith.",
+    "image": {
+      "url": "/images/trimbakeshwar-temple-ch2.jpg",
+      "alt": "trimbakeshwar-temple chapter 2",
+      "caption": "Ancient shrine blessed by Lord Shiva",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/trimbakeshwar-temple-ch2.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5760,
+          "text": "Legend says that the sage gotama performed penance here, and Lord Shiva blessed this land by"
+        },
+        {
+          "startMs": 5760,
+          "endMs": 11860,
+          "text": "residing as a Geotalinga. The current temple structure was built by Peshwabalaji Bhajirao"
+        },
+        {
+          "startMs": 11860,
+          "endMs": 19380,
+          "text": "in 1755 after the original ancient shrine. According to Hindu mythology, this is where Ganga,"
+        },
+        {
+          "startMs": 19800,
+          "endMs": 26560,
+          "text": "Yamuna and Saraswati meet secretly as the Goda-wari river originates from the Brahma-Girapi."
+        },
+        {
+          "startMs": 26560,
+          "endMs": 32880,
+          "text": "The temple has witnessed centuries of devotion, royal patronage and the eternal flow of faith."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 3: Architecture",
+    "text": "Trimberg Eswar Temple is a masterpiece of Nagara style architecture built entirely from black stone. The temple features an intricately carved Shakira tower that rises majestically toward the heavens. The sanctum houses a unique three-faced lingam, representing Brahma, Vishnu and Shiva. The only Jyotar linga with this trinity form. On eight pillars, delicate carvings of deities and beautifully sculpted walls showcase the artistic brilliance of 18th century temple architecture. A sacred kund water tank surrounds the lingam, fed by the Godavari source.",
+    "image": {
+      "url": "/images/trimbakeshwar-temple-ch3.jpg",
+      "alt": "trimbakeshwar-temple chapter 3",
+      "caption": "Black stone architecture and sacred water tank",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/trimbakeshwar-temple-ch3.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6580,
+          "text": "Trimberg Eswar Temple is a masterpiece of Nagara style architecture built entirely from black stone."
+        },
+        {
+          "startMs": 7100,
+          "endMs": 13460,
+          "text": "The temple features an intricately carved Shakira tower that rises majestically toward the heavens."
+        },
+        {
+          "startMs": 14280,
+          "endMs": 20160,
+          "text": "The sanctum houses a unique three-faced lingam, representing Brahma, Vishnu and Shiva."
+        },
+        {
+          "startMs": 20760,
+          "endMs": 23320,
+          "text": "The only Jyotar linga with this trinity form."
+        },
+        {
+          "startMs": 23960,
+          "endMs": 29080,
+          "text": "On eight pillars, delicate carvings of deities and beautifully sculpted walls"
+        },
+        {
+          "startMs": 29080,
+          "endMs": 33500,
+          "text": "showcase the artistic brilliance of 18th century temple architecture."
+        },
+        {
+          "startMs": 34160,
+          "endMs": 39600,
+          "text": "A sacred kund water tank surrounds the lingam, fed by the Godavari source."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 4: Significance",
+    "text": "As one of the twelve Jyoti Lingayes, Trimba Keswar holds immense spiritual power in Hindu tradition. It's the sacred site for Narayan Nagbhali and Tripindi Shradd rituals performed to liberate ancestors souls. The Kumbh Mela, one of the world's largest religious gatherings, is held here every 12 years along the Goda Vari banks. Pilgrims believe that worshipping here cleanses sense, fulfills desires and brings mockshah. The temple connects the earthly realm to the divine, where heaven touches earth.",
+    "image": {
+      "url": "/images/trimbakeshwar-temple-ch4.jpg",
+      "alt": "trimbakeshwar-temple chapter 4",
+      "caption": "Sacred Jyotirlinga pilgrimage site",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/trimbakeshwar-temple-ch4.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5320,
+          "text": "As one of the twelve Jyoti Lingayes, Trimba Keswar holds immense spiritual power in Hindu"
+        },
+        {
+          "startMs": 5320,
+          "endMs": 5840,
+          "text": "tradition."
+        },
+        {
+          "startMs": 6320,
+          "endMs": 12600,
+          "text": "It's the sacred site for Narayan Nagbhali and Tripindi Shradd rituals performed to liberate"
+        },
+        {
+          "startMs": 12600,
+          "endMs": 13600,
+          "text": "ancestors souls."
+        },
+        {
+          "startMs": 14380,
+          "endMs": 19820,
+          "text": "The Kumbh Mela, one of the world's largest religious gatherings, is held here every 12"
+        },
+        {
+          "startMs": 19820,
+          "endMs": 22020,
+          "text": "years along the Goda Vari banks."
+        },
+        {
+          "startMs": 22660,
+          "endMs": 28580,
+          "text": "Pilgrims believe that worshipping here cleanses sense, fulfills desires and brings mockshah."
+        },
+        {
+          "startMs": 28580,
+          "endMs": 33240,
+          "text": "The temple connects the earthly realm to the divine, where heaven touches earth."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 5: Visiting Tips",
+    "text": "Visit during the cooler months from October to February for a comfortable experience. Only Hindus are allowed inside the main sanctum and photography is strictly prohibited within the temple premises. Dress modestly and remove leather items before entering. The temple opens at 5.30am and closes at 9pm with a midday break. Visit the Brahmaguiri Peak early morning to witness the sacred Goda Vari origin point. A three-kilometer trek offering stunning views. The nearby Kusavata Kund is perfect for holy dips. Come with an open heart and experience the divine energy that has drawn seekers for centuries.",
+    "image": {
+      "url": "/images/trimbakeshwar-temple-ch5.jpg",
+      "alt": "trimbakeshwar-temple chapter 5",
+      "caption": "Pilgrims visiting Trimbakeshwar Temple",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/trimbakeshwar-temple-ch5.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 4600,
+          "text": "Visit during the cooler months from October to February for a comfortable experience."
+        },
+        {
+          "startMs": 5020,
+          "endMs": 11420,
+          "text": "Only Hindus are allowed inside the main sanctum and photography is strictly prohibited within the temple premises."
+        },
+        {
+          "startMs": 12120,
+          "endMs": 15580,
+          "text": "Dress modestly and remove leather items before entering."
+        },
+        {
+          "startMs": 16160,
+          "endMs": 21800,
+          "text": "The temple opens at 5.30am and closes at 9pm with a midday break."
+        },
+        {
+          "startMs": 22300,
+          "endMs": 27660,
+          "text": "Visit the Brahmaguiri Peak early morning to witness the sacred Goda Vari origin point."
+        },
+        {
+          "startMs": 27660,
+          "endMs": 30920,
+          "text": "A three-kilometer trek offering stunning views."
+        },
+        {
+          "startMs": 31460,
+          "endMs": 34660,
+          "text": "The nearby Kusavata Kund is perfect for holy dips."
+        },
+        {
+          "startMs": 35380,
+          "endMs": 40340,
+          "text": "Come with an open heart and experience the divine energy that has drawn seekers for centuries."
+        }
+      ]
+    }
+  }
+]

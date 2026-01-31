@@ -1,0 +1,287 @@
+[
+  {
+    "title": "Chapter 1: About",
+    "text": "Hidden in the horseshoe-shaped cliffs of the Sahyadri hills in Maharashtra, the Ajanta caves are a breathtaking collection of 30 rock cut Buddhist monuments carved between the 2nd century BCE and 5th century CE. These ancient caves hold some of the finest examples of Indian art, painting and sculpture. More than just caves, they are galleries frozen in time, telling stories of devotion, wisdom and artistic mastery.",
+    "image": {
+      "url": "/images/ajanta-caves-ch1.jpg",
+      "alt": "ajanta-caves chapter 1",
+      "caption": "Ajanta Caves, Maharashtra",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/ajanta-caves-ch1.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 3860,
+          "text": "Hidden in the horseshoe-shaped cliffs of the Sahyadri hills in Maharashtra,"
+        },
+        {
+          "startMs": 4440,
+          "endMs": 10660,
+          "text": "the Ajanta caves are a breathtaking collection of 30 rock cut Buddhist monuments carved between"
+        },
+        {
+          "startMs": 10660,
+          "endMs": 17480,
+          "text": "the 2nd century BCE and 5th century CE. These ancient caves hold some of the finest examples"
+        },
+        {
+          "startMs": 17480,
+          "endMs": 24240,
+          "text": "of Indian art, painting and sculpture. More than just caves, they are galleries frozen in time,"
+        },
+        {
+          "startMs": 24240,
+          "endMs": 28800,
+          "text": "telling stories of devotion, wisdom and artistic mastery."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 2: History",
+    "text": "The Ajanta Caves were carved in two phases. The earlier caves, second to four-century BCE, were created during the Sattavahana dynasty. While the later caves, fifth-century CE, flourished under the Vakata-Kat rulers. After centuries of use, the caves were abandoned and forgotten, swallowed by dense jungle. In 1819, a British officer named John Smith accidentally discovered them during a hunting expedition. What he found changed the world's understanding of ancient Indian art forever.",
+    "image": {
+      "url": "/images/ajanta-caves-ch2.jpg",
+      "alt": "ajanta-caves chapter 2",
+      "caption": "Ancient rock-cut Buddhist monuments",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/ajanta-caves-ch2.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 2440,
+          "text": "The Ajanta Caves were carved in two phases."
+        },
+        {
+          "startMs": 3080,
+          "endMs": 9420,
+          "text": "The earlier caves, second to four-century BCE, were created during the Sattavahana dynasty."
+        },
+        {
+          "startMs": 10080,
+          "endMs": 14820,
+          "text": "While the later caves, fifth-century CE, flourished under the Vakata-Kat rulers."
+        },
+        {
+          "startMs": 15680,
+          "endMs": 21020,
+          "text": "After centuries of use, the caves were abandoned and forgotten, swallowed by dense jungle."
+        },
+        {
+          "startMs": 21620,
+          "endMs": 28300,
+          "text": "In 1819, a British officer named John Smith accidentally discovered them during a hunting expedition."
+        },
+        {
+          "startMs": 28300,
+          "endMs": 32439,
+          "text": "What he found changed the world's understanding of ancient Indian art forever."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 3: Architecture",
+    "text": "The 30 caves are a mix of Chaitayas, Prayer Halls, and Viharas, monasteries. Cave 1 showcases stunning murals of Bodhisattvas, while Cave 26 features a magnificent reclining Buddha carved from living rock. The paintings created with natural pigments on dry plaster, depict Jataka tales, celestial beings and scenes from Buddha's life. The pillars, doorways and ceilings are adorned with intricate carvings of lotus flowers, animals and geometric patterns. Every inch reveals the devotion of ancient artisans.",
+    "image": {
+      "url": "/images/ajanta-caves-ch3.jpg",
+      "alt": "ajanta-caves chapter 3",
+      "caption": "Intricate murals and carvings inside Ajanta",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/ajanta-caves-ch3.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 5720,
+          "text": "The 30 caves are a mix of Chaitayas, Prayer Halls, and Viharas, monasteries."
+        },
+        {
+          "startMs": 6280,
+          "endMs": 13240,
+          "text": "Cave 1 showcases stunning murals of Bodhisattvas, while Cave 26 features a magnificent reclining"
+        },
+        {
+          "startMs": 13240,
+          "endMs": 15180,
+          "text": "Buddha carved from living rock."
+        },
+        {
+          "startMs": 15760,
+          "endMs": 22060,
+          "text": "The paintings created with natural pigments on dry plaster, depict Jataka tales, celestial"
+        },
+        {
+          "startMs": 22060,
+          "endMs": 24560,
+          "text": "beings and scenes from Buddha's life."
+        },
+        {
+          "startMs": 24560,
+          "endMs": 30260,
+          "text": "The pillars, doorways and ceilings are adorned with intricate carvings of lotus flowers,"
+        },
+        {
+          "startMs": 30880,
+          "endMs": 32880,
+          "text": "animals and geometric patterns."
+        },
+        {
+          "startMs": 33760,
+          "endMs": 36760,
+          "text": "Every inch reveals the devotion of ancient artisans."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 4: Significance",
+    "text": "The Ajanta caves are a UNESCO World Heritage Site and represent the zenith of ancient Indian Buddhist art. They influence artistic traditions across Asia, from China to Japan. The murals and sculptures are not just religious art. They are windows into ancient Indian life, fashion, architecture and culture. For art historians, archaeologists and spiritual seekers alike. Ajanta is a pilgrimage to humanity's creative soul.",
+    "image": {
+      "url": "/images/ajanta-caves-ch4.jpg",
+      "alt": "ajanta-caves chapter 4",
+      "caption": "UNESCO World Heritage Site",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/ajanta-caves-ch4.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 6940,
+          "text": "The Ajanta caves are a UNESCO World Heritage Site and represent the zenith of ancient Indian Buddhist art."
+        },
+        {
+          "startMs": 7500,
+          "endMs": 11860,
+          "text": "They influence artistic traditions across Asia, from China to Japan."
+        },
+        {
+          "startMs": 12800,
+          "endMs": 15580,
+          "text": "The murals and sculptures are not just religious art."
+        },
+        {
+          "startMs": 16140,
+          "endMs": 20740,
+          "text": "They are windows into ancient Indian life, fashion, architecture and culture."
+        },
+        {
+          "startMs": 21560,
+          "endMs": 25780,
+          "text": "For art historians, archaeologists and spiritual seekers alike."
+        },
+        {
+          "startMs": 25780,
+          "endMs": 30040,
+          "text": "Ajanta is a pilgrimage to humanity's creative soul."
+        }
+      ]
+    }
+  },
+  {
+    "title": "Chapter 5: Visiting Tips",
+    "text": "Visit between November and March to avoid the heat. The caves are located near our Angabad, about 100 kilometers away. Arrive early to beat the crowds and witness the morning light illuminating the ancient paintings. Photographies allowed but without flash, where comfortable walking shoes and carry water. Exploring all 30 caves requires stamina. Hiring a knowledgeable guide is highly recommended to understand the stories behind the murals. The site closes on Mondays, so plan accordingly.",
+    "image": {
+      "url": "/images/ajanta-caves-ch5.jpg",
+      "alt": "ajanta-caves chapter 5",
+      "caption": "Visitors exploring the ancient caves",
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fit": "cover",
+      "kenBurns": {
+        "enabled": true,
+        "zoomStart": 1.0,
+        "zoomEnd": 1.1,
+        "durationMs": 10000
+      }
+    },
+    "audio": {
+      "url": "/audio/ajanta-caves-ch5.mp3",
+      "captions": [
+        {
+          "startMs": 0,
+          "endMs": 2860,
+          "text": "Visit between November and March to avoid the heat."
+        },
+        {
+          "startMs": 3320,
+          "endMs": 7860,
+          "text": "The caves are located near our Angabad, about 100 kilometers away."
+        },
+        {
+          "startMs": 8440,
+          "endMs": 13080,
+          "text": "Arrive early to beat the crowds and witness the morning light illuminating the ancient paintings."
+        },
+        {
+          "startMs": 13860,
+          "endMs": 19280,
+          "text": "Photographies allowed but without flash, where comfortable walking shoes and carry water."
+        },
+        {
+          "startMs": 19860,
+          "endMs": 22460,
+          "text": "Exploring all 30 caves requires stamina."
+        },
+        {
+          "startMs": 23280,
+          "endMs": 28160,
+          "text": "Hiring a knowledgeable guide is highly recommended to understand the stories behind the murals."
+        },
+        {
+          "startMs": 28160,
+          "endMs": 31700,
+          "text": "The site closes on Mondays, so plan accordingly."
+        }
+      ]
+    }
+  }
+]

@@ -214,8 +214,8 @@ const CameraCapture = ({
   return (
     <div style={{
       position: 'fixed',
-      bottom: 20,
-      right: 20,
+      bottom: 110,
+      right: 1,
       zIndex: 1000,
       background: 'rgba(0,0,0,0.8)',
       borderRadius: '12px',
@@ -269,43 +269,44 @@ const CameraCapture = ({
       </div>
 
       {/* Video preview */}
-      {showPreview && (
-        <div style={{ position: 'relative' }}>
-          <video
-            ref={videoRef}
-            width={width / 2}  // Show preview at half resolution
-            height={height / 2}
-            style={{
-              display: 'block',
-              borderRadius: '8px',
-              transform: 'scaleX(-1)',  // Mirror effect
-              border: '1px solid #00d4ff'
-            }}
-            muted
-            playsInline
-          />
-          {error && (
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0,0,0,0.9)',
-              color: '#ff4444',
-              padding: '10px',
-              fontSize: '11px',
-              textAlign: 'center',
-              borderRadius: '8px'
-            }}>
-              {error}
-            </div>
-          )}
-        </div>
-      )}
+      <div style={{
+        position: 'relative',
+        display: showPreview ? 'block' : 'none'
+      }}>
+        <video
+          ref={videoRef}
+          width={width / 2}  // Show preview at half resolution
+          height={height / 2}
+          style={{
+            display: 'block',
+            borderRadius: '8px',
+            transform: 'scaleX(-1)',  // Mirror effect
+            border: '1px solid #00d4ff'
+          }}
+          muted
+          playsInline
+        />
+        {error && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.9)',
+            color: '#ff4444',
+            padding: '10px',
+            fontSize: '11px',
+            textAlign: 'center',
+            borderRadius: '8px'
+          }}>
+            {error}
+          </div>
+        )}
+      </div>
 
       {/* Hidden canvas for frame capture */}
       <canvas

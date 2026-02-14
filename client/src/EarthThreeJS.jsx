@@ -1137,6 +1137,9 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
 
       // Store gesture event handler for cleanup
       const handleGesture = (data) => {
+        // DEBUG: Log ALL gesture events received
+        console.log("🎮 GESTURE EVENT RECEIVED:", data);
+
         const g = data.gesture;
         // Pinch: zoom out (move camera away) with distance limits
         if (g === "pinch") {

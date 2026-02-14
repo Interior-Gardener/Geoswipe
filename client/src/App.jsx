@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import GlobalGestureCursor from "./GlobalGestureCursor";
+import CameraCapture from "./components/CameraCapture";
 import HeritageStoryBook from "./HeritageStoryBook";
 import StoryBookDemo from "./StoryBookDemo";
 
@@ -45,6 +46,15 @@ function App() {
       </Suspense>
       {/* Global gesture cursor - appears on all pages */}
       <GlobalGestureCursor />
+      {/* Browser-based gesture camera */}
+      <CameraCapture
+        enabled={true}
+        showPreview={true}
+        targetFPS={30}
+        quality={0.7}
+        width={640}
+        height={480}
+      />
     </Router>
   );
 }

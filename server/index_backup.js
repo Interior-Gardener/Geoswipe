@@ -2,11 +2,11 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
+const io = require('socket.io')(http, { 
   cors: { origin: "*" },
   pingTimeout: 60000,
   pingInterval: 25000,
-  maxHttpBufferSize: 5e6,  // 5MB to handle video frames from browser
+  maxHttpBufferSize: 1e6,
   transports: ['websocket', 'polling']
 });
 const cors = require("cors");
@@ -298,12 +298,10 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
 
 //Optimized Socket.IO logic with NO rate limiting for gesture controls
 const socketConnections = new Set(); // Track connections for cleanup only
-let frameCount = 0; // Track frames received
-let lastFrameLogTime = Date.now();
 
 io.on('connection', (socket) => {
   console.log(`🤝 Client connected: ${socket.id}`);
-
+  
   // Add to connection tracking
   socketConnections.add(socket.id);
 
@@ -334,58 +332,6 @@ io.on('connection', (socket) => {
       socket.broadcast.emit('cursor', data);
     } catch (error) {
       console.error('❌ Error handling cursor:', error);
-    }
-  });
-
-  // NEW: Handle video frames from browser for gesture detection
-  socket.on('video_frame', (data) => {
-    try {
-      // Validate payload structure
-      if (!data || typeof data !== 'object') {
-        console.warn('⚠️ Invalid video_frame: not an object');
-        return;
-      }
-
-      if (!data.frame || typeof data.frame !== 'string') {
-        console.warn('⚠️ Invalid video_frame: missing or invalid frame');
-        return;
-      }
-
-      // Validate base64 format (data URL)
-      if (!data.frame.startsWith('data:image/')) {
-        console.warn('⚠️ Invalid video_frame: not a data URL');
-        return;
-      }
-
-      // Size check to prevent DoS (max ~500 KB)
-      if (data.frame.length > 500000) {
-        console.warn('⚠️ Frame too large, rejecting');
-        return;
-      }
-
-      // Log frame reception periodically (every 50 frames)
-      frameCount++;
-      if (frameCount === 1) {
-        console.log('📸 First video frame received from browser');
-        console.log(`   - Frame size: ${(data.frame.length / 1024).toFixed(1)} KB`);
-        console.log('   - Forwarding to Python gesture detection...');
-      }
-
-      if (frameCount % 50 === 0) {
-        const elapsed = (Date.now() - lastFrameLogTime) / 1000;
-        const fps = 50 / elapsed;
-        console.log(`📊 Frames received: ${frameCount} | FPS: ${fps.toFixed(1)}`);
-        lastFrameLogTime = Date.now();
-      }
-
-      // Forward frame to Python client for processing
-      socket.broadcast.emit('process_frame', {
-        frame: data.frame,
-        timestamp: data.timestamp || Date.now()
-      });
-    } catch (error) {
-      console.error('❌ Error handling video frame:', error);
-      // Don't crash - just log and continue
     }
   });
 

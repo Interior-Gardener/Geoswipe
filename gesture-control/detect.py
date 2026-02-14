@@ -6,6 +6,9 @@ import time
 import numpy as np
 import os
 from dotenv import load_dotenv
+import base64
+import io
+from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -21,6 +24,36 @@ def connect():
     connected = True
     print("Connected to server.")
 
+@sio.event
+def process_frame(data):
+    """Handle incoming frames from browser via Node.js server"""
+    global connected, frame_count, last_frame_log_time
+
+    if not data or 'frame' not in data:
+        print("⚠️ Invalid frame data received")
+        return
+
+    # Debug: Log frame reception periodically (every 30 frames = ~1 second at 30fps)
+    frame_count += 1
+    current_time = time.time()
+    if frame_count % 30 == 0:
+        elapsed = current_time - last_frame_log_time
+        actual_fps = 30 / elapsed if elapsed > 0 else 0
+        print(f"📸 Processing frame #{frame_count} | FPS: {actual_fps:.1f}")
+        last_frame_log_time = current_time
+
+    result = process_frame_from_base64(data['frame'])
+
+    if result and connected:
+        # Emit gesture if detected
+        if result['gesture']:
+            print(f"✋ Gesture detected: {result['gesture']}")
+            sio.emit('gesture', {'gesture': result['gesture']})
+
+        # Always emit cursor position (even if None to clear cursor)
+        if result['cursor']:
+            sio.emit('cursor', result['cursor'])
+
 # Get server URL from environment variable
 SOCKET_SERVER_URL = os.getenv('SOCKET_SERVER_URL', 'http://localhost:3000')
 sio.connect(SOCKET_SERVER_URL)
@@ -28,6 +61,7 @@ sio.connect(SOCKET_SERVER_URL)
 # MediaPipe setup
 MIN_DETECTION_CONFIDENCE = float(os.getenv('MIN_DETECTION_CONFIDENCE', '0.7'))
 MIN_TRACKING_CONFIDENCE = float(os.getenv('MIN_TRACKING_CONFIDENCE', '0.7'))
+CAMERA_MODE = os.getenv('CAMERA_MODE', 'browser')  # 'local' or 'browser'
 
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(min_detection_confidence=MIN_DETECTION_CONFIDENCE, min_tracking_confidence=MIN_TRACKING_CONFIDENCE)
@@ -115,85 +149,261 @@ def classify_gesture(landmarks):
         return "rotate_right"
     return "unknown"
 
-STABLE_THRESHOLD = 7  # Increase for more strictness
+def process_frame_mediapipe(rgb_frame):
+    """
+    Process RGB frame through MediaPipe and return gesture/cursor data.
+    Extracted from main loop for reusability in both local and browser modes.
 
-# Click gesture stabilization
-last_click_time = 0
-CLICK_COOLDOWN = 1.0  # 1 second cooldown between clicks
+    Args:
+        rgb_frame: RGB color image (numpy array)
 
-# Initialize webcam capture
-cap = cv2.VideoCapture(0)
+    Returns:
+        dict: {'gesture': str or None, 'cursor': dict or None}
+    """
+    global last_gesture, gesture_count, last_click_time, hands_detected_count, no_hands_count
 
-last_gesture = None
-gesture_count = 0
-
-while True:
-    success, frame = cap.read()
-    frame = cv2.flip(frame, 1)
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    result = hands.process(rgb)
+    result = hands.process(rgb_frame)
+    gesture_data = {'gesture': None, 'cursor': None}
 
     if result.multi_hand_landmarks:
+        hands_detected_count += 1
+        no_hands_count = 0  # Reset no-hands counter
+
+        # Log first successful hand detection
+        if hands_detected_count == 1:
+            print("✋ HAND DETECTED! MediaPipe is working!")
+            print(f"   - Number of hands: {len(result.multi_hand_landmarks)}")
+            print(f"   - Gesture stabilization threshold: {STABLE_THRESHOLD} frames")
+
+        # Log every 100 successful detections
+        if hands_detected_count % 100 == 0:
+            print(f"👋 Hands detected {hands_detected_count} times")
+
         for hand_landmarks in result.multi_hand_landmarks:
-            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             gesture = classify_gesture(hand_landmarks.landmark)
-            
-            # Debug information for troubleshooting
-            thumb_tip = hand_landmarks.landmark[4]
-            index_tip = hand_landmarks.landmark[8]
-            wrist = hand_landmarks.landmark[0]
-            
-            thumb_extended = (
-                np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([hand_landmarks.landmark[2].x, hand_landmarks.landmark[2].y])) > 0.07 and
-                np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([wrist.x, wrist.y])) > 0.12
-            )
-            thumb_index_distance = np.linalg.norm(np.array([thumb_tip.x, thumb_tip.y]) - np.array([index_tip.x, index_tip.y]))
-            index_open = hand_landmarks.landmark[8].y < hand_landmarks.landmark[6].y
-            
-            # Display debug info on frame
-            debug_text = f"Gesture: {gesture}"
-            cv2.putText(frame, debug_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            debug_text2 = f"Thumb: {'Extended' if thumb_extended else 'Closed'}, Index: {'Open' if index_open else 'Closed'}"
-            cv2.putText(frame, debug_text2, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-            debug_text3 = f"Distance: {thumb_index_distance:.3f}"
-            cv2.putText(frame, debug_text3, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-            
+
+            # Debug: Log gesture classification (first 10 times or when gesture changes)
+            if hands_detected_count <= 10 or gesture != last_gesture:
+                print(f"🔍 Gesture classified: '{gesture}' (count: {gesture_count}/{STABLE_THRESHOLD})")
+
+            # Gesture stabilization logic
             if gesture == last_gesture:
                 gesture_count += 1
             else:
                 gesture_count = 1
                 last_gesture = gesture
-            if connected and gesture_count >= STABLE_THRESHOLD and gesture != "unknown":
+
+            # Only emit stable gestures
+            if gesture_count >= STABLE_THRESHOLD and gesture != "unknown":
                 # Special handling for click gesture to prevent rapid firing
                 if gesture == "click":
                     current_time = time.time()
                     if current_time - last_click_time >= CLICK_COOLDOWN:
-                        print("Emitting click gesture")
-                        sio.emit('gesture', {'gesture': gesture})
+                        gesture_data['gesture'] = gesture
                         last_click_time = current_time
+                        print(f"✅ STABLE GESTURE EMITTED: {gesture}")
                     else:
-                        print(f"Click ignored - cooldown active ({current_time - last_click_time:.1f}s)")
+                        print(f"⏱️ Click ignored - cooldown active ({current_time - last_click_time:.1f}s)")
                 else:
-                    print("Emitting gesture:", gesture)
-                    sio.emit('gesture', {'gesture': gesture})
-            # Emit cursor position for browser cursor when moving cursor with open palm
-            if connected and gesture == "cursor_move":
+                    gesture_data['gesture'] = gesture
+                    print(f"✅ STABLE GESTURE EMITTED: {gesture}")
+
+            # Cursor position for cursor_move gesture
+            if gesture == "cursor_move":
                 # Use middle finger tip for more stable cursor control
                 middle_tip = hand_landmarks.landmark[12]
-                x_norm = middle_tip.x
-                y_norm = middle_tip.y
-                sio.emit('cursor', {'x': x_norm, 'y': y_norm})
+                gesture_data['cursor'] = {
+                    'x': middle_tip.x,
+                    'y': middle_tip.y
+                }
     else:
+        # No hand detected - reset
+        no_hands_count += 1
+
+        # Log if no hands for extended period
+        if no_hands_count == 1:
+            print("⚠️ No hands detected in frame")
+        elif no_hands_count == 100:
+            print("⚠️ Still no hands after 100 frames. Check:")
+            print("   - Is your hand clearly visible in the camera preview?")
+            print("   - Is the lighting adequate?")
+            print("   - Is the camera focused?")
+
         last_gesture = None
         gesture_count = 0
-        # Clear cursor when no hand is detected
-        if connected:
-            sio.emit('cursor', {'x': None, 'y': None})
+        gesture_data['cursor'] = {'x': None, 'y': None}
 
-    cv2.imshow("Hand Gesture", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    return gesture_data
 
-cap.release()
-cv2.destroyAllWindows()
+def process_frame_from_base64(base64_data):
+    """
+    Decode base64 image data and process it through MediaPipe.
+
+    Args:
+        base64_data: Base64 encoded JPEG image, with or without data URL prefix
+
+    Returns:
+        dict: {'gesture': str or None, 'cursor': dict or None} or None on error
+    """
+    global frame_count, debug_frame_saved
+
+    try:
+        # Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+        if ',' in base64_data:
+            base64_data = base64_data.split(',')[1]
+
+        # Decode base64 to bytes
+        img_bytes = base64.b64decode(base64_data)
+
+        # Open image with PIL (JPEG images are RGB)
+        img = Image.open(io.BytesIO(img_bytes))
+
+        # Convert to numpy array (PIL gives RGB format)
+        frame = np.array(img)
+
+        # Validate frame dimensions
+        if frame.size == 0:
+            raise ValueError("Empty frame received")
+
+        # Validate color channels (should be RGB from PIL/JPEG)
+        if len(frame.shape) != 3 or frame.shape[2] != 3:
+            raise ValueError(f"Invalid frame shape: {frame.shape}, expected (H, W, 3)")
+
+        # Debug: Log frame info on first successful decode
+        if frame_count == 1:
+            print(f"✅ Frame decoded successfully!")
+            print(f"   - Resolution: {frame.shape[1]}x{frame.shape[0]}")
+            print(f"   - Color format: RGB (from PIL)")
+            print(f"   - Data type: {frame.dtype}")
+            print(f"   - Value range: [{frame.min()}, {frame.max()}]")
+
+        # Save debug frame (first frame only for verification)
+        if not debug_frame_saved and frame_count == 1:
+            try:
+                debug_path = os.path.join(os.path.dirname(__file__), 'debug_frame_received.jpg')
+                cv2.imwrite(debug_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+                print(f"💾 Debug frame saved to: {debug_path}")
+                debug_frame_saved = True
+            except Exception as save_err:
+                print(f"⚠️ Could not save debug frame: {save_err}")
+
+        # Check if resolution is adequate for gesture detection
+        height, width = frame.shape[:2]
+        if width < 320 or height < 240:
+            print(f"⚠️ Warning: Low resolution {width}x{height} may affect detection quality")
+
+        # Flip horizontally for mirror effect (like webcam)
+        # PIL gives RGB, MediaPipe expects RGB, so just flip without color conversion
+        rgb_frame = cv2.flip(frame, 1)
+
+        # Process through MediaPipe
+        return process_frame_mediapipe(rgb_frame)
+
+    except base64.binascii.Error as e:
+        print(f"❌ Base64 decode error: {e}")
+        return None
+    except ValueError as e:
+        print(f"❌ Frame validation error: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ Unexpected error processing frame: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+STABLE_THRESHOLD = 5  # Reduced for faster response (was 7)
+
+# Click gesture stabilization
+last_click_time = 0
+CLICK_COOLDOWN = 1.0  # 1 second cooldown between clicks
+
+# Initialize gesture tracking state
+last_gesture = None
+gesture_count = 0
+
+# Frame debugging and statistics
+frame_count = 0
+last_frame_log_time = time.time()
+debug_frame_saved = False
+
+# Hand detection statistics
+hands_detected_count = 0
+no_hands_count = 0
+
+# Main execution logic based on CAMERA_MODE
+if CAMERA_MODE == 'browser':
+    # Browser-based mode: listen for frames from server
+    print("=" * 60)
+    print("🌐 BROWSER CAMERA MODE - Gesture Detection Active")
+    print("=" * 60)
+    print(f"📡 Connected to {SOCKET_SERVER_URL}")
+    print("👋 Waiting for camera frames from browser...")
+    print("📊 Status updates will appear every ~30 frames (~1 second)")
+    print("=" * 60)
+
+    try:
+        # Keep the connection alive and wait for process_frame events
+        sio.wait()
+    except KeyboardInterrupt:
+        print("\n" + "=" * 60)
+        print("👋 Shutting down gesture detection...")
+        print("=" * 60)
+        sio.disconnect()
+        print("✅ Disconnected from server")
+        if debug_frame_saved:
+            print(f"💾 Debug frame available at: gesture-control/debug_frame_received.jpg")
+
+else:
+    # Local webcam mode (original implementation with refactored processing)
+    print("📹 Local webcam mode")
+    print(f"📡 Connected to {SOCKET_SERVER_URL}")
+    print("👋 Press 'q' to quit")
+
+    cap = cv2.VideoCapture(0)
+
+    try:
+        while True:
+            success, frame = cap.read()
+            if not success:
+                print("⚠️ Failed to read frame from webcam")
+                break
+
+            # Flip and convert for MediaPipe
+            frame = cv2.flip(frame, 1)
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Process frame through MediaPipe
+            result = process_frame_mediapipe(rgb)
+
+            # Emit gestures and cursor to server
+            if result and connected:
+                if result['gesture']:
+                    print("Emitting gesture:", result['gesture'])
+                    sio.emit('gesture', {'gesture': result['gesture']})
+
+                if result['cursor']:
+                    sio.emit('cursor', result['cursor'])
+
+            # Display window with hand tracking visualization (local mode only)
+            # Draw landmarks if hands detected
+            mp_result = hands.process(rgb)
+            if mp_result.multi_hand_landmarks:
+                for hand_landmarks in mp_result.multi_hand_landmarks:
+                    mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+            # Display frame
+            cv2.imshow("Hand Gesture - Local Mode", frame)
+
+            # Check for quit key
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                print("\n👋 Quit key pressed...")
+                break
+
+    except KeyboardInterrupt:
+        print("\n👋 Shutting down gesture detection...")
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        sio.disconnect()
+        print("✅ Cleanup complete")
 

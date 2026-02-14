@@ -504,7 +504,7 @@ http.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🌐 Listening on: ${HOST}:${PORT} (all interfaces)`);
+  console.log(`🌐 Listening on: 0.0.0.0:${PORT} (all interfaces)`);
 }).on('error', (err) => {
   console.error('Failed to start server:', err);
   process.exit(1);

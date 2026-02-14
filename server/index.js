@@ -498,9 +498,9 @@ app.get('/health', (req, res) => {
 
 //start server with error handling
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';  // Bind to all interfaces (was 'localhost')
+// const HOST = process.env.HOST || '0.0.0.0';  // Bind to all interfaces (was 'localhost')
 
-http.listen(PORT, HOST, () => {
+http.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);

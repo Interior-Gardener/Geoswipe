@@ -64,8 +64,17 @@ MIN_TRACKING_CONFIDENCE = float(os.getenv('MIN_TRACKING_CONFIDENCE', '0.7'))
 CAMERA_MODE = os.getenv('CAMERA_MODE', 'browser')  # 'local' or 'browser'
 
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(min_detection_confidence=MIN_DETECTION_CONFIDENCE, min_tracking_confidence=MIN_TRACKING_CONFIDENCE)
+hands = mp_hands.Hands(
+    min_detection_confidence=MIN_DETECTION_CONFIDENCE, 
+    min_tracking_confidence=MIN_TRACKING_CONFIDENCE,
+    static_image_mode=False,  # Video stream mode
+    max_num_hands=1  # Only track one hand for better performance
+)
 mp_draw = mp.solutions.drawing_utils
+
+# Frame timing for MediaPipe timestamp management
+last_processed_time = 0
+MIN_FRAME_INTERVAL = 0.05  # Minimum 50ms between frames (20 FPS max)
 
 # Gesture classification using landmarks
 def distance(a, b):
@@ -161,8 +170,40 @@ def process_frame_mediapipe(rgb_frame):
         dict: {'gesture': str or None, 'cursor': dict or None}
     """
     global last_gesture, gesture_count, last_click_time, hands_detected_count, no_hands_count
+    global last_processed_time, hands
 
-    result = hands.process(rgb_frame)
+    # Frame rate limiting to prevent timestamp issues
+    current_time = time.time()
+    time_since_last = current_time - last_processed_time
+    
+    if time_since_last < MIN_FRAME_INTERVAL:
+        # Skip this frame - too soon since last processing
+        return {'gesture': None, 'cursor': None}
+    
+    last_processed_time = current_time
+
+    try:
+        result = hands.process(rgb_frame)
+    except Exception as e:
+        # If MediaPipe encounters a timestamp error, recreate the hands object
+        if "timestamp mismatch" in str(e).lower() or "Graph has errors" in str(e):
+            print("⚠️ MediaPipe timestamp error detected - resetting graph...")
+            hands.close()
+            hands = mp_hands.Hands(
+                min_detection_confidence=MIN_DETECTION_CONFIDENCE,
+                min_tracking_confidence=MIN_TRACKING_CONFIDENCE,
+                static_image_mode=False,
+                max_num_hands=1
+            )
+            # Try processing again with fresh graph
+            try:
+                result = hands.process(rgb_frame)
+            except:
+                return {'gesture': None, 'cursor': None}
+        else:
+            print(f"❌ MediaPipe processing error: {e}")
+            return {'gesture': None, 'cursor': None}
+
     gesture_data = {'gesture': None, 'cursor': None}
 
     if result.multi_hand_landmarks:
@@ -303,12 +344,18 @@ def process_frame_from_base64(base64_data):
         print(f"❌ Base64 decode error: {e}")
         return None
     except ValueError as e:
-        print(f"❌ Frame validation error: {e}")
+        # Suppress repetitive MediaPipe timestamp errors
+        error_msg = str(e)
+        if "timestamp mismatch" not in error_msg.lower() and "Graph has errors" not in error_msg:
+            print(f"❌ Frame validation error: {e}")
         return None
     except Exception as e:
-        print(f"❌ Unexpected error processing frame: {e}")
-        import traceback
-        traceback.print_exc()
+        # Suppress repetitive MediaPipe timestamp errors
+        error_msg = str(e)
+        if "timestamp mismatch" not in error_msg.lower() and "Graph has errors" not in error_msg:
+            print(f"❌ Unexpected error processing frame: {e}")
+            import traceback
+            traceback.print_exc()
         return None
 
 STABLE_THRESHOLD = 5  # Reduced for faster response (was 7)
@@ -348,6 +395,7 @@ if CAMERA_MODE == 'browser':
         print("\n" + "=" * 60)
         print("👋 Shutting down gesture detection...")
         print("=" * 60)
+        hands.close()  # Clean up MediaPipe resources
         sio.disconnect()
         print("✅ Disconnected from server")
         if debug_frame_saved:
@@ -402,6 +450,7 @@ else:
     except KeyboardInterrupt:
         print("\n👋 Shutting down gesture detection...")
     finally:
+        hands.close()  # Clean up MediaPipe resources
         cap.release()
         cv2.destroyAllWindows()
         sio.disconnect()

@@ -5,11 +5,17 @@ import socketio
 import time
 import numpy as np
 import os
+import sys
 from dotenv import load_dotenv
 import base64
 import io
 from PIL import Image
 
+# Fix Windows console encoding for emoji support
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    
 # Load environment variables
 load_dotenv()
 
@@ -30,7 +36,7 @@ def process_frame(data):
     global connected, frame_count, last_frame_log_time
 
     if not data or 'frame' not in data:
-        print("⚠️ Invalid frame data received")
+        print(" Invalid frame data received")
         return
 
     # Debug: Log frame reception periodically (every 30 frames = ~1 second at 30fps)
@@ -47,7 +53,7 @@ def process_frame(data):
     if result and connected:
         # Emit gesture if detected
         if result['gesture']:
-            print(f"✋ Gesture detected: {result['gesture']}")
+            print(f" Gesture detected: {result['gesture']}")
             sio.emit('gesture', {'gesture': result['gesture']})
 
         # Always emit cursor position (even if None to clear cursor)
@@ -187,7 +193,7 @@ def process_frame_mediapipe(rgb_frame):
     except Exception as e:
         # If MediaPipe encounters a timestamp error, recreate the hands object
         if "timestamp mismatch" in str(e).lower() or "Graph has errors" in str(e):
-            print("⚠️ MediaPipe timestamp error detected - resetting graph...")
+            print(" MediaPipe timestamp error detected - resetting graph...")
             hands.close()
             hands = mp_hands.Hands(
                 min_detection_confidence=MIN_DETECTION_CONFIDENCE,
@@ -201,7 +207,7 @@ def process_frame_mediapipe(rgb_frame):
             except:
                 return {'gesture': None, 'cursor': None}
         else:
-            print(f"❌ MediaPipe processing error: {e}")
+            print(f" MediaPipe processing error: {e}")
             return {'gesture': None, 'cursor': None}
 
     gesture_data = {'gesture': None, 'cursor': None}
@@ -212,13 +218,13 @@ def process_frame_mediapipe(rgb_frame):
 
         # Log first successful hand detection
         if hands_detected_count == 1:
-            print("✋ HAND DETECTED! MediaPipe is working!")
+            print(" HAND DETECTED! MediaPipe is working!")
             print(f"   - Number of hands: {len(result.multi_hand_landmarks)}")
             print(f"   - Gesture stabilization threshold: {STABLE_THRESHOLD} frames")
 
         # Log every 100 successful detections
         if hands_detected_count % 100 == 0:
-            print(f"👋 Hands detected {hands_detected_count} times")
+            print(f" Hands detected {hands_detected_count} times")
 
         for hand_landmarks in result.multi_hand_landmarks:
             gesture = classify_gesture(hand_landmarks.landmark)
@@ -242,12 +248,12 @@ def process_frame_mediapipe(rgb_frame):
                     if current_time - last_click_time >= CLICK_COOLDOWN:
                         gesture_data['gesture'] = gesture
                         last_click_time = current_time
-                        print(f"✅ STABLE GESTURE EMITTED: {gesture}")
+                        print(f" STABLE GESTURE EMITTED: {gesture}")
                     else:
-                        print(f"⏱️ Click ignored - cooldown active ({current_time - last_click_time:.1f}s)")
+                        print(f"⏱ Click ignored - cooldown active ({current_time - last_click_time:.1f}s)")
                 else:
                     gesture_data['gesture'] = gesture
-                    print(f"✅ STABLE GESTURE EMITTED: {gesture}")
+                    print(f" STABLE GESTURE EMITTED: {gesture}")
 
             # Cursor position for cursor_move gesture
             if gesture == "cursor_move":
@@ -263,9 +269,9 @@ def process_frame_mediapipe(rgb_frame):
 
         # Log if no hands for extended period
         if no_hands_count == 1:
-            print("⚠️ No hands detected in frame")
+            print(" No hands detected in frame")
         elif no_hands_count == 100:
-            print("⚠️ Still no hands after 100 frames. Check:")
+            print(" Still no hands after 100 frames. Check:")
             print("   - Is your hand clearly visible in the camera preview?")
             print("   - Is the lighting adequate?")
             print("   - Is the camera focused?")
@@ -312,7 +318,7 @@ def process_frame_from_base64(base64_data):
 
         # Debug: Log frame info on first successful decode
         if frame_count == 1:
-            print(f"✅ Frame decoded successfully!")
+            print(f" Frame decoded successfully!")
             print(f"   - Resolution: {frame.shape[1]}x{frame.shape[0]}")
             print(f"   - Color format: RGB (from PIL)")
             print(f"   - Data type: {frame.dtype}")
@@ -323,15 +329,15 @@ def process_frame_from_base64(base64_data):
             try:
                 debug_path = os.path.join(os.path.dirname(__file__), 'debug_frame_received.jpg')
                 cv2.imwrite(debug_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-                print(f"💾 Debug frame saved to: {debug_path}")
+                print(f" Debug frame saved to: {debug_path}")
                 debug_frame_saved = True
             except Exception as save_err:
-                print(f"⚠️ Could not save debug frame: {save_err}")
+                print(f" Could not save debug frame: {save_err}")
 
         # Check if resolution is adequate for gesture detection
         height, width = frame.shape[:2]
         if width < 320 or height < 240:
-            print(f"⚠️ Warning: Low resolution {width}x{height} may affect detection quality")
+            print(f" Warning: Low resolution {width}x{height} may affect detection quality")
 
         # Flip horizontally for mirror effect (like webcam)
         # PIL gives RGB, MediaPipe expects RGB, so just flip without color conversion
@@ -341,19 +347,19 @@ def process_frame_from_base64(base64_data):
         return process_frame_mediapipe(rgb_frame)
 
     except base64.binascii.Error as e:
-        print(f"❌ Base64 decode error: {e}")
+        print(f" Base64 decode error: {e}")
         return None
     except ValueError as e:
         # Suppress repetitive MediaPipe timestamp errors
         error_msg = str(e)
         if "timestamp mismatch" not in error_msg.lower() and "Graph has errors" not in error_msg:
-            print(f"❌ Frame validation error: {e}")
+            print(f" Frame validation error: {e}")
         return None
     except Exception as e:
         # Suppress repetitive MediaPipe timestamp errors
         error_msg = str(e)
         if "timestamp mismatch" not in error_msg.lower() and "Graph has errors" not in error_msg:
-            print(f"❌ Unexpected error processing frame: {e}")
+            print(f" Unexpected error processing frame: {e}")
             import traceback
             traceback.print_exc()
         return None
@@ -381,11 +387,11 @@ no_hands_count = 0
 if CAMERA_MODE == 'browser':
     # Browser-based mode: listen for frames from server
     print("=" * 60)
-    print("🌐 BROWSER CAMERA MODE - Gesture Detection Active")
+    print(" BROWSER CAMERA MODE - Gesture Detection Active")
     print("=" * 60)
-    print(f"📡 Connected to {SOCKET_SERVER_URL}")
-    print("👋 Waiting for camera frames from browser...")
-    print("📊 Status updates will appear every ~30 frames (~1 second)")
+    print(f" Connected to {SOCKET_SERVER_URL}")
+    print(" Waiting for camera frames from browser...")
+    print(" Status updates will appear every ~30 frames (~1 second)")
     print("=" * 60)
 
     try:
@@ -393,19 +399,19 @@ if CAMERA_MODE == 'browser':
         sio.wait()
     except KeyboardInterrupt:
         print("\n" + "=" * 60)
-        print("👋 Shutting down gesture detection...")
+        print(" Shutting down gesture detection...")
         print("=" * 60)
         hands.close()  # Clean up MediaPipe resources
         sio.disconnect()
-        print("✅ Disconnected from server")
+        print(" Disconnected from server")
         if debug_frame_saved:
-            print(f"💾 Debug frame available at: gesture-control/debug_frame_received.jpg")
+            print(f" Debug frame available at: gesture-control/debug_frame_received.jpg")
 
 else:
     # Local webcam mode (original implementation with refactored processing)
-    print("📹 Local webcam mode")
-    print(f"📡 Connected to {SOCKET_SERVER_URL}")
-    print("👋 Press 'q' to quit")
+    print(" Local webcam mode")
+    print(f" Connected to {SOCKET_SERVER_URL}")
+    print(" Press 'q' to quit")
 
     cap = cv2.VideoCapture(0)
 
@@ -413,7 +419,7 @@ else:
         while True:
             success, frame = cap.read()
             if not success:
-                print("⚠️ Failed to read frame from webcam")
+                print(" Failed to read frame from webcam")
                 break
 
             # Flip and convert for MediaPipe
@@ -444,15 +450,15 @@ else:
 
             # Check for quit key
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                print("\n👋 Quit key pressed...")
+                print("\n Quit key pressed...")
                 break
 
     except KeyboardInterrupt:
-        print("\n👋 Shutting down gesture detection...")
+        print("\n Shutting down gesture detection...")
     finally:
         hands.close()  # Clean up MediaPipe resources
         cap.release()
         cv2.destroyAllWindows()
         sio.disconnect()
-        print("✅ Cleanup complete")
+        print(" Cleanup complete")
 

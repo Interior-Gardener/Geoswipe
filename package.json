@@ -1,0 +1,20 @@
+{
+  "name": "geo-game",
+  "private": true,
+  "scripts": {
+    "start:client": "cd client && npm run dev",
+    "start:server": "cd server && node index.js",
+    "start:gesture": "cd gesture-control && python detect.py",
+    "start": "concurrently \"npm run start:client\" \"npm run start:server\" \"npm run start:gesture\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "dat.gui": "^0.7.9",
+    "earcut": "^3.0.2",
+    "mongoose": "^8.17.1",
+    "react-router-dom": "^7.8.0",
+    "three": "^0.179.1"
+  }
+}

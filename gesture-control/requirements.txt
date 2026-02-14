@@ -5,6 +5,7 @@ ffmpeg-python
 opencv-python==4.11.0.86
 mediapipe==0.10.21
 python-socketio==5.11.2
+websocket-client>=1.0.0
 python-dotenv>=1.0.0
 requests
 pyautogui

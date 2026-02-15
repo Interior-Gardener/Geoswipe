@@ -4,7 +4,12 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
-  cors: { origin: "*" },
+  cors: { origin: [
+         'https://geoswipe.onrender.com'
+       ],
+       methods: ['GET', 'POST'],
+       credentials: true
+       },
   pingTimeout: 60000,
   pingInterval: 25000,
   maxHttpBufferSize: 5e6,  // 5MB to handle video frames from browser
@@ -20,7 +25,7 @@ const HeritageSite = require("./models/HeritageSite");
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? ['https://your-domain.com'] : '*',
+  origin: process.env.NODE_ENV === 'production' ? ['https://geoswipe.onrender.com'] : '*',
   credentials: true
 }));
 

@@ -12,6 +12,7 @@ import io
 from PIL import Image
 from flask import Flask, jsonify
 import threading
+import gc
 
 # Fix Windows console encoding for emoji support
 if sys.platform == 'win32':
@@ -80,14 +81,21 @@ def process_frame(data):
     # Update status
     gesture_service_status['frames_processed'] += 1
 
-    # Debug: Log frame reception periodically (every 30 frames = ~1 second at 30fps)
+    # Frame skipping for memory optimization - process every 3rd frame
     frame_count += 1
+    if frame_count % 3 != 0:
+        return  # Skip this frame
+
+    # Debug: Log frame reception periodically (every 30 frames = ~1 second at 30fps)
     current_time = time.time()
     if frame_count % 30 == 0:
         elapsed = current_time - last_frame_log_time
         actual_fps = 30 / elapsed if elapsed > 0 else 0
         print(f"📸 Processing frame #{frame_count} | FPS: {actual_fps:.1f}")
         last_frame_log_time = current_time
+
+        # Garbage collection every 30 frames to free memory
+        gc.collect()
 
     result = process_frame_from_base64(data['frame'])
 
@@ -349,6 +357,25 @@ def process_frame_from_base64(base64_data):
 
         # Convert to numpy array (PIL gives RGB format)
         frame = np.array(img)
+
+        # Resize frame for memory optimization (max 320x240)
+        height, width = frame.shape[:2]
+        max_width = 320
+        max_height = 240
+
+        if width > max_width or height > max_height:
+            # Calculate scaling factor
+            scale = min(max_width / width, max_height / height)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+
+            # Resize using PIL for better quality
+            img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            frame = np.array(img_resized)
+
+            # Log resize on first frame
+            if frame_count == 1:
+                print(f" Frame resized: {width}x{height} → {new_width}x{new_height} for memory optimization")
 
         # Validate frame dimensions
         if frame.size == 0:

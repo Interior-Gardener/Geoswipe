@@ -67,7 +67,21 @@ def connect():
     connected = True
     gesture_service_status['connected'] = True
     gesture_service_status['started_at'] = time.time()
-    print("Connected to server.")
+    print("✅ Connected to server.")
+
+    # Identify as gesture service to the backend
+    try:
+        sio.emit('identify', {'type': 'gesture_service', 'version': '1.0'})
+        print("📤 Sent identification to backend")
+    except Exception as e:
+        print(f"⚠️ Failed to send identification: {e}")
+
+@sio.event
+def disconnect():
+    global connected
+    connected = False
+    gesture_service_status['connected'] = False
+    print("⚠️ Disconnected from server. Will attempt to reconnect...")
 
 @sio.event
 def process_frame(data):

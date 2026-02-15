@@ -268,6 +268,23 @@ app.get("/api/heritage-sites/geojson", async (req, res) => {
   }
 });
 
+// Status endpoint to check gesture service connection
+app.get("/api/status", (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    connections: {
+      total: socketConnections.size,
+      pythonServices: pythonServiceConnections.size,
+      browsers: socketConnections.size - pythonServiceConnections.size
+    },
+    frames: {
+      received: frameCount,
+      lastFrameTime: lastFrameLogTime
+    }
+  });
+});
+
 // Get detailed heritage site data (for sidebar)
 app.get("/api/heritage-sites/:name/details", async (req, res) => {
   try {
@@ -315,14 +332,24 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
 
 //Optimized Socket.IO logic with NO rate limiting for gesture controls
 const socketConnections = new Set(); // Track connections for cleanup only
+const pythonServiceConnections = new Set(); // Track Python gesture service connections
 let frameCount = 0; // Track frames received
 let lastFrameLogTime = Date.now();
 
 io.on('connection', (socket) => {
-  console.log(`🤝 Client connected: ${socket.id}`);
+  console.log(`🤝 Client connected: ${socket.id} from ${socket.handshake.address}`);
 
   // Add to connection tracking
   socketConnections.add(socket.id);
+
+  // Listen for client identification
+  socket.on('identify', (data) => {
+    if (data && data.type === 'gesture_service') {
+      pythonServiceConnections.add(socket.id);
+      console.log(`🐍 Python gesture service connected: ${socket.id}`);
+      console.log(`   - Total gesture services: ${pythonServiceConnections.size}`);
+    }
+  });
 
   socket.on('gesture', (data) => {
     try {
@@ -385,13 +412,18 @@ io.on('connection', (socket) => {
       if (frameCount === 1) {
         console.log('📸 First video frame received from browser');
         console.log(`   - Frame size: ${(data.frame.length / 1024).toFixed(1)} KB`);
-        console.log('   - Forwarding to Python gesture detection...');
+        console.log(`   - Python gesture services connected: ${pythonServiceConnections.size}`);
+        if (pythonServiceConnections.size === 0) {
+          console.warn('⚠️  WARNING: No Python gesture service connected!');
+          console.warn('   - Frames are being received but cannot be processed');
+          console.warn('   - Please ensure Python service is running and connected');
+        }
       }
 
-      if (frameCount % 50 === 0) {
+      if (frameCount % 100 === 0) {
         const elapsed = (Date.now() - lastFrameLogTime) / 1000;
-        const fps = 50 / elapsed;
-        console.log(`📊 Frames received: ${frameCount} | FPS: ${fps.toFixed(1)}`);
+        const fps = 100 / elapsed;
+        console.log(`📊 Frames received: ${frameCount} | FPS: ${fps.toFixed(1)} | Python services: ${pythonServiceConnections.size}`);
         lastFrameLogTime = Date.now();
       }
 
@@ -407,9 +439,16 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', (reason) => {
-    console.log(`👋 Client disconnected: ${socket.id}, reason: ${reason}`);
+    const wasPythonService = pythonServiceConnections.has(socket.id);
+    console.log(`👋 Client disconnected: ${socket.id}${wasPythonService ? ' (Python service)' : ''}, reason: ${reason}`);
+
     // Clean up connection tracking
     socketConnections.delete(socket.id);
+    pythonServiceConnections.delete(socket.id);
+
+    if (wasPythonService) {
+      console.warn(`⚠️  Python gesture service disconnected! Remaining: ${pythonServiceConnections.size}`);
+    }
   });
 
   socket.on('error', (error) => {

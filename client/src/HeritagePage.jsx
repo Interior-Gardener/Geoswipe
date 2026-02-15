@@ -4,6 +4,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 const HeritagePage = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -461,7 +463,7 @@ const HeritagePage = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:3000/api/heritage-sites/geojson');
+        const response = await fetch(`${API_BASE_URL}/api/heritage-sites/geojson`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -730,7 +732,7 @@ const HeritagePage = () => {
   const fetchDetails = async (siteName) => {
     try {
       console.log('🔍 Fetching details for:', siteName);
-      const response = await fetch(`http://localhost:3000/api/heritage-sites/${encodeURIComponent(siteName)}/details`);
+      const response = await fetch(`${API_BASE_URL}/api/heritage-sites/${encodeURIComponent(siteName)}/details`);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -765,6 +767,12 @@ const HeritagePage = () => {
       console.log('Map already initialized, skipping...');
       return;
     }
+
+    if (!mapContainer.current) {
+      console.log('Map container not ready, skipping initialization');
+      return;
+    }
+
     console.log('Initializing map...');
     const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
     

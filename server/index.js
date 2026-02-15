@@ -3,13 +3,24 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
+
+// Configure allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,           // Primary frontend URL from environment
+  process.env.FRONTEND_URL_CUSTOM,    // Custom domain if configured
+  'http://localhost:5173',            // Local development (Vite)
+  'http://localhost:3000',            // Local development fallback
+  'https://geoswipe.onrender.com'     // Default production URL
+].filter(Boolean); // Remove undefined values
+
+console.log(' Allowed CORS origins:', ALLOWED_ORIGINS);
+
 const io = require('socket.io')(http, {
-  cors: { origin: [
-         'https://geoswipe.onrender.com'
-       ],
-       methods: ['GET', 'POST'],
-       credentials: true
-       },
+  cors: {
+    origin: ALLOWED_ORIGINS,
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
   pingTimeout: 60000,
   pingInterval: 25000,
   maxHttpBufferSize: 5e6,  // 5MB to handle video frames from browser
@@ -18,14 +29,14 @@ const io = require('socket.io')(http, {
 const cors = require("cors");
 const mongoose = require("mongoose");
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const Country = require("./models/Country"); 
+const Country = require("./models/Country");
 const HeritageSite = require("./models/HeritageSite");
 
 // Middleware for parsing JSON and enabling CORS
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? ['https://geoswipe.onrender.com'] : '*',
+  origin: process.env.NODE_ENV === 'production' ? ALLOWED_ORIGINS : '*',
   credentials: true
 }));
 

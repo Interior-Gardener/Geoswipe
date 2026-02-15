@@ -10,3 +10,4 @@ python-dotenv>=1.0.0
 requests
 pyautogui
 Pillow>=10.0.0
+Flask>=2.3.0

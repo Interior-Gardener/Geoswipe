@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 import base64
 import io
 from PIL import Image
+from flask import Flask, jsonify
+import threading
 
 # Fix Windows console encoding for emoji support
 if sys.platform == 'win32':
@@ -19,15 +21,51 @@ if sys.platform == 'win32':
 # Load environment variables
 load_dotenv()
 
+# Flask app for health check (so Render detects open port)
+app = Flask(__name__)
+
 # Connect to Node.js Socket.IO server
 sio = socketio.Client()
 
 connected = False
+gesture_service_status = {
+    'running': False,
+    'connected': False,
+    'frames_processed': 0,
+    'hands_detected': 0,
+    'last_gesture': None,
+    'started_at': None
+}
+
+@app.route('/')
+def home():
+    """Health check endpoint for Render"""
+    return jsonify({
+        'status': 'ok',
+        'service': 'GeoSwipe Gesture Detection',
+        'version': '1.0',
+        'socket_server': os.getenv('SOCKET_SERVER_URL', 'http://localhost:3000')
+    })
+
+@app.route('/health')
+def health():
+    """Detailed health status"""
+    return jsonify({
+        'status': 'healthy' if gesture_service_status['connected'] else 'connecting',
+        'gesture_detection': gesture_service_status
+    })
+
+@app.route('/status')
+def status():
+    """Service status"""
+    return jsonify(gesture_service_status)
 
 @sio.event
 def connect():
     global connected
     connected = True
+    gesture_service_status['connected'] = True
+    gesture_service_status['started_at'] = time.time()
     print("Connected to server.")
 
 @sio.event
@@ -38,6 +76,9 @@ def process_frame(data):
     if not data or 'frame' not in data:
         print(" Invalid frame data received")
         return
+
+    # Update status
+    gesture_service_status['frames_processed'] += 1
 
     # Debug: Log frame reception periodically (every 30 frames = ~1 second at 30fps)
     frame_count += 1
@@ -54,6 +95,7 @@ def process_frame(data):
         # Emit gesture if detected
         if result['gesture']:
             print(f" Gesture detected: {result['gesture']}")
+            gesture_service_status['last_gesture'] = result['gesture']
             sio.emit('gesture', {'gesture': result['gesture']})
 
         # Always emit cursor position (even if None to clear cursor)
@@ -62,7 +104,6 @@ def process_frame(data):
 
 # Get server URL from environment variable
 SOCKET_SERVER_URL = os.getenv('SOCKET_SERVER_URL', 'http://localhost:3000')
-sio.connect(SOCKET_SERVER_URL)
 
 # MediaPipe setup
 MIN_DETECTION_CONFIDENCE = float(os.getenv('MIN_DETECTION_CONFIDENCE', '0.7'))
@@ -215,6 +256,7 @@ def process_frame_mediapipe(rgb_frame):
     if result.multi_hand_landmarks:
         hands_detected_count += 1
         no_hands_count = 0  # Reset no-hands counter
+        gesture_service_status['hands_detected'] = hands_detected_count
 
         # Log first successful hand detection
         if hands_detected_count == 1:
@@ -383,29 +425,62 @@ debug_frame_saved = False
 hands_detected_count = 0
 no_hands_count = 0
 
-# Main execution logic based on CAMERA_MODE
-if CAMERA_MODE == 'browser':
-    # Browser-based mode: listen for frames from server
-    print("=" * 60)
-    print(" BROWSER CAMERA MODE - Gesture Detection Active")
-    print("=" * 60)
-    print(f" Connected to {SOCKET_SERVER_URL}")
-    print(" Waiting for camera frames from browser...")
-    print(" Status updates will appear every ~30 frames (~1 second)")
-    print("=" * 60)
+def run_gesture_detection():
+    """Run gesture detection service in background thread"""
+    global connected, gesture_service_status
 
+    gesture_service_status['running'] = True
+
+    # Connect to Socket.IO server
     try:
+        print("=" * 60)
+        print(" GESTURE DETECTION SERVICE STARTING")
+        print("=" * 60)
+        print(f" Connecting to {SOCKET_SERVER_URL}...")
+
+        sio.connect(SOCKET_SERVER_URL)
+
+        print(" Connected successfully!")
+        print(" Waiting for camera frames from browser...")
+        print(" Status updates every ~30 frames (~1 second)")
+        print("=" * 60)
+
         # Keep the connection alive and wait for process_frame events
         sio.wait()
+
     except KeyboardInterrupt:
         print("\n" + "=" * 60)
         print(" Shutting down gesture detection...")
         print("=" * 60)
-        hands.close()  # Clean up MediaPipe resources
+        hands.close()
         sio.disconnect()
         print(" Disconnected from server")
-        if debug_frame_saved:
-            print(f" Debug frame available at: gesture-control/debug_frame_received.jpg")
+    except Exception as e:
+        print(f" Error in gesture detection service: {e}")
+        gesture_service_status['running'] = False
+        gesture_service_status['connected'] = False
+
+# Main execution logic based on CAMERA_MODE
+if CAMERA_MODE == 'browser':
+    # Browser-based mode: Run Flask on main thread, Socket.IO in background
+    print("=" * 60)
+    print(" GEOSWIPE GESTURE DETECTION SERVICE")
+    print("=" * 60)
+    print(" Mode: Browser Camera")
+    print(f" Socket.IO Server: {SOCKET_SERVER_URL}")
+
+    # Get PORT from environment (Render provides this)
+    PORT = int(os.getenv('PORT', 5000))
+    print(f" HTTP Health Check Port: {PORT}")
+    print("=" * 60)
+
+    # Start gesture detection in background thread
+    detection_thread = threading.Thread(target=run_gesture_detection, daemon=True)
+    detection_thread.start()
+
+    # Run Flask on main thread (this blocks)
+    print(f" Starting Flask server on port {PORT}...")
+    app.run(host='0.0.0.0', port=PORT, debug=False)
 
 else:
     # Local webcam mode (original implementation with refactored processing)

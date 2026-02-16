@@ -95,9 +95,10 @@ def process_frame(data):
     # Update status
     gesture_service_status['frames_processed'] += 1
 
-    # Frame skipping for memory optimization - process every 3rd frame
+    # Frame skipping for performance - process every 2nd frame (was 3rd)
+    # With reduced client FPS, this gives us better responsiveness
     frame_count += 1
-    if frame_count % 3 != 0:
+    if frame_count % 2 != 0:
         return  # Skip this frame
 
     # Debug: Log frame reception periodically (every 30 frames = ~1 second at 30fps)
@@ -127,9 +128,9 @@ def process_frame(data):
 # Get server URL from environment variable
 SOCKET_SERVER_URL = os.getenv('SOCKET_SERVER_URL', 'http://localhost:3000')
 
-# MediaPipe setup
-MIN_DETECTION_CONFIDENCE = float(os.getenv('MIN_DETECTION_CONFIDENCE', '0.7'))
-MIN_TRACKING_CONFIDENCE = float(os.getenv('MIN_TRACKING_CONFIDENCE', '0.7'))
+# MediaPipe setup - Lower confidence for faster processing
+MIN_DETECTION_CONFIDENCE = float(os.getenv('MIN_DETECTION_CONFIDENCE', '0.5'))
+MIN_TRACKING_CONFIDENCE = float(os.getenv('MIN_TRACKING_CONFIDENCE', '0.5'))
 CAMERA_MODE = os.getenv('CAMERA_MODE', 'browser')  # 'local' or 'browser'
 
 mp_hands = mp.solutions.hands

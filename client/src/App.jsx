@@ -48,14 +48,13 @@ function App() {
       </Suspense>
       {/* Global gesture cursor - appears on all pages */}
       <GlobalGestureCursor />
-      {/* Browser-based gesture camera */}
+      {/* Browser-based gesture camera - Optimized for performance */}
       <CameraCapture
         enabled={true}
         showPreview={showCameraPreview}
-        targetFPS={30}
-        quality={0.7}
-        width={640}
-        height={480}
+        targetFPS={15}      
+        width={320}         
+        height={240}        
       />
       {/* Camera preview toggle button */}
       <button

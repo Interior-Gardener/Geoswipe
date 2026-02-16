@@ -79,7 +79,7 @@ const GlobalGestureCursor = () => {
         pointerEvents: 'none',
         zIndex: 999999, // Very high z-index to ensure it's always on top
         border: '2px solid #fff',
-        transition: 'opacity 0.2s ease',
+        transition: 'left 0.1s ease-out, top 0.1s ease-out, opacity 0.2s ease', // Smooth cursor movement
       }}
     />
   );

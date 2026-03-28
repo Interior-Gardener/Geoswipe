@@ -222,6 +222,81 @@ app.get("/api/country-question", async (req, res) => {
   }
 });
 
+// ===== FLAG GUESS GAME API =====
+// Cache for country data with codes for flag game
+let flagCountryCache = null;
+let flagCacheExpiry = null;
+const FLAG_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// Fetch and cache countries with codes for flag game
+async function getFlagCountries() {
+  // Check cache first
+  if (flagCountryCache && flagCacheExpiry && Date.now() < flagCacheExpiry) {
+    return flagCountryCache;
+  }
+  
+  try {
+    console.log("🏳️ Fetching countries for flag game...");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2", {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'GeoSwipe/1.0'
+      }
+    });
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    
+    // Filter and map countries with valid data
+    flagCountryCache = data
+      .filter(c => c.name?.common && c.cca2)
+      .map(c => ({
+        name: c.name.common,
+        code: c.cca2.toLowerCase(),
+        flagUrl: `https://flagcdn.com/w320/${c.cca2.toLowerCase()}.png`
+      }));
+    
+    flagCacheExpiry = Date.now() + FLAG_CACHE_DURATION;
+    console.log(`✅ Cached ${flagCountryCache.length} countries for flag game`);
+    
+    return flagCountryCache;
+  } catch (error) {
+    console.error('Error fetching flag countries:', error.message);
+    return flagCountryCache || []; // Return cached data if available
+  }
+}
+
+// Get a random country for flag guessing game
+app.get("/api/random-flag-country", async (req, res) => {
+  try {
+    const countries = await getFlagCountries();
+    
+    if (!countries || countries.length === 0) {
+      return res.status(503).json({ error: "Country data not available" });
+    }
+    
+    // Get a random country
+    const randomIndex = Math.floor(Math.random() * countries.length);
+    const randomCountry = countries[randomIndex];
+    
+    res.json({
+      name: randomCountry.name,
+      code: randomCountry.code,
+      flagUrl: randomCountry.flagUrl
+    });
+  } catch (err) {
+    console.error('Error in random-flag-country endpoint:', err);
+    res.status(500).json({ error: "Failed to fetch random country" });
+  }
+});
+
 // Get heritage sites for map display (GeoJSON format)
 app.get("/api/heritage-sites/geojson", async (req, res) => {
   try {

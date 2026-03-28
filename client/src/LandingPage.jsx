@@ -64,6 +64,10 @@ const LandingPage = () => {
     navigate("/heritage");
   }, [navigate]);
 
+  const handleFlagGame = useCallback(() => {
+    navigate("/flag-game");
+  }, [navigate]);
+
   // Setup gesture control listeners
   useEffect(() => {
     // Store cleanup functions
@@ -226,6 +230,15 @@ const LandingPage = () => {
             title="Heritage Mode"
             description="Explore cultural heritage sites from around the globe"
             onClick={handleHeritageMode}
+            clickable={true}
+          />
+
+          {/* Flag Guess Game - Clickable */}
+          <Feature
+            icon="🏳️"
+            title="Flag Guess Game"
+            description="Test your knowledge by guessing countries from their flags"
+            onClick={handleFlagGame}
             clickable={true}
           />
         </div>

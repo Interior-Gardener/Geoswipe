@@ -9,6 +9,7 @@ import StoryBookDemo from "./StoryBookDemo";
 const LandingPage = lazy(() => import("./LandingPage"));
 const ExplorePage = lazy(() => import("./ExplorePage"));
 const QuizPage = lazy(() => import("./QuizPage"));
+const FlagGuessPage = lazy(() => import("./FlagGuessPage"));
 const HeritagePage = lazy(() => import("./HeritagePage"));
 const SketchfabViewer = lazy(() => import("./SketchfabViewer"));
 const HowToReachPage = lazy(() => import("./HowToReachPage"));
@@ -39,6 +40,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/flag-game" element={<FlagGuessPage />} />
           <Route path="/heritage" element={<HeritagePage />} />
           <Route path="/sketchfab/:uid" element={<SketchfabViewer />} />
           <Route path="/how-to-reach/:name" element={<HowToReachPage />} />

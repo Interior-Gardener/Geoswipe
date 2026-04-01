@@ -1,4 +1,4 @@
-import React, { useCallback, memo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, memo, useEffect, useRef } from 'react';
 import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
@@ -62,19 +62,6 @@ const LandingPage = () => {
 
   const handleHeritageMode = useCallback(() => {
     navigate("/heritage");
-  }, [navigate]);
-
-  const handleFlagGame = useCallback(() => {
-    navigate("/flag-game");
-  }, [navigate]);
-
-  // Multiplayer navigation handlers
-  const handleMultiplayerFlagGame = useCallback(() => {
-    navigate("/multiplayer/flag-game");
-  }, [navigate]);
-
-  const handleMultiplayerQuiz = useCallback(() => {
-    navigate("/multiplayer/quiz");
   }, [navigate]);
 
   // Setup gesture control listeners
@@ -228,7 +215,7 @@ const LandingPage = () => {
           <Feature
             icon="🌍"
             title="Interactive Globe"
-            description="Rotate, zoom, and explore Earth with smooth 3D interactions"
+            description="Explore Earth in 3D with games, quizzes & multiplayer challenges"
             onClick={handleStartExploration}
             clickable={true}
           />
@@ -241,61 +228,6 @@ const LandingPage = () => {
             onClick={handleHeritageMode}
             clickable={true}
           />
-
-          {/* Flag Guess Game - Clickable */}
-          <Feature
-            icon="🏳️"
-            title="Flag Guess Game"
-            description="Test your knowledge by guessing countries from their flags"
-            onClick={handleFlagGame}
-            clickable={true}
-          />
-        </div>
-
-        {/* Multiplayer Section */}
-        <div className="multiplayer-section" id="multiplayer" style={{
-          marginTop: '60px',
-          padding: '40px 20px',
-          background: 'rgba(0, 212, 255, 0.05)',
-          borderRadius: '20px',
-          border: '1px solid rgba(0, 212, 255, 0.2)'
-        }}>
-          <h2 className="section-title" style={{ 
-            textAlign: 'center', 
-            marginBottom: '10px',
-            fontSize: '28px',
-            color: '#00d4ff'
-          }}>
-            🎮 Multiplayer Mode
-          </h2>
-          <p style={{ 
-            textAlign: 'center', 
-            color: 'rgba(255, 255, 255, 0.7)', 
-            marginBottom: '30px',
-            fontSize: '14px'
-          }}>
-            Challenge your friends in real-time! Play together locally or globally.
-          </p>
-          
-          <div className="features-grid" style={{ maxWidth: '600px', margin: '0 auto' }}>
-            {/* Multiplayer Flag Game */}
-            <Feature
-              icon="🏳️"
-              title="Multiplayer Flags"
-              description="Challenge a friend to guess countries by their flags in real-time"
-              onClick={handleMultiplayerFlagGame}
-              clickable={true}
-            />
-
-            {/* Multiplayer Quiz */}
-            <Feature
-              icon="🎯"
-              title="Multiplayer Quiz"
-              description="Test your geography knowledge against a friend"
-              onClick={handleMultiplayerQuiz}
-              clickable={true}
-            />
-          </div>
         </div>
 
         {/* Hand Gesture Controls Section */}

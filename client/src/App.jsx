@@ -14,6 +14,10 @@ const HeritagePage = lazy(() => import("./HeritagePage"));
 const SketchfabViewer = lazy(() => import("./SketchfabViewer"));
 const HowToReachPage = lazy(() => import("./HowToReachPage"));
 
+// Multiplayer pages
+const MultiplayerFlagPage = lazy(() => import("./MultiplayerFlagPage"));
+const MultiplayerQuizPage = lazy(() => import("./MultiplayerQuizPage"));
+
 // Loading component
 const LoadingSpinner = () => (
   <div style={{
@@ -41,6 +45,8 @@ function App() {
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/flag-game" element={<FlagGuessPage />} />
+          <Route path="/multiplayer/flag-game" element={<MultiplayerFlagPage />} />
+          <Route path="/multiplayer/quiz" element={<MultiplayerQuizPage />} />
           <Route path="/heritage" element={<HeritagePage />} />
           <Route path="/sketchfab/:uid" element={<SketchfabViewer />} />
           <Route path="/how-to-reach/:name" element={<HowToReachPage />} />

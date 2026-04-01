@@ -376,6 +376,90 @@ const socketConnections = new Set(); // Track connections for cleanup only
 let frameCount = 0; // Track frames received
 let lastFrameLogTime = Date.now();
 
+// ===== MULTIPLAYER GAME SYSTEM =====
+const TOTAL_ROUNDS = 10;
+const multiplayerRooms = new Map(); // roomId -> { players, gameMode, currentQuestion, answers, scores, currentRound }
+
+// Generate a flag question using cached country data
+async function generateFlagQuestion() {
+  const countries = await getFlagCountries();
+  if (!countries || countries.length === 0) {
+    return null;
+  }
+  const randomIndex = Math.floor(Math.random() * countries.length);
+  const country = countries[randomIndex];
+  return {
+    type: 'flag',
+    name: country.name,
+    code: country.code,
+    flagUrl: country.flagUrl,
+    correctAnswer: country.name
+  };
+}
+
+// Generate a quiz question using trivia API
+async function generateQuizQuestion(difficulty = null) {
+  const countries = await getCountryListFromDB();
+  if (countries.length === 0) return null;
+
+  let question = null;
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  while (!question && attempts < maxAttempts) {
+    attempts++;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
+      const apiUrl = difficulty
+        ? `https://the-trivia-api.com/v2/questions?categories=geography&difficulties=${difficulty}&limit=1`
+        : "https://the-trivia-api.com/v2/questions?categories=geography&limit=1";
+      
+      const triviaRes = await fetch(apiUrl, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'GeoSwipe/1.0', 'Accept': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
+      if (!triviaRes.ok) throw new Error(`API responded with status: ${triviaRes.status}`);
+
+      const triviaData = await triviaRes.json();
+      if (!triviaData || !Array.isArray(triviaData) || triviaData.length === 0) {
+        throw new Error('Invalid response format');
+      }
+
+      const q = triviaData[0];
+      if (q?.correctAnswer && countries.includes(q.correctAnswer.toLowerCase().trim())) {
+        question = {
+          type: 'quiz',
+          question: q.question?.text || q.question,
+          correctAnswer: q.correctAnswer,
+          options: [...(q.incorrectAnswers || []), q.correctAnswer].sort(() => Math.random() - 0.5)
+        };
+      }
+    } catch (fetchError) {
+      console.warn(`Multiplayer trivia attempt ${attempts} failed:`, fetchError.message);
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+  return question;
+}
+
+// Cleanup empty/stale rooms periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [roomId, room] of multiplayerRooms.entries()) {
+    // Remove rooms that have been empty or inactive for 10 minutes
+    if (room.players.length === 0 || (room.lastActivity && now - room.lastActivity > 600000)) {
+      console.log(`🧹 Cleaning up stale room: ${roomId}`);
+      multiplayerRooms.delete(roomId);
+    }
+  }
+}, 60000); // Check every minute
+
 io.on('connection', (socket) => {
   console.log(`🤝 Client connected: ${socket.id}`);
 
@@ -464,10 +548,359 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ===== MULTIPLAYER GAME EVENTS =====
+  
+  // Join a multiplayer room
+  socket.on('join-room', async (data) => {
+    try {
+      const { roomId, playerName, gameMode } = data;
+      
+      if (!roomId || !playerName || !gameMode) {
+        socket.emit('room-error', { message: 'Missing roomId, playerName, or gameMode' });
+        return;
+      }
+
+      // Validate game mode
+      if (!['flag', 'quiz'].includes(gameMode)) {
+        socket.emit('room-error', { message: 'Invalid game mode. Use "flag" or "quiz"' });
+        return;
+      }
+
+      // Leave any existing room first
+      for (const [existingRoomId, room] of multiplayerRooms.entries()) {
+        const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+        if (playerIndex !== -1) {
+          room.players.splice(playerIndex, 1);
+          socket.leave(existingRoomId);
+          io.to(existingRoomId).emit('player-left', { 
+            playerName: room.players[playerIndex]?.name,
+            players: room.players.map(p => ({ name: p.name, score: p.score }))
+          });
+        }
+      }
+
+      // Get or create room
+      let room = multiplayerRooms.get(roomId);
+      
+      if (!room) {
+        // Create new room
+        room = {
+          players: [],
+          gameMode,
+          currentQuestion: null,
+          answers: new Map(),
+          currentRound: 0,
+          gameStarted: false,
+          lastActivity: Date.now(),
+          difficulty: data.difficulty || null
+        };
+        multiplayerRooms.set(roomId, room);
+        console.log(`🎮 Created multiplayer room: ${roomId} (${gameMode} mode)`);
+      }
+
+      // Check if room is full
+      if (room.players.length >= 2) {
+        socket.emit('room-error', { message: 'Room is full (max 2 players)' });
+        return;
+      }
+
+      // Check if game mode matches
+      if (room.gameMode !== gameMode) {
+        socket.emit('room-error', { message: `Room is for ${room.gameMode} mode, not ${gameMode}` });
+        return;
+      }
+
+      // Add player to room
+      const player = {
+        socketId: socket.id,
+        name: playerName,
+        score: 0
+      };
+      room.players.push(player);
+      room.lastActivity = Date.now();
+      
+      // Join socket room
+      socket.join(roomId);
+      
+      console.log(`👤 ${playerName} joined room ${roomId} (${room.players.length}/2 players)`);
+
+      // Notify all players in room
+      io.to(roomId).emit('player-joined', {
+        playerName,
+        players: room.players.map(p => ({ name: p.name, score: p.score })),
+        gameMode: room.gameMode
+      });
+
+      // Auto-start game when 2 players join
+      if (room.players.length === 2 && !room.gameStarted) {
+        room.gameStarted = true;
+        room.currentRound = 1;
+        
+        console.log(`🚀 Starting game in room ${roomId}`);
+        
+        // Generate first question
+        const question = room.gameMode === 'flag' 
+          ? await generateFlagQuestion()
+          : await generateQuizQuestion(room.difficulty);
+        
+        if (!question) {
+          io.to(roomId).emit('room-error', { message: 'Failed to generate question. Please try again.' });
+          room.gameStarted = false;
+          return;
+        }
+
+        room.currentQuestion = question;
+        room.answers.clear();
+
+        // Emit game start and first question
+        io.to(roomId).emit('game-started', {
+          totalRounds: TOTAL_ROUNDS,
+          gameMode: room.gameMode,
+          players: room.players.map(p => ({ name: p.name, score: p.score }))
+        });
+
+        io.to(roomId).emit('new-question', {
+          round: room.currentRound,
+          totalRounds: TOTAL_ROUNDS,
+          question: room.gameMode === 'flag' 
+            ? { type: 'flag', flagUrl: question.flagUrl, code: question.code }
+            : { type: 'quiz', question: question.question, options: question.options }
+        });
+      }
+    } catch (error) {
+      console.error('Error in join-room:', error);
+      socket.emit('room-error', { message: 'Server error joining room' });
+    }
+  });
+
+  // Submit an answer
+  socket.on('submit-answer', async (data) => {
+    try {
+      const { roomId, answer } = data;
+      
+      if (!roomId || answer === undefined) {
+        socket.emit('answer-error', { message: 'Missing roomId or answer' });
+        return;
+      }
+
+      const room = multiplayerRooms.get(roomId);
+      if (!room) {
+        socket.emit('answer-error', { message: 'Room not found' });
+        return;
+      }
+
+      if (!room.gameStarted || !room.currentQuestion) {
+        socket.emit('answer-error', { message: 'Game not in progress' });
+        return;
+      }
+
+      // Find player
+      const player = room.players.find(p => p.socketId === socket.id);
+      if (!player) {
+        socket.emit('answer-error', { message: 'Player not in room' });
+        return;
+      }
+
+      // Check if already answered
+      if (room.answers.has(socket.id)) {
+        socket.emit('answer-error', { message: 'Already answered this round' });
+        return;
+      }
+
+      // Store answer
+      const isCorrect = answer.toLowerCase().trim() === room.currentQuestion.correctAnswer.toLowerCase().trim();
+      room.answers.set(socket.id, {
+        answer,
+        isCorrect,
+        timestamp: Date.now()
+      });
+      room.lastActivity = Date.now();
+
+      if (isCorrect) {
+        player.score += 1;
+      }
+
+      console.log(`📝 ${player.name} answered in room ${roomId}: ${isCorrect ? '✅' : '❌'}`);
+
+      // Notify that player has answered (without revealing if correct)
+      io.to(roomId).emit('player-answered', {
+        playerName: player.name,
+        answeredCount: room.answers.size,
+        totalPlayers: room.players.length
+      });
+
+      // Check if all players answered
+      if (room.answers.size === room.players.length) {
+        // Build results
+        const results = room.players.map(p => {
+          const answerData = room.answers.get(p.socketId);
+          return {
+            name: p.name,
+            answer: answerData?.answer || 'No answer',
+            isCorrect: answerData?.isCorrect || false,
+            score: p.score
+          };
+        });
+
+        // Emit results
+        io.to(roomId).emit('show-result', {
+          round: room.currentRound,
+          correctAnswer: room.currentQuestion.correctAnswer,
+          results,
+          players: room.players.map(p => ({ name: p.name, score: p.score }))
+        });
+
+        // Check if game is over
+        if (room.currentRound >= TOTAL_ROUNDS) {
+          // Determine winner
+          const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+          const winner = sortedPlayers[0].score > sortedPlayers[1].score 
+            ? sortedPlayers[0].name 
+            : sortedPlayers[0].score === sortedPlayers[1].score 
+              ? 'tie' 
+              : sortedPlayers[0].name;
+
+          io.to(roomId).emit('game-over', {
+            winner,
+            finalScores: room.players.map(p => ({ name: p.name, score: p.score })),
+            totalRounds: TOTAL_ROUNDS
+          });
+
+          // Reset room for new game
+          room.gameStarted = false;
+          room.currentRound = 0;
+          room.currentQuestion = null;
+          room.answers.clear();
+          room.players.forEach(p => p.score = 0);
+        } else {
+          // Schedule next round after delay
+          setTimeout(async () => {
+            room.currentRound += 1;
+            room.answers.clear();
+
+            const question = room.gameMode === 'flag'
+              ? await generateFlagQuestion()
+              : await generateQuizQuestion(room.difficulty);
+
+            if (!question) {
+              io.to(roomId).emit('room-error', { message: 'Failed to generate next question' });
+              return;
+            }
+
+            room.currentQuestion = question;
+
+            io.to(roomId).emit('next-round', { round: room.currentRound });
+            
+            io.to(roomId).emit('new-question', {
+              round: room.currentRound,
+              totalRounds: TOTAL_ROUNDS,
+              question: room.gameMode === 'flag'
+                ? { type: 'flag', flagUrl: question.flagUrl, code: question.code }
+                : { type: 'quiz', question: question.question, options: question.options }
+            });
+          }, 3000); // 3 second delay between rounds
+        }
+      }
+    } catch (error) {
+      console.error('Error in submit-answer:', error);
+      socket.emit('answer-error', { message: 'Server error processing answer' });
+    }
+  });
+
+  // Leave room
+  socket.on('leave-room', (data) => {
+    try {
+      const { roomId } = data;
+      const room = multiplayerRooms.get(roomId);
+      
+      if (room) {
+        const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+        if (playerIndex !== -1) {
+          const player = room.players[playerIndex];
+          room.players.splice(playerIndex, 1);
+          socket.leave(roomId);
+          
+          console.log(`👋 ${player.name} left room ${roomId}`);
+          
+          io.to(roomId).emit('player-left', {
+            playerName: player.name,
+            players: room.players.map(p => ({ name: p.name, score: p.score }))
+          });
+
+          // End game if player leaves during game
+          if (room.gameStarted && room.players.length < 2) {
+            room.gameStarted = false;
+            io.to(roomId).emit('game-ended', { reason: 'Player left the game' });
+          }
+
+          // Delete empty rooms
+          if (room.players.length === 0) {
+            multiplayerRooms.delete(roomId);
+            console.log(`🗑️ Deleted empty room: ${roomId}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in leave-room:', error);
+    }
+  });
+
+  // Get room info
+  socket.on('get-room-info', (data) => {
+    try {
+      const { roomId } = data;
+      const room = multiplayerRooms.get(roomId);
+      
+      if (room) {
+        socket.emit('room-info', {
+          roomId,
+          gameMode: room.gameMode,
+          players: room.players.map(p => ({ name: p.name, score: p.score })),
+          gameStarted: room.gameStarted,
+          currentRound: room.currentRound
+        });
+      } else {
+        socket.emit('room-info', { roomId, exists: false });
+      }
+    } catch (error) {
+      console.error('Error in get-room-info:', error);
+    }
+  });
+
   socket.on('disconnect', (reason) => {
     console.log(`👋 Client disconnected: ${socket.id}, reason: ${reason}`);
     // Clean up connection tracking
     socketConnections.delete(socket.id);
+    
+    // Clean up multiplayer rooms when player disconnects
+    for (const [roomId, room] of multiplayerRooms.entries()) {
+      const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+      if (playerIndex !== -1) {
+        const player = room.players[playerIndex];
+        room.players.splice(playerIndex, 1);
+        
+        console.log(`🎮 ${player.name} disconnected from room ${roomId}`);
+        
+        io.to(roomId).emit('player-left', {
+          playerName: player.name,
+          players: room.players.map(p => ({ name: p.name, score: p.score })),
+          reason: 'disconnected'
+        });
+
+        // End game if player disconnects during game
+        if (room.gameStarted && room.players.length < 2) {
+          room.gameStarted = false;
+          io.to(roomId).emit('game-ended', { reason: 'Opponent disconnected' });
+        }
+
+        // Delete empty rooms
+        if (room.players.length === 0) {
+          multiplayerRooms.delete(roomId);
+          console.log(`🗑️ Deleted empty room: ${roomId}`);
+        }
+        break; // Player can only be in one room
+      }
+    }
   });
 
   socket.on('error', (error) => {

@@ -14,6 +14,7 @@ const mongoose = require("mongoose");
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const Country = require("./models/Country"); 
 const HeritageSite = require("./models/HeritageSite");
+const QuizQuestion = require("./models/QuizQuestion");
 
 // Middleware for parsing JSON and enabling CORS
 app.use(express.json({ limit: '10mb' }));
@@ -380,6 +381,37 @@ let lastFrameLogTime = Date.now();
 const TOTAL_ROUNDS = 10;
 const multiplayerRooms = new Map(); // roomId -> { players, gameMode, currentQuestion, answers, scores, currentRound }
 
+// Generate a heritage quiz question
+async function generateHeritageQuizQuestion(difficulty = 'easy', mode = 'all-india', monumentName = null) {
+  try {
+    let query = { difficulty };
+    
+    if (mode === 'monument' && monumentName) {
+      query.site = { $regex: new RegExp(`^${monumentName}$`, 'i') };
+    }
+    
+    const count = await QuizQuestion.countDocuments(query);
+    if (count === 0) return null;
+    
+    const random = Math.floor(Math.random() * count);
+    const question = await QuizQuestion.findOne(query).skip(random);
+    
+    if (!question) return null;
+    
+    return {
+      type: 'heritage-quiz',
+      site: question.site,
+      question: question.question,
+      options: question.options,
+      correctAnswer: question.correctAnswer,
+      category: question.category
+    };
+  } catch (error) {
+    console.error('Error generating heritage quiz question:', error);
+    return null;
+  }
+}
+
 // Generate a flag question using cached country data
 async function generateFlagQuestion() {
   const countries = await getFlagCountries();
@@ -561,8 +593,8 @@ io.on('connection', (socket) => {
       }
 
       // Validate game mode
-      if (!['flag', 'quiz'].includes(gameMode)) {
-        socket.emit('room-error', { message: 'Invalid game mode. Use "flag" or "quiz"' });
+      if (!['flag', 'quiz', 'heritage-quiz', 'heritage-monument'].includes(gameMode)) {
+        socket.emit('room-error', { message: 'Invalid game mode. Use "flag", "quiz", "heritage-quiz", or "heritage-monument"' });
         return;
       }
 
@@ -592,7 +624,8 @@ io.on('connection', (socket) => {
           currentRound: 0,
           gameStarted: false,
           lastActivity: Date.now(),
-          difficulty: data.difficulty || null
+          difficulty: data.difficulty || null,
+          monumentName: data.monumentName || null
         };
         multiplayerRooms.set(roomId, room);
         console.log(`🎮 Created multiplayer room: ${roomId} (${gameMode} mode)`);
@@ -638,10 +671,17 @@ io.on('connection', (socket) => {
         
         console.log(`🚀 Starting game in room ${roomId}`);
         
-        // Generate first question
-        const question = room.gameMode === 'flag' 
-          ? await generateFlagQuestion()
-          : await generateQuizQuestion(room.difficulty);
+        // Generate first question based on game mode
+        let question;
+        if (room.gameMode === 'flag') {
+          question = await generateFlagQuestion();
+        } else if (room.gameMode === 'heritage-quiz') {
+          question = await generateHeritageQuizQuestion(room.difficulty, 'all-india');
+        } else if (room.gameMode === 'heritage-monument') {
+          question = await generateHeritageQuizQuestion(room.difficulty, 'monument', data.monumentName);
+        } else {
+          question = await generateQuizQuestion(room.difficulty);
+        }
         
         if (!question) {
           io.to(roomId).emit('room-error', { message: 'Failed to generate question. Please try again.' });
@@ -664,6 +704,8 @@ io.on('connection', (socket) => {
           totalRounds: TOTAL_ROUNDS,
           question: room.gameMode === 'flag' 
             ? { type: 'flag', flagUrl: question.flagUrl, code: question.code }
+            : room.gameMode === 'heritage-quiz' || room.gameMode === 'heritage-monument'
+            ? { type: 'heritage-quiz', site: question.site, question: question.question, options: question.options, category: question.category }
             : { type: 'quiz', question: question.question, options: question.options }
         });
       }
@@ -707,8 +749,16 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Store answer
-      const isCorrect = answer.toLowerCase().trim() === room.currentQuestion.correctAnswer.toLowerCase().trim();
+      // Store answer and check correctness
+      let isCorrect;
+      if (room.gameMode === 'heritage-quiz' || room.gameMode === 'heritage-monument') {
+        // Heritage quiz uses numeric index for answer
+        isCorrect = parseInt(answer) === room.currentQuestion.correctAnswer;
+      } else {
+        // Flag and regular quiz use string comparison
+        isCorrect = answer.toLowerCase().trim() === room.currentQuestion.correctAnswer.toLowerCase().trim();
+      }
+      
       room.answers.set(socket.id, {
         answer,
         isCorrect,
@@ -778,9 +828,17 @@ io.on('connection', (socket) => {
             room.currentRound += 1;
             room.answers.clear();
 
-            const question = room.gameMode === 'flag'
-              ? await generateFlagQuestion()
-              : await generateQuizQuestion(room.difficulty);
+            // Generate next question based on game mode
+            let question;
+            if (room.gameMode === 'flag') {
+              question = await generateFlagQuestion();
+            } else if (room.gameMode === 'heritage-quiz') {
+              question = await generateHeritageQuizQuestion(room.difficulty, 'all-india');
+            } else if (room.gameMode === 'heritage-monument') {
+              question = await generateHeritageQuizQuestion(room.difficulty, 'monument', room.monumentName);
+            } else {
+              question = await generateQuizQuestion(room.difficulty);
+            }
 
             if (!question) {
               io.to(roomId).emit('room-error', { message: 'Failed to generate next question' });
@@ -796,6 +854,8 @@ io.on('connection', (socket) => {
               totalRounds: TOTAL_ROUNDS,
               question: room.gameMode === 'flag'
                 ? { type: 'flag', flagUrl: question.flagUrl, code: question.code }
+                : room.gameMode === 'heritage-quiz' || room.gameMode === 'heritage-monument'
+                ? { type: 'heritage-quiz', site: question.site, question: question.question, options: question.options, category: question.category }
                 : { type: 'quiz', question: question.question, options: question.options }
             });
           }, 3000); // 3 second delay between rounds
@@ -950,6 +1010,130 @@ app.get("/api/heritage/category/:category", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch heritage sites by category" });
+  }
+});
+
+// ===== HERITAGE QUIZ API ROUTES =====
+
+// Get quiz question for specific monument
+app.get("/api/quiz/monument/:name", async (req, res) => {
+  try {
+    const siteName = decodeURIComponent(req.params.name);
+    const difficulty = req.query.difficulty || 'easy';
+    
+    // Check if questions exist
+    const count = await QuizQuestion.countDocuments({ 
+      site: { $regex: new RegExp(`^${siteName}$`, 'i') },
+      difficulty 
+    });
+    
+    if (count === 0) {
+      return res.json({ 
+        available: false, 
+        message: "No quiz questions available for this monument at this difficulty level" 
+      });
+    }
+    
+    // Get random question
+    const random = Math.floor(Math.random() * count);
+    const question = await QuizQuestion.findOne({
+      site: { $regex: new RegExp(`^${siteName}$`, 'i') },
+      difficulty
+    }).skip(random);
+    
+    res.json({ 
+      available: true, 
+      question: {
+        id: question._id,
+        question: question.question,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+        category: question.category
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching monument quiz:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all-India quiz question (from any monument)
+app.get("/api/quiz/all-india", async (req, res) => {
+  try {
+    const difficulty = req.query.difficulty || 'easy';
+    
+    const count = await QuizQuestion.countDocuments({ difficulty });
+    
+    if (count === 0) {
+      return res.status(404).json({ error: "No quiz questions available" });
+    }
+    
+    const random = Math.floor(Math.random() * count);
+    const question = await QuizQuestion.findOne({ difficulty }).skip(random);
+    
+    res.json({
+      id: question._id,
+      site: question.site,
+      question: question.question,
+      options: question.options,
+      correctAnswer: question.correctAnswer,
+      category: question.category
+    });
+  } catch (error) {
+    console.error("Error fetching all-India quiz:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get list of monuments with available quizzes
+app.get("/api/quiz/available-monuments", async (req, res) => {
+  try {
+    const monuments = await QuizQuestion.distinct('site');
+    res.json(monuments.sort());
+  } catch (error) {
+    console.error("Error fetching available monuments:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get multiple unique questions for a quiz session (no repetition)
+app.get("/api/quiz/session/:mode", async (req, res) => {
+  try {
+    const mode = req.params.mode; // 'monument' or 'all-india'
+    const difficulty = req.query.difficulty || 'easy';
+    const monumentName = req.query.monument;
+    const count = parseInt(req.query.count) || 10;
+    
+    let query = { difficulty };
+    
+    if (mode === 'monument' && monumentName) {
+      query.site = { $regex: new RegExp(`^${monumentName}$`, 'i') };
+    }
+    
+    // Get random sample of questions
+    const questions = await QuizQuestion.aggregate([
+      { $match: query },
+      { $sample: { size: count } }
+    ]);
+    
+    if (questions.length === 0) {
+      return res.json({ available: false, questions: [] });
+    }
+    
+    res.json({ 
+      available: true,
+      questions: questions.map(q => ({
+        id: q._id,
+        site: q.site,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        category: q.category
+      }))
+    });
+  } catch (error) {
+    console.error("Error fetching quiz session:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
+import HeritageQuiz from './HeritageQuiz';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -66,6 +67,7 @@ const HeritagePage = () => {
   // Heritage Info Modal state
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [directionsModalOpen, setDirectionsModalOpen] = useState(false);
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
   
   // Search functionality state
   const [searchMode, setSearchMode] = useState('coordinates');
@@ -1417,6 +1419,76 @@ const HeritagePage = () => {
         📖 Open Heritage Storybook
       </button>
 
+      {/* All India Heritage Quiz Button */}
+      <button
+        onClick={() => navigate('/heritage-quiz')}
+        style={{
+          position: 'absolute',
+          bottom: '30px',
+          right: '270px',
+          background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+          border: 'none',
+          borderRadius: '50px',
+          padding: '12px 24px',
+          color: 'white',
+          fontSize: '16px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          zIndex: 10,
+          boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          transition: 'transform 0.2s, box-shadow 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'translateY(-2px)';
+          e.target.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'translateY(0)';
+          e.target.style.boxShadow = '0 4px 15px rgba(156, 39, 176, 0.3)';
+        }}
+      >
+        🎯 All India Quiz
+      </button>
+
+      {/* Multiplayer Heritage Quiz Button */}
+      <button
+        onClick={() => navigate('/multiplayer/heritage-quiz')}
+        style={{
+          position: 'absolute',
+          bottom: '90px',
+          right: '30px',
+          background: 'linear-gradient(135deg, #ff9800, #f57c00)',
+          border: 'none',
+          borderRadius: '50px',
+          padding: '12px 24px',
+          color: 'white',
+          fontSize: '16px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          zIndex: 10,
+          boxShadow: '0 4px 15px rgba(255, 152, 0, 0.3)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          transition: 'transform 0.2s, box-shadow 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'translateY(-2px)';
+          e.target.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'translateY(0)';
+          e.target.style.boxShadow = '0 4px 15px rgba(255, 152, 0, 0.3)';
+        }}
+      >
+        👥 Multiplayer Quiz
+      </button>
+
       {/* Home Navigation Button */}
       <button
         onClick={() => navigate('/')}
@@ -1875,6 +1947,14 @@ const HeritagePage = () => {
                 }}
               />
             )}
+
+            {/* Heritage Quiz Block */}
+            <SidebarBlock
+              icon="🎯"
+              title="Heritage Quiz"
+              summary="Test your knowledge about this monument"
+              onClick={() => setQuizModalOpen(true)}
+            />
 
             {/* Map Viewing Options */}
             <div style={{ 
@@ -2499,6 +2579,15 @@ const HeritagePage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Heritage Quiz Modal */}
+      {quizModalOpen && sidebarData && (
+        <HeritageQuiz
+          monumentName={sidebarData.name}
+          initialMode="monument"
+          onClose={() => setQuizModalOpen(false)}
+        />
       )}
 
       {/* Custom styles */}

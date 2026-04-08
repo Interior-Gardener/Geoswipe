@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
 import HeritageQuiz from './HeritageQuiz';
 import HeritageChatbot from './components/HeritageChatbot';
+import { fetchWeatherData, getWeatherIconUrl, formatWeatherDate } from './utils/openWeatherService';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -69,6 +70,12 @@ const HeritagePage = () => {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [directionsModalOpen, setDirectionsModalOpen] = useState(false);
   const [quizModalOpen, setQuizModalOpen] = useState(false);
+  
+  // Weather Modal state
+  const [weatherModalOpen, setWeatherModalOpen] = useState(false);
+  const [weatherData, setWeatherData] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState(null);
   
   // Search functionality state
   const [searchMode, setSearchMode] = useState('coordinates');
@@ -451,6 +458,7 @@ const HeritagePage = () => {
         setInfoModalOpen(false);
         setDirectionsModalOpen(false);
         setStreetViewModalOpen(false);
+        setWeatherModalOpen(false);
       }
     };
 
@@ -761,6 +769,39 @@ const HeritagePage = () => {
         }
       };
     }
+  };
+
+  // Weather handler function
+  const handleWeatherClick = async () => {
+    if (!sidebarData?.coordinates) {
+      console.error('No coordinates available for weather');
+      return;
+    }
+    
+    setWeatherLoading(true);
+    setWeatherError(null);
+    
+    try {
+      const [longitude, latitude] = sidebarData.coordinates;
+      console.log(`🌤️ Fetching weather for ${sidebarData.name} at [${latitude}, ${longitude}]`);
+      
+      const data = await fetchWeatherData(latitude, longitude);
+      setWeatherData(data);
+      setWeatherModalOpen(true);
+      
+      console.log('✅ Weather data loaded successfully');
+    } catch (error) {
+      console.error('❌ Error fetching weather:', error);
+      setWeatherError(error.message || 'Failed to fetch weather data');
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  // Retry weather fetch
+  const retryWeather = () => {
+    setWeatherError(null);
+    handleWeatherClick();
   };
 
   useEffect(() => {
@@ -2063,6 +2104,17 @@ const HeritagePage = () => {
                   }
                 }}
               />
+
+              {/* Weather Forecast */}
+              {sidebarData.coordinates && (
+                <SidebarBlock
+                  icon="🌤️"
+                  title="Weather Forecast"
+                  summary="Current conditions & 5-day forecast"
+                  onClick={handleWeatherClick}
+                  isLoading={weatherLoading}
+                />
+              )}
             </div>
           </div>
           {/* End scrollable content area */}
@@ -2683,6 +2735,298 @@ const HeritagePage = () => {
           left: 100%;
         }
       `}} />
+
+      {/* Weather Modal */}
+      {weatherModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setWeatherModalOpen(false)}
+        >
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              borderRadius: '20px',
+              maxWidth: '700px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              padding: '40px',
+              color: 'white',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setWeatherModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                fontSize: '28px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease',
+                lineHeight: '1'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                e.target.style.transform = 'rotate(90deg)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.transform = 'rotate(0deg)';
+              }}
+              title="Close (ESC)"
+            >
+              ×
+            </button>
+
+            {/* Header */}
+            <div style={{ marginBottom: '30px', paddingRight: '40px' }}>
+              <h2 style={{ 
+                fontSize: '28px', 
+                fontWeight: '700', 
+                margin: '0 0 8px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                🌤️ Weather at {sidebarData?.name}
+              </h2>
+              {weatherData?.location && (
+                <div style={{ 
+                  fontSize: '16px', 
+                  opacity: 0.9,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <span>{weatherData.location.name}, {weatherData.location.country}</span>
+                  <span>•</span>
+                  <span style={{ fontSize: '14px', opacity: 0.8 }}>
+                    Updated {new Date(weatherData.fetchedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {weatherError ? (
+              /* Error State */
+              <div style={{
+                background: 'rgba(255, 87, 87, 0.2)',
+                border: '2px solid rgba(255, 87, 87, 0.5)',
+                borderRadius: '12px',
+                padding: '30px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
+                <div style={{ fontSize: '18px', marginBottom: '20px', fontWeight: '500' }}>
+                  {weatherError}
+                </div>
+                <button 
+                  onClick={retryWeather}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '2px solid rgba(255, 255, 255, 0.4)',
+                    borderRadius: '12px',
+                    padding: '12px 24px',
+                    color: 'white',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                    e.target.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.transform = 'scale(1)';
+                  }}
+                >
+                  🔄 Retry
+                </button>
+              </div>
+            ) : weatherData ? (
+              /* Weather Content */
+              <>
+                {/* Current Weather */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  borderRadius: '16px',
+                  padding: '30px',
+                  backdropFilter: 'blur(10px)',
+                  marginBottom: '24px'
+                }}>
+                  <h3 style={{ 
+                    fontSize: '18px', 
+                    fontWeight: '600', 
+                    marginTop: 0, 
+                    marginBottom: '20px',
+                    opacity: 0.9
+                  }}>
+                    CURRENT CONDITIONS
+                  </h3>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '20px', 
+                    marginBottom: '24px' 
+                  }}>
+                    <img 
+                      src={getWeatherIconUrl(weatherData.current.icon)} 
+                      alt={weatherData.current.description}
+                      style={{ width: '80px', height: '80px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '48px', fontWeight: '700', lineHeight: '1' }}>
+                        {weatherData.current.temp}°C
+                      </div>
+                      <div style={{ fontSize: '18px', marginTop: '8px', textTransform: 'capitalize' }}>
+                        {weatherData.current.description}
+                      </div>
+                      <div style={{ fontSize: '14px', marginTop: '4px', opacity: 0.8 }}>
+                        Feels like {weatherData.current.feelsLike}°C
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                    gap: '16px' 
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>💧 Humidity</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.humidity}%</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>💨 Wind</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600' }}>
+                        {weatherData.current.wind.speed} m/s {weatherData.current.wind.direction}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>🌡️ Pressure</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.pressure} mb</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>☁️ Cloud Cover</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.clouds}%</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>👁️ Visibility</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.visibility} km</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>🌡️ High/Low</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600' }}>
+                        {weatherData.current.tempMax}° / {weatherData.current.tempMin}°
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5-Day Forecast */}
+                {weatherData.forecast && weatherData.forecast.length > 0 && (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <h3 style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '600', 
+                      marginTop: 0, 
+                      marginBottom: '20px',
+                      opacity: 0.9
+                    }}>
+                      5-DAY FORECAST
+                    </h3>
+                    
+                    {weatherData.forecast.map((day, index) => (
+                      <div 
+                        key={index}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 0',
+                          borderBottom: index < weatherData.forecast.length - 1 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'
+                        }}
+                      >
+                        <div style={{ flex: '1', fontSize: '16px', fontWeight: '500' }}>
+                          {formatWeatherDate(day.date)}
+                        </div>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '16px',
+                          flex: '2',
+                          justifyContent: 'flex-end'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <img 
+                              src={getWeatherIconUrl(day.icon)} 
+                              alt={day.condition}
+                              style={{ width: '40px', height: '40px' }}
+                            />
+                            <span style={{ fontSize: '14px', minWidth: '80px' }}>{day.condition}</span>
+                          </div>
+                          <div style={{ 
+                            fontSize: '18px', 
+                            fontWeight: '600',
+                            minWidth: '100px',
+                            textAlign: 'right'
+                          }}>
+                            {day.tempMax}° / {day.tempMin}°
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div style={{ 
+                  marginTop: '24px', 
+                  textAlign: 'center', 
+                  fontSize: '12px', 
+                  opacity: 0.7 
+                }}>
+                  Powered by OpenWeatherMap
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Heritage Chatbot - Global AI Assistant */}
       <HeritageChatbot />

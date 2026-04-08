@@ -355,6 +355,7 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
       year: site.year,
       info: site.info,
       howToReach: site.howToReach,
+      location: site.location, // Include location data with city/state
       view360: site.view360 ? {
         ...site.view360,
         iframeUrl: streetViewUrl
@@ -369,6 +370,245 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch heritage site details" });
+  }
+});
+
+// ===== NEWS API INTEGRATION WITH FALLBACK SYSTEM =====
+const NEWSAPI_BASE_URL = 'https://newsapi.org/v2/everything';
+const NEWSAPI_KEY = process.env.NEWSAPI_API_KEY || 'd1f3be2815b944bd86b61714de465ab1';
+const NEWS_ARTICLE_LIMIT = 5; // Limit results for clean UI
+
+/**
+ * Fetch news from NewsAPI with a given query
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} - Array of articles or empty array
+ */
+async function fetchNewsWithQuery(query) {
+  try {
+    console.log(`📰 Trying query: ${query}`);
+    
+    const response = await fetch(`${NEWSAPI_BASE_URL}?${new URLSearchParams({
+      q: query,
+      language: 'en',
+      sortBy: 'publishedAt',
+      pageSize: '10',
+      apiKey: NEWSAPI_KEY
+    })}`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      console.warn(`⚠️ NewsAPI returned ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    if (data.status === 'ok' && data.articles && data.articles.length > 0) {
+      return data.articles;
+    }
+    
+    return [];
+  } catch (err) {
+    console.warn(`⚠️ News fetch failed: ${err.message}`);
+    return [];
+  }
+}
+
+/**
+ * Multi-level fallback news fetching
+ * Level 1: Monument name + city
+ * Level 2: City tourism/heritage
+ * Level 3: State tourism/heritage
+ * Level 4: India heritage tourism
+ * @returns {Object} - { articles, fallbackLevel, fallbackLabel }
+ */
+async function fetchNewsWithFallback(monumentName, city, state) {
+  // Level 1: Monument + City (simplified query using OR)
+  const level1Query = city 
+    ? `${monumentName} OR "${city} tourism" OR "${city} heritage"`
+    : `${monumentName} OR "India heritage"`;
+  
+  let articles = await fetchNewsWithQuery(level1Query);
+  
+  if (articles.length > 0) {
+    console.log(`✅ Level 1 success: ${articles.length} articles for monument`);
+    return {
+      articles: articles,
+      fallbackLevel: 1,
+      fallbackLabel: null
+    };
+  }
+
+  // Level 2: City tourism/heritage (fallback)
+  if (city) {
+    const level2Query = `"${city}" AND (tourism OR heritage OR travel OR culture OR monument)`;
+    articles = await fetchNewsWithQuery(level2Query);
+    
+    if (articles.length > 0) {
+      console.log(`✅ Level 2 success: ${articles.length} articles for ${city}`);
+      return {
+        articles: articles,
+        fallbackLevel: 2,
+        fallbackLabel: `Showing tourism news for ${city}`
+      };
+    }
+  }
+
+  // Level 3: State tourism (fallback)
+  if (state) {
+    const level3Query = `"${state}" AND (tourism OR heritage OR travel OR monument)`;
+    articles = await fetchNewsWithQuery(level3Query);
+    
+    if (articles.length > 0) {
+      console.log(`✅ Level 3 success: ${articles.length} articles for ${state}`);
+      return {
+        articles: articles,
+        fallbackLevel: 3,
+        fallbackLabel: `Showing heritage news for ${state}`
+      };
+    }
+  }
+
+  // Level 4: India heritage (final fallback)
+  const level4Query = 'India heritage tourism OR "Indian monuments" OR "historical sites India"';
+  articles = await fetchNewsWithQuery(level4Query);
+  
+  if (articles.length > 0) {
+    console.log(`✅ Level 4 success: ${articles.length} articles for India heritage`);
+    return {
+      articles: articles,
+      fallbackLevel: 4,
+      fallbackLabel: 'Showing heritage news from India'
+    };
+  }
+
+  // No results at any level
+  console.log(`❌ No news found at any fallback level`);
+  return {
+    articles: [],
+    fallbackLevel: 0,
+    fallbackLabel: null
+  };
+}
+
+// Helper: Format articles and add time ago
+function formatNewsArticles(articles) {
+  return articles.map(article => {
+    const now = new Date();
+    const published = new Date(article.publishedAt);
+    const diffMs = now - published;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    let timeAgo;
+    if (diffMins < 1) timeAgo = 'Just now';
+    else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+    else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+    else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
+    else timeAgo = published.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    return {
+      title: article.title,
+      description: article.description || 'No description available',
+      url: article.url,
+      source: article.source?.name || 'Unknown Source',
+      publishedAt: article.publishedAt,
+      author: article.author || null,
+      timeAgo: timeAgo
+    };
+  }).filter(article => {
+    return article.title && 
+           article.title !== '[Removed]' && 
+           article.url &&
+           !article.url.includes('removed.com');
+  }).slice(0, NEWS_ARTICLE_LIMIT); // Limit to 5 articles
+}
+
+// Get news for a heritage site with multi-level fallback
+app.get("/api/news/:siteName", async (req, res) => {
+  try {
+    const siteName = decodeURIComponent(req.params.siteName);
+    console.log(`📰 Fetching news for: ${siteName}`);
+    
+    // Find the heritage site to get location details
+    const site = await HeritageSite.findOne({ 
+      name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+    });
+    
+    if (!site) {
+      return res.status(404).json({ error: "Heritage site not found" });
+    }
+
+    const city = site.location?.city || '';
+    const state = site.location?.state || '';
+
+    console.log(`📍 Location: ${city}, ${state}`);
+
+    // Fetch monument news with fallback
+    const monumentResult = await fetchNewsWithFallback(siteName, city, state);
+    const monumentArticles = formatNewsArticles(monumentResult.articles);
+
+    // Fetch location news (city-focused, separate from monument)
+    let locationArticles = [];
+    let locationFallbackLabel = null;
+    
+    if (city) {
+      const cityQuery = `"${city}" AND (tourism OR heritage OR travel OR news OR development)`;
+      const cityArticles = await fetchNewsWithQuery(cityQuery);
+      
+      if (cityArticles.length > 0) {
+        locationArticles = formatNewsArticles(cityArticles);
+      } else if (state) {
+        // Fallback to state news
+        const stateQuery = `"${state}" AND (tourism OR heritage OR travel OR news)`;
+        const stateArticles = await fetchNewsWithQuery(stateQuery);
+        locationArticles = formatNewsArticles(stateArticles);
+        if (stateArticles.length > 0) {
+          locationFallbackLabel = `Showing news for ${state}`;
+        }
+      }
+    }
+
+    // If still no location news, use India news
+    if (locationArticles.length === 0) {
+      const indiaQuery = 'India tourism OR "India travel" OR "Indian heritage"';
+      const indiaArticles = await fetchNewsWithQuery(indiaQuery);
+      locationArticles = formatNewsArticles(indiaArticles);
+      if (indiaArticles.length > 0) {
+        locationFallbackLabel = 'Showing heritage news from India';
+      }
+    }
+
+    console.log(`✅ Final: ${monumentArticles.length} monument articles, ${locationArticles.length} location articles`);
+
+    res.json({
+      success: true,
+      monument: {
+        name: siteName,
+        articles: monumentArticles,
+        totalResults: monumentArticles.length,
+        fallbackLevel: monumentResult.fallbackLevel,
+        fallbackLabel: monumentResult.fallbackLabel
+      },
+      location: {
+        city: city || 'Unknown',
+        state: state || 'Unknown',
+        articles: locationArticles,
+        totalResults: locationArticles.length,
+        fallbackLabel: locationFallbackLabel
+      },
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('❌ Error fetching news:', err);
+    
+    if (err.message && err.message.includes('rate limit')) {
+      return res.status(429).json({ error: "News API rate limit exceeded. Please try again later." });
+    }
+    
+    res.status(500).json({ error: "Failed to fetch news" });
   }
 });
 

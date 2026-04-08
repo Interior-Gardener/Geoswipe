@@ -6,6 +6,7 @@ import './assets/map-icon-outlines.css';
 import HeritageQuiz from './HeritageQuiz';
 import HeritageChatbot from './components/HeritageChatbot';
 import { fetchWeatherData, getWeatherIconUrl, formatWeatherDate } from './utils/openWeatherService';
+import { fetchHeritageNews } from './utils/newsService';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -76,6 +77,13 @@ const HeritagePage = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(null);
+  
+  // News Modal state
+  const [newsModalOpen, setNewsModalOpen] = useState(false);
+  const [newsData, setNewsData] = useState(null);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsError, setNewsError] = useState(null);
+  const [newsTab, setNewsTab] = useState('monument'); // 'monument' or 'location'
   
   // Search functionality state
   const [searchMode, setSearchMode] = useState('coordinates');
@@ -459,6 +467,7 @@ const HeritagePage = () => {
         setDirectionsModalOpen(false);
         setStreetViewModalOpen(false);
         setWeatherModalOpen(false);
+        setNewsModalOpen(false);
       }
     };
 
@@ -802,6 +811,44 @@ const HeritagePage = () => {
   const retryWeather = () => {
     setWeatherError(null);
     handleWeatherClick();
+  };
+
+  // Handle News button click
+  const handleNewsClick = async () => {
+    if (!sidebarData || !sidebarData.name) {
+      alert('No heritage site selected');
+      return;
+    }
+
+    // If already loaded in this session, just open modal
+    if (newsData && newsData.monument && newsData.monument.name === sidebarData.name) {
+      setNewsModalOpen(true);
+      return;
+    }
+
+    setNewsLoading(true);
+    setNewsError(null);
+    setNewsModalOpen(true);
+    setNewsTab('monument'); // Reset to monument tab
+
+    try {
+      console.log(`📰 Fetching news for ${sidebarData.name}`);
+      const data = await fetchHeritageNews(sidebarData.name);
+      setNewsData(data);
+      console.log('✅ News loaded successfully');
+    } catch (error) {
+      console.error('❌ Error fetching news:', error);
+      setNewsError(error.message || 'Failed to fetch news');
+    } finally {
+      setNewsLoading(false);
+    }
+  };
+
+  // Retry news fetch
+  const retryNews = () => {
+    setNewsError(null);
+    setNewsData(null);
+    handleNewsClick();
   };
 
   useEffect(() => {
@@ -2115,6 +2162,15 @@ const HeritagePage = () => {
                   isLoading={weatherLoading}
                 />
               )}
+
+              {/* Latest News */}
+              <SidebarBlock
+                icon="📰"
+                title="Latest News"
+                summary="Recent heritage & tourism updates"
+                onClick={handleNewsClick}
+                isLoading={newsLoading}
+              />
             </div>
           </div>
           {/* End scrollable content area */}
@@ -3024,6 +3080,301 @@ const HeritagePage = () => {
                 </div>
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* News Modal */}
+      {newsModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setNewsModalOpen(false)}
+        >
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              borderRadius: '20px',
+              padding: '40px',
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              color: 'white',
+              position: 'relative',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setNewsModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                cursor: 'pointer',
+                color: 'white',
+                fontSize: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+              onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+            >
+              ×
+            </button>
+
+            {/* Header */}
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>
+                📰 Latest News
+              </h2>
+              <p style={{ opacity: 0.8, margin: 0, fontSize: '14px' }}>
+                {sidebarData?.name || 'Heritage Site'}
+              </p>
+            </div>
+
+            {/* Loading State */}
+            {newsLoading && (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📰</div>
+                <p style={{ opacity: 0.8 }}>Loading latest news...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {newsError && !newsLoading && (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px',
+                background: 'rgba(255, 87, 87, 0.2)',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 87, 87, 0.4)'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                <p style={{ marginBottom: '16px' }}>{newsError}</p>
+                <button
+                  onClick={retryNews}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px 24px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  🔄 Retry
+                </button>
+              </div>
+            )}
+
+            {/* News Content */}
+            {!newsLoading && !newsError && newsData && (
+              <>
+                {/* Tab Selector */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  marginBottom: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  borderRadius: '12px',
+                  padding: '6px'
+                }}>
+                  <button
+                    onClick={() => setNewsTab('monument')}
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      transition: 'all 0.2s',
+                      background: newsTab === 'monument' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                      color: 'white'
+                    }}
+                  >
+                    🏛️ {newsData.monument.name} ({newsData.monument.articles.length})
+                  </button>
+                  <button
+                    onClick={() => setNewsTab('location')}
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      transition: 'all 0.2s',
+                      background: newsTab === 'location' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                      color: 'white'
+                    }}
+                  >
+                    📍 {newsData.location.city} ({newsData.location.articles.length})
+                  </button>
+                </div>
+
+                {/* Fallback Indicator */}
+                {((newsTab === 'monument' && newsData.monument.fallbackLabel) || 
+                  (newsTab === 'location' && newsData.location.fallbackLabel)) && (
+                  <div style={{
+                    background: 'rgba(255, 193, 7, 0.2)',
+                    border: '1px solid rgba(255, 193, 7, 0.4)',
+                    borderRadius: '8px',
+                    padding: '10px 16px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span>💡</span>
+                    <span style={{ opacity: 0.9 }}>
+                      {newsTab === 'monument' ? newsData.monument.fallbackLabel : newsData.location.fallbackLabel}
+                    </span>
+                  </div>
+                )}
+
+                {/* Articles List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {(newsTab === 'monument' ? newsData.monument.articles : newsData.location.articles).length === 0 ? (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '40px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
+                      <p style={{ opacity: 0.8, margin: 0 }}>
+                        No recent news found for {newsTab === 'monument' ? newsData.monument.name : newsData.location.city}.
+                      </p>
+                    </div>
+                  ) : (
+                    (newsTab === 'monument' ? newsData.monument.articles : newsData.location.articles).map((article, index) => (
+                      <a
+                        key={index}
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          display: 'block'
+                        }}
+                      >
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          transition: 'all 0.2s',
+                          cursor: 'pointer',
+                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                        >
+                          {/* Article Title */}
+                          <h3 style={{ 
+                            fontSize: '16px', 
+                            fontWeight: '600', 
+                            margin: 0, 
+                            marginBottom: '8px',
+                            lineHeight: 1.4
+                          }}>
+                            {article.title}
+                          </h3>
+                          
+                          {/* Source and Time */}
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '12px',
+                            marginBottom: '10px',
+                            fontSize: '12px',
+                            opacity: 0.7
+                          }}>
+                            <span style={{ 
+                              background: 'rgba(255, 255, 255, 0.15)',
+                              padding: '4px 8px',
+                              borderRadius: '4px'
+                            }}>
+                              {article.source}
+                            </span>
+                            <span>⏰ {article.timeAgo}</span>
+                          </div>
+                          
+                          {/* Description */}
+                          <p style={{ 
+                            fontSize: '14px', 
+                            opacity: 0.9, 
+                            margin: 0,
+                            lineHeight: 1.5,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {article.description}
+                          </p>
+
+                          {/* Read More Link */}
+                          <div style={{ 
+                            marginTop: '12px', 
+                            fontSize: '13px', 
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            Read Full Article 
+                            <span style={{ fontSize: '16px' }}>↗</span>
+                          </div>
+                        </div>
+                      </a>
+                    ))
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div style={{ 
+                  marginTop: '24px', 
+                  textAlign: 'center', 
+                  fontSize: '12px', 
+                  opacity: 0.6 
+                }}>
+                  Powered by NewsAPI • Updated: {new Date(newsData.fetchedAt).toLocaleTimeString()}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

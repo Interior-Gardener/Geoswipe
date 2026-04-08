@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
 import HeritageQuiz from './HeritageQuiz';
+import HeritageChatbot from './components/HeritageChatbot';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -2682,6 +2683,9 @@ const HeritagePage = () => {
           left: 100%;
         }
       `}} />
+
+      {/* Heritage Chatbot - Global AI Assistant */}
+      <HeritageChatbot />
     </div>
   );
 };

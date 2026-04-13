@@ -1,0 +1,8 @@
+.trip-planner-input::placeholder {
+  color: black;
+  opacity: 1;
+}
+
+.trip-planner-input:focus::placeholder {
+  color: rgba(76, 29, 149, 0.55);
+}

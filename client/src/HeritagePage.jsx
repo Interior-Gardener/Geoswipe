@@ -1476,110 +1476,111 @@ const HeritagePage = () => {
       {/* Map Container */}
       <div ref={mapContainer} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%', zIndex: 1 }} />
 
-      {/* StoryBook Demo Button */}
-      <button
-        onClick={() => navigate('/storybook-demo')}
+      {/* Heritage Action Buttons */}
+      <div
         style={{
           position: 'absolute',
           bottom: '30px',
-          right: '30px',
-          background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-          border: 'none',
-          borderRadius: '50px',
-          padding: '12px 24px',
-          color: 'white',
-          fontSize: '16px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          zIndex: 10,
-          boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
-          backdropFilter: 'blur(10px)',
+          right: '10px',
           display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'flex-end',
           alignItems: 'center',
-          gap: '8px',
-          transition: 'transform 0.2s, box-shadow 0.2s'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+          gap: '12px',
+          zIndex: 10,
+          maxWidth: 'calc(100vw - 320px)'
         }}
       >
-        📖 Open Heritage Storybook
-      </button>
+        <button
+          onClick={() => navigate('/multiplayer/heritage-quiz')}
+          style={{
+            background: 'linear-gradient(135deg, #ff9800, #f57c00)',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '12px 24px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(255, 152, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(255, 152, 0, 0.3)';
+          }}
+        >
+          👥 Multiplayer Quiz
+        </button>
 
-      {/* All India Heritage Quiz Button */}
-      <button
-        onClick={() => navigate('/heritage-quiz')}
-        style={{
-          position: 'absolute',
-          bottom: '30px',
-          right: '270px',
-          background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
-          border: 'none',
-          borderRadius: '50px',
-          padding: '12px 24px',
-          color: 'white',
-          fontSize: '16px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          zIndex: 10,
-          boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          transition: 'transform 0.2s, box-shadow 0.2s'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 15px rgba(156, 39, 176, 0.3)';
-        }}
-      >
-        🎯 All India Quiz
-      </button>
+        <button
+          onClick={() => navigate('/heritage-quiz')}
+          style={{
+            background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '12px 24px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(156, 39, 176, 0.3)';
+          }}
+        >
+          🎯 All India Quiz
+        </button>
 
-      {/* Multiplayer Heritage Quiz Button */}
-      <button
-        onClick={() => navigate('/multiplayer/heritage-quiz')}
-        style={{
-          position: 'absolute',
-          bottom: '90px',
-          right: '30px',
-          background: 'linear-gradient(135deg, #ff9800, #f57c00)',
-          border: 'none',
-          borderRadius: '50px',
-          padding: '12px 24px',
-          color: 'white',
-          fontSize: '16px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          zIndex: 10,
-          boxShadow: '0 4px 15px rgba(255, 152, 0, 0.3)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          transition: 'transform 0.2s, box-shadow 0.2s'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 15px rgba(255, 152, 0, 0.3)';
-        }}
-      >
-        👥 Multiplayer Quiz
-      </button>
+        <button
+          onClick={() => navigate('/storybook-demo')}
+          style={{
+            background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '12px 24px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+          }}
+        >
+          📖 Open Heritage Storybook
+        </button>
+      </div>
 
       {/* Home Navigation Button */}
       <button

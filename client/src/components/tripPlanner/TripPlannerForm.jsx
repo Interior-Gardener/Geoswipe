@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getTripPlannerDefaults } from '../../utils/tripPlannerService';
+import './TripPlannerForm.css';
 
 const PREFERENCE_OPTIONS = [
   { value: 'history', label: 'History' },
@@ -59,6 +60,7 @@ function TripPlannerForm({
       <div style={styles.fieldGroup}>
         <label style={styles.label}>Number of Days</label>
         <input
+          className="trip-planner-input"
           type="number"
           min="1"
           max="10"
@@ -72,6 +74,7 @@ function TripPlannerForm({
       <div style={styles.fieldGroup}>
         <label style={styles.label}>Start Date (Optional)</label>
         <input
+          className="trip-planner-input"
           type="date"
           value={formData.startDate || ''}
           onChange={(event) => updateField('startDate', event.target.value)}
@@ -84,12 +87,12 @@ function TripPlannerForm({
         <select
           value={formData.budgetType}
           onChange={(event) => updateField('budgetType', event.target.value)}
-          style={styles.input}
+          style={styles.selectInput}
         >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="custom">Custom</option>
+          <option style={styles.selectOption} value="low">Low</option>
+          <option style={styles.selectOption} value="medium">Medium</option>
+          <option style={styles.selectOption} value="high">High</option>
+          <option style={styles.selectOption} value="custom">Custom</option>
         </select>
       </div>
 
@@ -97,6 +100,7 @@ function TripPlannerForm({
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Custom Budget (INR)</label>
           <input
+            className="trip-planner-input"
             type="number"
             min="1000"
             step="500"
@@ -112,6 +116,7 @@ function TripPlannerForm({
       <div style={styles.fieldGroup}>
         <label style={styles.label}>Travelers</label>
         <input
+          className="trip-planner-input"
           type="number"
           min="1"
           max="20"
@@ -125,6 +130,7 @@ function TripPlannerForm({
       <div style={styles.fieldGroup}>
         <label style={styles.label}>Origin City (Optional)</label>
         <input
+          className="trip-planner-input"
           type="text"
           placeholder="e.g. Pune"
           value={formData.originCity || ''}
@@ -138,12 +144,12 @@ function TripPlannerForm({
         <select
           value={formData.transportPreference}
           onChange={(event) => updateField('transportPreference', event.target.value)}
-          style={styles.input}
+          style={styles.selectInput}
         >
-          <option value="any">Any / Flexible</option>
-          <option value="flight">Flight</option>
-          <option value="train">Train</option>
-          <option value="road">Road</option>
+          <option style={styles.selectOption} value="any">Any / Flexible</option>
+          <option style={styles.selectOption} value="flight">Flight</option>
+          <option style={styles.selectOption} value="train">Train</option>
+          <option style={styles.selectOption} value="road">Road</option>
         </select>
       </div>
 
@@ -178,8 +184,8 @@ function TripPlannerForm({
 
 const styles = {
   formRoot: {
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.16)',
+    background: 'rgba(248, 245, 255, 0.1)',
+    border: '1px solid rgba(236, 221, 255, 0.22)',
     borderRadius: '14px',
     padding: '16px',
     display: 'flex',
@@ -193,7 +199,7 @@ const styles = {
   },
   siteText: {
     fontSize: '13px',
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(246, 239, 255, 0.88)',
     marginBottom: '2px',
   },
   fieldGroup: {
@@ -208,12 +214,26 @@ const styles = {
   input: {
     height: '38px',
     borderRadius: '8px',
-    border: '1px solid rgba(255,255,255,0.35)',
-    background: 'rgba(255,255,255,0.18)',
-    color: 'white',
+    border: '1px solid rgba(232, 214, 255, 0.42)',
+    background: 'rgba(255,255,255,0.22)',
+    color: '#f8f5ff',
     padding: '0 10px',
     fontSize: '14px',
     outline: 'none',
+  },
+  selectInput: {
+    height: '38px',
+    borderRadius: '8px',
+    border: '1px solid rgba(232, 214, 255, 0.42)',
+    background: 'rgba(255,255,255,0.22)',
+    color: '#f8f5ff',
+    padding: '0 10px',
+    fontSize: '14px',
+    outline: 'none',
+  },
+  selectOption: {
+    backgroundColor: '#f7f4ff',
+    color: '#2e1065',
   },
   preferenceGrid: {
     display: 'flex',
@@ -222,24 +242,24 @@ const styles = {
   },
   prefChip: {
     borderRadius: '999px',
-    border: '1px solid rgba(255,255,255,0.35)',
+    border: '1px solid rgba(230, 212, 255, 0.45)',
     padding: '6px 10px',
-    background: 'rgba(255,255,255,0.12)',
+    background: 'rgba(255,255,255,0.16)',
     color: 'white',
     cursor: 'pointer',
     fontSize: '12px',
     fontWeight: 600,
   },
   prefChipActive: {
-    background: 'rgba(255,255,255,0.28)',
-    borderColor: 'rgba(255,255,255,0.6)',
+    background: 'rgba(244, 232, 255, 0.35)',
+    borderColor: 'rgba(242, 229, 255, 0.78)',
   },
   submitButton: {
     marginTop: '6px',
     height: '40px',
     borderRadius: '10px',
     border: 'none',
-    background: 'linear-gradient(135deg, #22d3ee, #0284c7)',
+    background: 'linear-gradient(135deg, #f59e0b, #ec4899)',
     color: 'white',
     fontWeight: 700,
     cursor: 'pointer',

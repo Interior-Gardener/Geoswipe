@@ -11,6 +11,7 @@ const ExplorePage = lazy(() => import("./ExplorePage"));
 const QuizPage = lazy(() => import("./QuizPage"));
 const FlagGuessPage = lazy(() => import("./FlagGuessPage"));
 const HeritagePage = lazy(() => import("./HeritagePage"));
+const TripPlannerPage = lazy(() => import("./TripPlannerPage"));
 const SketchfabViewer = lazy(() => import("./SketchfabViewer"));
 const HowToReachPage = lazy(() => import("./HowToReachPage"));
 
@@ -52,6 +53,8 @@ function App() {
           <Route path="/multiplayer/flag-game" element={<MultiplayerFlagPage />} />
           <Route path="/multiplayer/quiz" element={<MultiplayerQuizPage />} />
           <Route path="/heritage" element={<HeritagePage />} />
+          <Route path="/trip-planner" element={<TripPlannerPage />} />
+          <Route path="/trip-planner/:name" element={<TripPlannerPage />} />
           <Route path="/heritage-quiz" element={<HeritageQuiz />} />
           <Route path="/heritage-quiz/:name" element={<HeritageQuiz />} />
           <Route path="/multiplayer/heritage-quiz" element={<HeritageMultiplayerQuiz />} />

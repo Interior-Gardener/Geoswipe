@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
 import HeritageQuiz from './HeritageQuiz';
 import HeritageChatbot from './components/HeritageChatbot';
+import TripPlannerModal from './components/tripPlanner/TripPlannerModal';
 import { fetchWeatherData, getWeatherIconUrl, formatWeatherDate } from './utils/openWeatherService';
 import { fetchHeritageNews } from './utils/newsService';
 
@@ -71,6 +72,7 @@ const HeritagePage = () => {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [directionsModalOpen, setDirectionsModalOpen] = useState(false);
   const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [tripPlannerModalOpen, setTripPlannerModalOpen] = useState(false);
   
   // Weather Modal state
   const [weatherModalOpen, setWeatherModalOpen] = useState(false);
@@ -468,6 +470,7 @@ const HeritagePage = () => {
         setStreetViewModalOpen(false);
         setWeatherModalOpen(false);
         setNewsModalOpen(false);
+        setTripPlannerModalOpen(false);
       }
     };
 
@@ -2045,6 +2048,14 @@ const HeritagePage = () => {
               onClick={() => setQuizModalOpen(true)}
             />
 
+            {/* Trip Planner Block */}
+            <SidebarBlock
+              icon="🧳"
+              title="Plan Trip"
+              summary="Build a day-wise itinerary with budget and booking links"
+              onClick={() => setTripPlannerModalOpen(true)}
+            />
+
             {/* Map Viewing Options */}
             <div style={{ 
               marginTop: '20px', 
@@ -2696,6 +2707,19 @@ const HeritagePage = () => {
           monumentName={sidebarData.name}
           initialMode="monument"
           onClose={() => setQuizModalOpen(false)}
+        />
+      )}
+
+      {/* Trip Planner Modal */}
+      {tripPlannerModalOpen && sidebarData && (
+        <TripPlannerModal
+          isOpen={tripPlannerModalOpen}
+          onClose={() => setTripPlannerModalOpen(false)}
+          siteData={sidebarData}
+          onOpenDedicated={() => {
+            setTripPlannerModalOpen(false);
+            navigate(`/trip-planner/${encodeURIComponent(sidebarData.name)}`);
+          }}
         />
       )}
 

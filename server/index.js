@@ -375,7 +375,10 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
 
 // ===== NEWS API INTEGRATION WITH FALLBACK SYSTEM =====
 const NEWSAPI_BASE_URL = 'https://newsapi.org/v2/everything';
-const NEWSAPI_KEY = process.env.NEWSAPI_API_KEY || 'd1f3be2815b944bd86b61714de465ab1';
+const NEWSAPI_KEY =
+  process.env.VITE_NEWSAPI_API_KEY ||
+  process.env.NEWSAPI_API_KEY ||
+  'd1f3be2815b944bd86b61714de465ab1';
 const NEWS_ARTICLE_LIMIT = 5; // Limit results for clean UI
 
 /**

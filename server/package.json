@@ -7,13 +7,20 @@
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["geoswipe", "geography", "3d", "earth", "heritage"],
+  "keywords": [
+    "geoswipe",
+    "geography",
+    "3d",
+    "earth",
+    "heritage"
+  ],
   "author": "",
   "license": "ISC",
   "description": "GeoSwipe server for interactive earth exploration",
   "dependencies": {
     "compression": "^1.7.4",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^5.1.0",
     "express-rate-limit": "^7.1.5",
     "mongoose": "^8.17.1",

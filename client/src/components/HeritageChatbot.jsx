@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage, getChatbotStats } from '../utils/groqService';
+import { AnimatePresence, motion } from 'framer-motion';
+import { sendChatMessage } from '../utils/groqService';
+import { usePanelFullscreen } from '../hooks/usePanelFullscreen';
 import './HeritageChatbot.css';
 
 const HeritageChatbot = () => {
@@ -11,6 +13,8 @@ const HeritageChatbot = () => {
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const chatWindowRef = useRef(null);
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(chatWindowRef);
 
   // Suggested questions for first-time users
   const suggestedQuestions = [
@@ -37,6 +41,16 @@ const HeritageChatbot = () => {
       }, 100);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleExternalOpen = () => {
+      setIsOpen(true);
+      setError(null);
+    };
+
+    window.addEventListener('heritage-chatbot-open', handleExternalOpen);
+    return () => window.removeEventListener('heritage-chatbot-open', handleExternalOpen);
+  }, []);
 
   // Handle ESC key to close chat
   useEffect(() => {
@@ -159,22 +173,42 @@ const HeritageChatbot = () => {
       </button>
 
       {/* Chat Window */}
+      <AnimatePresence>
       {isOpen && (
-        <div className="chatbot-window" role="dialog" aria-labelledby="chatbot-title">
+        <motion.div
+          ref={chatWindowRef}
+          className={`chatbot-window heritage-animated-panel ${isExpanded ? 'is-expanded' : ''}`}
+          role="dialog"
+          aria-labelledby="chatbot-title"
+          initial={{ opacity: 0, y: 28, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 18, scale: 0.98 }}
+          transition={{ duration: 0.28, ease: 'easeOut' }}
+        >
           {/* Header */}
           <div className="chatbot-header">
             <div className="chatbot-header-title" id="chatbot-title">
               <span role="img" aria-label="heritage">🏛️</span>
               <span>Heritage Assistant</span>
             </div>
-            <button 
-              className="chatbot-close-btn"
-              onClick={toggleChat}
-              aria-label="Close chat"
-              title="Close (ESC)"
-            >
-              ×
-            </button>
+            <div className="chatbot-header-actions">
+              <button
+                className="chatbot-expand-btn"
+                onClick={togglePanelFullscreen}
+                aria-label={isExpanded ? 'Exit fullscreen chat' : 'Fullscreen chat'}
+                title={isExpanded ? 'Exit fullscreen' : 'Open in fullscreen'}
+              >
+                {isExpanded ? '🡼' : '⛶'}
+              </button>
+              <button 
+                className="chatbot-close-btn"
+                onClick={toggleChat}
+                aria-label="Close chat"
+                title="Close (ESC)"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}
@@ -207,9 +241,12 @@ const HeritageChatbot = () => {
               // Messages
               <>
                 {messages.map((message, index) => (
-                  <div 
-                    key={index} 
+                  <motion.div
+                    key={`${message.role}-${index}-${message.timestamp || ''}`}
                     className={`chat-message ${message.role}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                   >
                     <div className="message-bubble">
                       {message.content}
@@ -217,18 +254,23 @@ const HeritageChatbot = () => {
                     <div className="message-timestamp">
                       {message.timestamp}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
 
                 {/* Typing indicator */}
                 {isLoading && (
-                  <div className="chat-message assistant">
+                  <motion.div
+                    className="chat-message assistant"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                  >
                     <div className="typing-indicator">
                       <div className="typing-dot"></div>
                       <div className="typing-dot"></div>
                       <div className="typing-dot"></div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Error message */}
@@ -267,8 +309,9 @@ const HeritageChatbot = () => {
               {isLoading ? '⏳' : '➤'}
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -3,8 +3,8 @@
  * Multiplayer Heritage Quiz - room lobby + game component
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import GestureButton from './GestureButton';
 import {
   joinRoom,
@@ -15,14 +15,38 @@ import {
   submitAnswer,
   subscribeToEvents
 } from './utils/multiplayerSocket';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
+import { usePanelFullscreen } from './hooks/usePanelFullscreen';
 
 const HeritageMultiplayerQuiz = ({ monumentName: propMonumentName, mode: propMode }) => {
   const navigate = useNavigate();
+  const multiplayerPanelRef = useRef(null);
+  const location = useLocation();
+  const { selectedMonument } = useHeritageSelection();
   const { name: paramMonumentName } = useParams();
   
   // Determine monument name and mode from props or URL params
   const monumentName = propMonumentName || paramMonumentName;
   const mode = propMode || (monumentName ? 'monument' : 'all-india');
+
+  const currentSelection =
+    extractMonumentFromRouteState(location.state) ||
+    normalizeMonumentSelection({ name: monumentName }) ||
+    selectedMonument;
+
+  const navigateBackToHeritage = useCallback(() => {
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
+  }, [currentSelection, navigate]);
 
   // Room state
   const [roomId, setRoomId] = useState('');
@@ -45,6 +69,7 @@ const HeritageMultiplayerQuiz = ({ monumentName: propMonumentName, mode: propMod
   const [answered, setAnswered] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(multiplayerPanelRef);
 
   // Get current player's info
   const myScore = players.find((p) => p.name === playerName)?.score || 0;
@@ -167,7 +192,8 @@ const HeritageMultiplayerQuiz = ({ monumentName: propMonumentName, mode: propMod
     setRoomId('');
     setGameState('waiting');
     setPlayers([]);
-  }, [roomId]);
+    navigateBackToHeritage();
+  }, [navigateBackToHeritage, roomId]);
 
   // Handle answer selection
   const handleAnswerSelect = (optionIndex) => {
@@ -195,7 +221,7 @@ const HeritageMultiplayerQuiz = ({ monumentName: propMonumentName, mode: propMod
         }}
       >
         <button
-          onClick={() => navigate('/heritage')}
+          onClick={navigateBackToHeritage}
           style={{
             position: 'absolute',
             top: '20px',
@@ -622,16 +648,51 @@ const HeritageMultiplayerQuiz = ({ monumentName: propMonumentName, mode: propMod
         }}
       >
         <div
+          ref={multiplayerPanelRef}
           style={{
             background: 'linear-gradient(135deg, rgba(13, 27, 42, 0.95), rgba(27, 38, 59, 0.95))',
             borderRadius: '20px',
             padding: '40px',
-            maxWidth: '800px',
-            width: '100%',
+            maxWidth: isExpanded ? '100vw' : '800px',
+            width: isExpanded ? '100vw' : '100%',
+            height: isExpanded ? '100vh' : 'auto',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-            border: '2px solid rgba(255, 215, 0, 0.3)'
+            border: '2px solid rgba(255, 215, 0, 0.3)',
+            position: 'relative'
           }}
         >
+          <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 5 }}>
+            <button
+              onClick={togglePanelFullscreen}
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.24)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+              title={isExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
+            >
+              {isExpanded ? '🡼' : '⛶'}
+            </button>
+            <button
+              onClick={handleLeaveRoom}
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.24)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Exit
+            </button>
+          </div>
+
           {/* Header */}
           <div
             style={{

@@ -4,11 +4,12 @@
  * Includes room management UI + globe + game component
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import EarthThreeJS from "./EarthThreeJS";
 import MultiplayerFlagGame from "./MultiplayerFlagGame";
 import GestureButton from "./GestureButton";
+import { usePanelFullscreen } from "./hooks/usePanelFullscreen";
 import { 
   joinRoom, 
   leaveRoom, 
@@ -20,6 +21,8 @@ import {
 const MultiplayerFlagPage = () => {
   const navigate = useNavigate();
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const gamePanelRef = useRef(null);
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(gamePanelRef);
   
   // Room state
   const [roomId, setRoomId] = useState('');
@@ -87,6 +90,13 @@ const MultiplayerFlagPage = () => {
     setRoomId('');
     setSelectedCountry(null);
   }, [roomId]);
+
+  const handleExitToPrevious = useCallback(() => {
+    if (roomId) {
+      leaveRoom(roomId);
+    }
+    navigate(-1);
+  }, [navigate, roomId]);
 
   // Room lobby UI (before joining a room)
   if (!inRoom) {
@@ -311,10 +321,12 @@ const MultiplayerFlagPage = () => {
 
       {/* Multiplayer Flag Game Overlay */}
       <div
+        ref={gamePanelRef}
         style={{
           position: "absolute",
           top: "20px",
           left: "20px",
+          width: isExpanded ? "min(760px, 96vw)" : "auto",
           zIndex: 1000,
         }}
       >
@@ -323,7 +335,7 @@ const MultiplayerFlagPage = () => {
           playerName={playerName}
           selectedCountry={selectedCountry} 
           clearSelection={() => setSelectedCountry(null)}
-          onLeaveGame={handleLeaveRoom}
+          onLeaveGame={handleExitToPrevious}
         />
       </div>
 
@@ -362,7 +374,34 @@ const MultiplayerFlagPage = () => {
 
       {/* Back Button */}
       <GestureButton
-        onClick={handleLeaveRoom}
+        onClick={togglePanelFullscreen}
+        style={{
+          position: "absolute",
+          bottom: "70px",
+          left: "260px",
+          zIndex: 1000,
+          background: "linear-gradient(135deg, rgba(80, 120, 220, 0.9), rgba(60, 90, 190, 0.9))",
+          color: "#f0f7ff",
+          border: "2px solid rgba(190, 220, 255, 0.55)",
+          padding: "18px 20px",
+          borderRadius: "12px",
+          fontSize: "16px",
+          fontWeight: "bold",
+          fontFamily: "'Orbitron', sans-serif",
+          cursor: "pointer",
+          backdropFilter: "blur(15px)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.28)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        <span style={{ fontSize: "16px" }}>{isExpanded ? "🡼" : "⛶"}</span>
+        {isExpanded ? "Exit Fullscreen" : "Fullscreen"}
+      </GestureButton>
+
+      <GestureButton
+        onClick={handleExitToPrevious}
         style={{
           position: "absolute",
           bottom: "70px",

@@ -1,12 +1,40 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import HeritageCard from './HeritageCard';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
 
 const StoryBookDemo = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { selectedMonument } = useHeritageSelection();
+
+  const currentSelection = extractMonumentFromRouteState(location.state) || selectedMonument;
 
   const handleOpenStory = (site) => {
+    const state = buildHeritageRouteState(
+      normalizeMonumentSelection(site) || currentSelection
+    );
+
+    if (state) {
+      navigate(`/heritage-storybook/${site.name.toLowerCase().replace(/\s+/g, '-')}`, { state });
+      return;
+    }
+
     navigate(`/heritage-storybook/${site.name.toLowerCase().replace(/\s+/g, '-')}`);
+  };
+
+  const navigateBackToHeritage = () => {
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
   };
 
   // Sample heritage sites data
@@ -103,7 +131,7 @@ const StoryBookDemo = () => {
           marginTop: '30px'
         }}>
           <button
-            onClick={() => navigate('/heritage')}
+            onClick={navigateBackToHeritage}
             style={{
               padding: '12px 24px',
               backgroundColor: '#6c757d',

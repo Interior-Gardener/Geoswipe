@@ -1,4 +1,5 @@
 // server/index.js
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
@@ -15,6 +16,8 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 const Country = require("./models/Country"); 
 const HeritageSite = require("./models/HeritageSite");
 const QuizQuestion = require("./models/QuizQuestion");
+const { getFlagCountriesWithCache } = require('./services/flagImageService');
+const { resolveMonumentImageWithFallback } = require('./services/monumentImageService');
 
 // Middleware for parsing JSON and enabling CORS
 app.use(express.json({ limit: '10mb' }));
@@ -65,7 +68,24 @@ mongoose.connection.on('disconnected', () => {
 });
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  const shouldPrewarmImages =
+    String(process.env.PREWARM_MONUMENT_IMAGES || 'true').toLowerCase() !== 'false';
+
+  if (!shouldPrewarmImages) {
+    return;
+  }
+
+  setTimeout(async () => {
+    try {
+      const hotSites = await HeritageSite.find({}, 'name location media').limit(6).lean();
+      await Promise.allSettled(hotSites.map((site) => resolveMonumentImageWithFallback(site)));
+      console.log(`🖼️ Monument image prewarm complete (${hotSites.length} sites)`);
+    } catch (prewarmError) {
+      console.warn('Monument image prewarm skipped:', prewarmError.message || prewarmError);
+    }
+  }, 1500);
+});
 
 // Cache for country data to avoid repeated DB queries
 let countryCache = null;
@@ -224,53 +244,18 @@ app.get("/api/country-question", async (req, res) => {
 });
 
 // ===== FLAG GUESS GAME API =====
-// Cache for country data with codes for flag game
-let flagCountryCache = null;
-let flagCacheExpiry = null;
-const FLAG_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-// Fetch and cache countries with codes for flag game
+// Fetch and cache countries with DB persistence + in-memory optimization
 async function getFlagCountries() {
-  // Check cache first
-  if (flagCountryCache && flagCacheExpiry && Date.now() < flagCacheExpiry) {
-    return flagCountryCache;
-  }
-  
   try {
-    console.log("🏳️ Fetching countries for flag game...");
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2", {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'GeoSwipe/1.0'
-      }
-    });
-    clearTimeout(timeoutId);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+    const countries = await getFlagCountriesWithCache();
+    if (!Array.isArray(countries)) {
+      return [];
     }
-    
-    const data = await res.json();
-    
-    // Filter and map countries with valid data
-    flagCountryCache = data
-      .filter(c => c.name?.common && c.cca2)
-      .map(c => ({
-        name: c.name.common,
-        code: c.cca2.toLowerCase(),
-        flagUrl: `https://flagcdn.com/w320/${c.cca2.toLowerCase()}.png`
-      }));
-    
-    flagCacheExpiry = Date.now() + FLAG_CACHE_DURATION;
-    console.log(`✅ Cached ${flagCountryCache.length} countries for flag game`);
-    
-    return flagCountryCache;
+
+    return countries;
   } catch (error) {
-    console.error('Error fetching flag countries:', error.message);
-    return flagCountryCache || []; // Return cached data if available
+    console.error('Error fetching flag countries:', error.message || error);
+    return [];
   }
 }
 
@@ -348,6 +333,13 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
     const streetViewUrl = site.view360 ? 
       generateStreetViewUrl(lat, lon, site.view360.heading || 0, site.view360.pitch || 0) : 
       null;
+
+    let monumentImage = null;
+    try {
+      monumentImage = await resolveMonumentImageWithFallback(site);
+    } catch (imageError) {
+      console.warn(`Image resolution failed for ${site.name}:`, imageError.message || imageError);
+    }
     
     const response = {
       name: site.name,
@@ -363,13 +355,38 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
 
       model3d: site.model3d,
       media: site.media,
-      visitor_info: site.visitor_info
+      visitor_info: site.visitor_info,
+      monumentImage
     };
     
     res.json(response);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch heritage site details" });
+  }
+});
+
+// Resolve and return monument image with DB caching and fallback
+app.get("/api/heritage-sites/:name/image", async (req, res) => {
+  try {
+    const siteName = decodeURIComponent(req.params.name);
+    const site = await HeritageSite.findOne({
+      name: { $regex: new RegExp(`^${siteName}$`, 'i') }
+    });
+
+    if (!site) {
+      return res.status(404).json({ error: 'Heritage site not found' });
+    }
+
+    const monumentImage = await resolveMonumentImageWithFallback(site);
+    if (!monumentImage?.imageUrl) {
+      return res.status(404).json({ error: 'No image available for this monument' });
+    }
+
+    return res.json({ success: true, image: monumentImage });
+  } catch (error) {
+    console.error('Error resolving monument image:', error);
+    return res.status(500).json({ error: 'Failed to resolve monument image' });
   }
 });
 

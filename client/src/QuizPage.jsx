@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EarthThreeJS from "./EarthThreeJS";
 import CountryQuiz from "./CountryQuiz";
 import GestureButton from "./GestureButton";
+import { usePanelFullscreen } from "./hooks/usePanelFullscreen";
 
 const QuizPage = () => {
   const navigate = useNavigate();
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const quizPanelRef = useRef(null);
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(quizPanelRef);
 
   return (
     <div style={{ display: "flex" }}>
@@ -20,10 +23,12 @@ const QuizPage = () => {
 
       {/* 📋 QuizDisplay overlay */}
       <div
+        ref={quizPanelRef}
         style={{
           position: "absolute",
           top: "20px",
           left: "20px",
+          width: isExpanded ? "min(760px, 96vw)" : "auto",
           zIndex: 1000,         // 👈 ensures it's above Earth
           background: "rgba(0, 20, 40, 0.8)",
           padding: "20px",
@@ -64,6 +69,34 @@ const QuizPage = () => {
       </div>
 
       {/* 🔙 Back Button */}
+      <GestureButton
+        onClick={togglePanelFullscreen}
+        style={{
+          position: "absolute",
+          bottom: "70px",
+          left: "260px",
+          zIndex: 1000,
+          background: "linear-gradient(135deg, rgba(80, 120, 220, 0.9), rgba(60, 90, 190, 0.9))",
+          color: "#f0f7ff",
+          border: "2px solid rgba(190, 220, 255, 0.55)",
+          padding: "18px 20px",
+          borderRadius: "12px",
+          fontSize: "16px",
+          fontWeight: "bold",
+          fontFamily: "'Orbitron', sans-serif",
+          cursor: "pointer",
+          backdropFilter: "blur(15px)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.28)",
+          transition: "all 0.3s ease",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        <span style={{ fontSize: "16px" }}>{isExpanded ? "🡼" : "⛶"}</span>
+        {isExpanded ? "Exit Fullscreen" : "Fullscreen"}
+      </GestureButton>
+
       <GestureButton
         onClick={() => navigate(-1)} // Go back to previous page
         style={{

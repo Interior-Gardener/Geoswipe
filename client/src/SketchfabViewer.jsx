@@ -1,8 +1,25 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState
+} from './utils/heritageNavigationState';
 
 const SketchfabViewer = ({ uid: propUid }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { selectedMonument } = useHeritageSelection();
+  const currentSelection = extractMonumentFromRouteState(location.state) || selectedMonument;
+
+  const navigateBackToHeritage = () => {
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
+  };
   
   // Allow both prop and URL param usage
   let uid = propUid;
@@ -26,7 +43,7 @@ const SketchfabViewer = ({ uid: propUid }) => {
       }}>
         {/* Back Button */}
         <button 
-          onClick={() => navigate('/heritage')}
+          onClick={navigateBackToHeritage}
           style={{
             background: 'transparent',
             border: 'none',

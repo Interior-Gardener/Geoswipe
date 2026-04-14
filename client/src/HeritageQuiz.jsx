@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import GestureButton from './GestureButton';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import { usePanelFullscreen } from './hooks/usePanelFullscreen';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
 
 const TOTAL_QUESTIONS = 10;
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -8,7 +15,24 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const HeritageQuiz = ({ monumentName: propMonumentName, onClose, initialMode }) => {
   const { name: paramMonumentName } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const quizPanelRef = useRef(null);
+  const { selectedMonument } = useHeritageSelection();
   const monumentName = propMonumentName || paramMonumentName;
+
+  const currentSelection =
+    extractMonumentFromRouteState(location.state) ||
+    normalizeMonumentSelection({ name: monumentName }) ||
+    selectedMonument;
+
+  const navigateBackToHeritage = useCallback(() => {
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
+  }, [currentSelection, navigate]);
 
   // Main state
   const [mode, setMode] = useState(initialMode || null);
@@ -26,6 +50,7 @@ const HeritageQuiz = ({ monumentName: propMonumentName, onClose, initialMode }) 
   const [skippedQuestions, setSkippedQuestions] = useState([]);
   const [hintsUsed, setHintsUsed] = useState([]);
   const [showHint, setShowHint] = useState(false);
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(quizPanelRef);
 
   // Fetch available monuments list
   useEffect(() => {
@@ -165,7 +190,7 @@ const HeritageQuiz = ({ monumentName: propMonumentName, onClose, initialMode }) 
     if (onClose) {
       onClose();
     } else {
-      navigate('/heritage');
+      navigateBackToHeritage();
     }
   };
 
@@ -944,6 +969,7 @@ const HeritageQuiz = ({ monumentName: propMonumentName, onClose, initialMode }) 
 
   return (
     <div
+      ref={quizPanelRef}
       style={{
         position: 'fixed',
         top: 0,
@@ -1001,15 +1027,47 @@ const HeritageQuiz = ({ monumentName: propMonumentName, onClose, initialMode }) 
               Question {currentQuestionIndex + 1} / {TOTAL_QUESTIONS}
             </div>
           </div>
-          <div
-            style={{
-              color: '#00ff80',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              fontFamily: "'Orbitron', sans-serif"
-            }}
-          >
-            Score: {score}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={togglePanelFullscreen}
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.24)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+              title={isExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
+            >
+              {isExpanded ? '🡼' : '⛶'}
+            </button>
+            <button
+              onClick={handleClose}
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.24)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Exit
+            </button>
+            <div
+              style={{
+                color: '#00ff80',
+                fontSize: '24px',
+                fontWeight: 'bold',
+                fontFamily: "'Orbitron', sans-serif",
+                marginLeft: '4px'
+              }}
+            >
+              Score: {score}
+            </div>
           </div>
         </div>
 

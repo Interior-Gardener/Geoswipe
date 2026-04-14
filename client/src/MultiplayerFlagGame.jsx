@@ -4,7 +4,7 @@
  * Receives questions from server, submits answers via socket
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import GestureButton from "./GestureButton";
 import { submitAnswer, subscribeToEvents } from "./utils/multiplayerSocket";
 
@@ -27,11 +27,33 @@ const MultiplayerFlagGame = ({
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [flagLoading, setFlagLoading] = useState(true);
   const [error, setError] = useState(null);
+  const loadedFlagsRef = useRef(new Set());
 
   // Get current player's score
   const myScore = players.find(p => p.name === playerName)?.score || 0;
   const opponentScore = players.find(p => p.name !== playerName)?.score || 0;
   const opponentName = players.find(p => p.name !== playerName)?.name || 'Opponent';
+
+  const renderLeaveButton = () => (
+    <GestureButton
+      onClick={onLeaveGame}
+      style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        padding: '8px 12px',
+        background: 'rgba(255, 255, 255, 0.14)',
+        color: 'rgba(255, 255, 255, 0.95)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: '8px',
+        fontSize: '12px',
+        fontFamily: "'Orbitron', sans-serif",
+        cursor: 'pointer'
+      }}
+    >
+      Exit
+    </GestureButton>
+  );
 
   // Subscribe to multiplayer events
   useEffect(() => {
@@ -56,7 +78,8 @@ const MultiplayerFlagGame = ({
         setCurrentRound(data.round);
         setAnswered(false);
         setWaitingForOpponent(false);
-        setFlagLoading(true);
+        const nextFlagUrl = data?.question?.flagUrl;
+        setFlagLoading(nextFlagUrl ? !loadedFlagsRef.current.has(nextFlagUrl) : true);
         setGameState('playing');
         clearSelection();
       },
@@ -112,6 +135,7 @@ const MultiplayerFlagGame = ({
   if (gameState === 'waiting' && players.length < 2) {
     return (
       <div style={containerStyle}>
+        {renderLeaveButton()}
         <h2 style={titleStyle}>🏳️ Multiplayer Flag Game</h2>
         
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -178,6 +202,7 @@ const MultiplayerFlagGame = ({
     
     return (
       <div style={containerStyle}>
+        {renderLeaveButton()}
         <h2 style={{ ...titleStyle, fontSize: '28px' }}>
           {isTie ? '🤝 It\'s a Tie!' : isWinner ? '🏆 You Win!' : '😔 You Lose'}
         </h2>
@@ -235,6 +260,7 @@ const MultiplayerFlagGame = ({
 
     return (
       <div style={containerStyle}>
+        {renderLeaveButton()}
         <div style={headerStyle}>
           <span>Round {currentRound} / {totalRounds}</span>
           <span style={{ color: '#00d4ff' }}>{myScore} - {opponentScore}</span>
@@ -297,6 +323,7 @@ const MultiplayerFlagGame = ({
   // Main game UI
   return (
     <div style={containerStyle}>
+      {renderLeaveButton()}
       {/* Header */}
       <div style={headerStyle}>
         <div>
@@ -348,9 +375,15 @@ const MultiplayerFlagGame = ({
           <img 
             src={currentQuestion.flagUrl}
             alt="Country Flag"
-            onLoad={() => setFlagLoading(false)}
+            loading="eager"
+            decoding="async"
+            onLoad={() => {
+              loadedFlagsRef.current.add(currentQuestion.flagUrl);
+              setFlagLoading(false);
+            }}
             onError={(e) => {
               e.target.src = `https://flagcdn.com/w320/${currentQuestion.code}.png`;
+              loadedFlagsRef.current.add(e.target.src);
               setFlagLoading(false);
             }}
             style={{
@@ -427,7 +460,8 @@ const containerStyle = {
   color: "white",
   minWidth: "320px",
   maxWidth: "380px",
-  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)"
+  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+  position: 'relative'
 };
 
 const titleStyle = {

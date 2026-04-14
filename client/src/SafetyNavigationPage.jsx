@@ -21,6 +21,12 @@ import {
   rankAndLabelRoutes
 } from './utils/safetyScoring';
 import { requestSafetyGuidance } from './utils/safetyGuidanceService';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const DEFAULT_CENTER = [77.209, 28.6139];
@@ -108,6 +114,7 @@ function alertsSummaryString(alerts = []) {
 const SafetyNavigationPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedMonument } = useHeritageSelection();
 
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -159,6 +166,18 @@ const SafetyNavigationPage = () => {
   const [aiLoading, setAiLoading] = useState(false);
 
   const [error, setError] = useState('');
+
+  const routeSelection = extractMonumentFromRouteState(location.state);
+  const fallbackSelection = normalizeMonumentSelection(destination) || routeSelection || selectedMonument;
+
+  const navigateBackToHeritage = () => {
+    const state = buildHeritageRouteState(fallbackSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
+  };
 
   const mapStyle = useMemo(() => {
     const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
@@ -650,7 +669,7 @@ const SafetyNavigationPage = () => {
   }, []);
 
   useEffect(() => {
-    const preselected = normalizeDestination(location.state?.site);
+    const preselected = normalizeDestination(location.state?.site || location.state?.selectedMonument);
     if (preselected) {
       setDestination(preselected);
       setSearchQuery(preselected.name);
@@ -837,7 +856,7 @@ const SafetyNavigationPage = () => {
           Smart Tourist Safety and Emergency Navigation
         </div>
         <div className="safety-top-actions">
-          <button className="safety-btn" onClick={() => navigate('/heritage')}>
+          <button className="safety-btn" onClick={navigateBackToHeritage}>
             Back to Heritage Map
           </button>
           <button className="safety-btn primary" onClick={locateUserAndSetState} disabled={isLocating}>

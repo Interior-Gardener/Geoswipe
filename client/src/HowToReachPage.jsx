@@ -1,12 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
  
 const HowToReachPage = () => {
   const { name } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { selectedMonument } = useHeritageSelection();
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const derivedSiteSelection = site
+    ? normalizeMonumentSelection({
+        name: site.name,
+        category: site.category,
+        year: site.year,
+        location: site.location,
+        coordinates: site.location?.coordinates
+      })
+    : null;
+  const currentSelection =
+    derivedSiteSelection ||
+    extractMonumentFromRouteState(location.state) ||
+    selectedMonument;
+
+  const navigateBackToHeritage = () => {
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -87,7 +118,7 @@ const HowToReachPage = () => {
       }}>
         {/* Back Button */}
         <button 
-          onClick={() => navigate('/heritage')}
+          onClick={navigateBackToHeritage}
           style={{
             background: 'rgba(255, 255, 255, 0.2)',
             border: '1px solid rgba(255, 255, 255, 0.3)',

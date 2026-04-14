@@ -1,14 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import TripPlannerForm from './components/tripPlanner/TripPlannerForm';
 import TripPlannerResult from './components/tripPlanner/TripPlannerResult';
 import { generateTripPlan, getTripPlannerDefaults } from './utils/tripPlannerService';
+import { fetchMonumentImage, primeMonumentImageCache } from './utils/heritageImageService';
+import { useTheme } from './context/ThemeContext';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import { usePanelFullscreen } from './hooks/usePanelFullscreen';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function TripPlannerPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const params = useParams();
+  const pageRef = useRef(null);
+  const { theme } = useTheme();
+  const { selectedMonument } = useHeritageSelection();
   const [isCompact, setIsCompact] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 980 : false
   );
@@ -19,6 +33,7 @@ function TripPlannerPage() {
 
   const [selectedSiteName, setSelectedSiteName] = useState('');
   const [selectedSite, setSelectedSite] = useState(null);
+  const [siteImage, setSiteImage] = useState(null);
   const [siteLoading, setSiteLoading] = useState(false);
   const [siteError, setSiteError] = useState(null);
 
@@ -26,6 +41,7 @@ function TripPlannerPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(null);
   const [lastInput, setLastInput] = useState(getTripPlannerDefaults());
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(pageRef);
 
   useEffect(() => {
     const routeSiteName = params?.name ? decodeURIComponent(params.name) : '';
@@ -133,6 +149,50 @@ function TripPlannerPage() {
     };
   }, [selectedSiteName]);
 
+  useEffect(() => {
+    let active = true;
+
+    if (!selectedSite?.name) {
+      setSiteImage(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    const localFallback = selectedSite?.monumentImage?.imageUrl
+      ? selectedSite.monumentImage
+      : selectedSite?.media?.panorama_url
+      ? {
+          imageUrl: selectedSite.media.panorama_url,
+          source: 'fallback'
+        }
+      : null;
+
+    if (localFallback?.imageUrl) {
+      setSiteImage(localFallback);
+      primeMonumentImageCache(selectedSite.name, localFallback);
+    } else {
+      setSiteImage(null);
+    }
+
+    fetchMonumentImage(selectedSite.name)
+      .then((resolvedImage) => {
+        if (!active || !resolvedImage?.imageUrl) {
+          return;
+        }
+
+        setSiteImage(resolvedImage);
+        primeMonumentImageCache(selectedSite.name, resolvedImage);
+      })
+      .catch(() => {
+        // Keep fallback image if network fetch fails.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedSite]);
+
   const subtitle = useMemo(() => {
     if (!selectedSite) {
       return 'Create personalized day-wise itineraries with budgets and booking links.';
@@ -142,6 +202,30 @@ function TripPlannerPage() {
     const state = selectedSite.location?.state || 'Unknown state';
     return `${selectedSite.name} • ${city}, ${state}`;
   }, [selectedSite]);
+
+  const derivedSiteSelection = selectedSite
+    ? normalizeMonumentSelection({
+        name: selectedSite.name,
+        category: selectedSite.category,
+        year: selectedSite.year,
+        location: selectedSite.location,
+        coordinates: selectedSite.coordinates || selectedSite.location?.coordinates
+      })
+    : null;
+
+  const currentSelection =
+    derivedSiteSelection ||
+    extractMonumentFromRouteState(location.state) ||
+    selectedMonument;
+
+  const navigateBackToHeritage = () => {
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
+  };
 
   const contentGridStyle = {
     ...styles.contentGrid,
@@ -188,13 +272,24 @@ function TripPlannerPage() {
   };
 
   return (
-    <div style={styles.pageRoot}>
+    <div
+      ref={pageRef}
+      style={{
+        ...styles.pageRoot,
+        ...(theme === 'light' ? styles.pageRootLight : null),
+        ...(isExpanded ? styles.pageRootExpanded : null)
+      }}
+      className="heritage-animated-panel"
+    >
       <div style={styles.backgroundGlowTop} />
       <div style={styles.backgroundGlowBottom} />
 
       <div style={styles.mainContainer}>
         <div style={styles.topBar}>
-          <button style={styles.navButton} onClick={() => navigate('/heritage')}>
+          <button style={styles.navButton} onClick={togglePanelFullscreen}>
+            {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+          </button>
+          <button style={styles.navButton} onClick={navigateBackToHeritage}>
             Back to Heritage
           </button>
           <button style={styles.navButton} onClick={() => navigate('/')}>
@@ -202,13 +297,36 @@ function TripPlannerPage() {
           </button>
         </div>
 
-        <div style={styles.headerCard}>
-          <div style={styles.pageTitle}>Trip Planner</div>
-          <div style={styles.pageSubtitle}>{subtitle}</div>
-        </div>
+        <motion.div
+          style={styles.headerCard}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.36, ease: 'easeOut' }}
+        >
+          <div
+            style={{
+              ...styles.headerVisual,
+              backgroundImage: siteImage?.imageUrl
+                ? `linear-gradient(140deg, rgba(7, 18, 40, 0.78), rgba(25, 34, 71, 0.82)), url(${siteImage.imageUrl})`
+                : styles.headerVisual.backgroundImage
+            }}
+          >
+            <div style={styles.pageEyebrow}>Smart Monument Journey Builder</div>
+            <div style={styles.pageTitle}>Trip Planner</div>
+            <div style={styles.pageSubtitle}>{subtitle}</div>
+            {siteImage?.source && (
+              <div style={styles.imageSourceTag}>Image source: {siteImage.source}</div>
+            )}
+          </div>
+        </motion.div>
 
-        <div style={contentGridStyle}>
-          <div style={styles.leftColumn}>
+        <motion.div
+          style={contentGridStyle}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut', delay: 0.08 }}
+        >
+          <motion.div style={styles.leftColumn} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }}>
             <div style={styles.selectorCard}>
               <label style={styles.selectorLabel}>Select Heritage Site</label>
               <select
@@ -237,17 +355,17 @@ function TripPlannerPage() {
               onSubmit={handleGenerate}
               submitLabel="Generate Itinerary"
             />
-          </div>
+          </motion.div>
 
-          <div style={styles.rightColumn}>
+          <motion.div style={styles.rightColumn} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}>
             <TripPlannerResult
               plan={plan}
               isLoading={isGenerating}
               error={generationError}
               onRegenerate={handleRegenerate}
             />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );
@@ -261,6 +379,15 @@ const styles = {
     background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 42%, #5b21b6 100%)',
     overflow: 'hidden',
     fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+  },
+  pageRootLight: {
+    background: 'linear-gradient(135deg, #cfe8ff 0%, #dbeafe 42%, #f4f8ff 100%)',
+    color: '#10243e',
+  },
+  pageRootExpanded: {
+    width: '100vw',
+    height: '100vh',
+    padding: '10px',
   },
   backgroundGlowTop: {
     position: 'absolute',
@@ -308,22 +435,52 @@ const styles = {
     fontWeight: 700,
   },
   headerCard: {
-    padding: '18px',
+    padding: 0,
     borderRadius: '16px',
     border: '1px solid rgba(255,255,255,0.22)',
     background: 'rgba(255,255,255,0.1)',
     marginBottom: '14px',
     backdropFilter: 'blur(14px)',
+    overflow: 'hidden',
+  },
+  headerVisual: {
+    minHeight: '170px',
+    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    gap: '8px',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundImage:
+      'linear-gradient(145deg, rgba(8, 16, 38, 0.82), rgba(34, 33, 88, 0.8), rgba(91, 33, 182, 0.72))',
+  },
+  pageEyebrow: {
+    fontSize: '11px',
+    letterSpacing: '1.1px',
+    textTransform: 'uppercase',
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.8)',
   },
   pageTitle: {
-    fontSize: '30px',
+    fontSize: '32px',
     fontWeight: 800,
     lineHeight: 1.1,
+    textShadow: '0 4px 16px rgba(2, 6, 20, 0.32)',
   },
   pageSubtitle: {
-    marginTop: '8px',
     fontSize: '14px',
-    color: 'rgba(255,255,255,0.88)',
+    color: 'rgba(255,255,255,0.92)',
+  },
+  imageSourceTag: {
+    marginTop: '4px',
+    width: 'fit-content',
+    borderRadius: '999px',
+    border: '1px solid rgba(255,255,255,0.3)',
+    padding: '3px 10px',
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.84)',
+    background: 'rgba(8, 16, 38, 0.4)',
   },
   contentGrid: {
     display: 'grid',

@@ -1,13 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import {
+  buildHeritageRouteState,
+  extractMonumentFromRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
+import { fetchMonumentImage, primeMonumentImageCache } from './utils/heritageImageService';
 
 const HeritageStoryBook = () => {
   const { name } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { selectedMonument } = useHeritageSelection();
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
+  const [dynamicImage, setDynamicImage] = useState(null);
 
   // Optional story chapters loaded from public/chapters
   const [storyChapters, setStoryChapters] = useState(null);
@@ -25,6 +36,11 @@ const HeritageStoryBook = () => {
 
   // Flip animation direction
   const [flipDirection, setFlipDirection] = useState('next');
+
+  const currentSelection =
+    normalizeMonumentSelection(site) ||
+    extractMonumentFromRouteState(location.state) ||
+    selectedMonument;
 
   // Fetch heritage site data
   useEffect(() => {
@@ -50,6 +66,45 @@ const HeritageStoryBook = () => {
       fetchSiteData();
     }
   }, [name]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!site?.name) {
+      setDynamicImage(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    const localFallback = site?.monumentImage?.imageUrl
+      ? site.monumentImage
+      : site?.media?.panorama_url
+      ? { imageUrl: site.media.panorama_url, source: 'fallback' }
+      : null;
+
+    if (localFallback?.imageUrl) {
+      setDynamicImage(localFallback);
+      primeMonumentImageCache(site.name, localFallback);
+    }
+
+    fetchMonumentImage(site.name)
+      .then((resolvedImage) => {
+        if (!active || !resolvedImage?.imageUrl) {
+          return;
+        }
+
+        setDynamicImage(resolvedImage);
+        primeMonumentImageCache(site.name, resolvedImage);
+      })
+      .catch(() => {
+        // Keep fallback image for storytelling visuals.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [site]);
 
   // Try to fetch optional chapters JSON from public/chapters
   useEffect(() => {
@@ -85,7 +140,10 @@ const HeritageStoryBook = () => {
     if (siteData.info?.full) {
       chapters.push({
         title: "Chapter 1: Introduction",
-        image: siteData.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
+        image:
+          dynamicImage?.imageUrl ||
+          siteData.media?.panorama_url ||
+          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
         text: siteData.info.full,
         type: 'introduction'
       });
@@ -185,7 +243,12 @@ const HeritageStoryBook = () => {
   };
 
   const handleClose = () => {
-    window.history.back();
+    const state = buildHeritageRouteState(currentSelection);
+    if (state) {
+      navigate('/heritage', { state });
+      return;
+    }
+    navigate('/heritage');
   };
 
   const isLastPage = currentPage === chapters.length + 1;
@@ -358,7 +421,7 @@ const HeritageStoryBook = () => {
         <div style={{
           width: '100%',
           height: '100%',
-          background: `linear-gradient(rgba(44, 24, 16, 0.7), rgba(44, 24, 16, 0.7)), url(${site?.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop'})`,
+          background: `linear-gradient(rgba(44, 24, 16, 0.7), rgba(44, 24, 16, 0.7)), url(${dynamicImage?.imageUrl || site?.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',
@@ -613,7 +676,7 @@ const HeritageStoryBook = () => {
         <div style={{
           width: '100%',
           height: '100%',
-          background: `linear-gradient(rgba(44, 24, 16, 0.8), rgba(44, 24, 16, 0.8)), url(${site?.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop'})`,
+          background: `linear-gradient(rgba(44, 24, 16, 0.8), rgba(44, 24, 16, 0.8)), url(${dynamicImage?.imageUrl || site?.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',

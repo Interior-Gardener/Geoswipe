@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatINR } from '../../utils/tripPlannerService';
+import { downloadTripPlanPdf } from '../../utils/tripPlanPdf';
 
 function TripPlannerResult({ plan, error, isLoading, onRegenerate }) {
   if (isLoading) {
@@ -70,9 +71,12 @@ function TripPlannerResult({ plan, error, isLoading, onRegenerate }) {
               {Array.isArray(day.schedule) && day.schedule.map((slot, index) => (
                 <div key={`${slot.time}-${index}`} style={styles.scheduleItem}>
                   <div style={styles.scheduleTime}>{slot.time}</div>
-                  <div>
-                    <div style={styles.scheduleActivity}>{slot.activity}</div>
-                    <div style={styles.scheduleDetail}>{slot.details}</div>
+                  <div style={styles.scheduleContent}>
+                    <span style={styles.scheduleDot} />
+                    <div>
+                      <div style={styles.scheduleActivity}>{slot.activity}</div>
+                      <div style={styles.scheduleDetail}>{slot.details}</div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -121,9 +125,14 @@ function TripPlannerResult({ plan, error, isLoading, onRegenerate }) {
         ))}
       </div>
 
-      <button style={styles.regenerateButton} onClick={onRegenerate}>
-        Regenerate Plan
-      </button>
+      <div style={styles.actionsRow}>
+        <button style={styles.downloadButton} onClick={() => downloadTripPlanPdf(plan)}>
+          Download Plan
+        </button>
+        <button style={styles.regenerateButton} onClick={onRegenerate}>
+          Regenerate Plan
+        </button>
+      </div>
     </div>
   );
 }
@@ -259,14 +268,29 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '110px 1fr',
     gap: '10px',
-    background: 'rgba(255,255,255,0.12)',
+    background: 'rgba(255,255,255,0.14)',
     borderRadius: '8px',
     padding: '8px',
+    border: '1px solid rgba(255,255,255,0.18)',
   },
   scheduleTime: {
     fontSize: '12px',
     fontWeight: 700,
     color: 'rgba(255,255,255,0.9)',
+    alignSelf: 'center',
+  },
+  scheduleContent: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'flex-start',
+  },
+  scheduleDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    marginTop: '6px',
+    background: 'linear-gradient(135deg, #22d3ee, #ec4899)',
+    boxShadow: '0 0 0 4px rgba(34, 211, 238, 0.12)',
   },
   scheduleActivity: {
     fontSize: '13px',
@@ -302,6 +326,21 @@ const styles = {
     padding: '10px',
     fontSize: '13px',
     fontWeight: 600,
+  },
+  actionsRow: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
+  },
+  downloadButton: {
+    height: '38px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.24)',
+    cursor: 'pointer',
+    background: 'linear-gradient(135deg, #0ea5e9, #4f46e5)',
+    color: 'white',
+    fontWeight: 700,
+    padding: '0 14px',
   },
   regenerateButton: {
     height: '38px',

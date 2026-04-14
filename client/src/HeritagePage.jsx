@@ -1,17 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
+import './styles/heritage-theme.css';
 import HeritageQuiz from './HeritageQuiz';
 import HeritageChatbot from './components/HeritageChatbot';
 import TripPlannerModal from './components/tripPlanner/TripPlannerModal';
 import { fetchWeatherData, getWeatherIconUrl, formatWeatherDate } from './utils/openWeatherService';
 import { fetchHeritageNews } from './utils/newsService';
+import { primeMonumentImageCache } from './utils/heritageImageService';
+import { useTheme } from './context/ThemeContext';
+import { useHeritageSelection } from './context/HeritageSelectionContext';
+import { usePanelFullscreen } from './hooks/usePanelFullscreen';
+import {
+  buildHeritageRouteState,
+  normalizeMonumentSelection
+} from './utils/heritageNavigationState';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const mapReadyRef = useRef(false);
+  const restoreAppliedRef = useRef(false);
+  const sidebarPanelRef = useRef(null);
+  const weatherModalCardRef = useRef(null);
+  const newsModalCardRef = useRef(null);
   
   // Add scrollbar styling
   useEffect(() => {
@@ -63,6 +78,7 @@ const HeritagePage = () => {
   // Sidebar state
   const [sidebarData, setSidebarData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarLoading, setSidebarLoading] = useState(false);
   
   // Street View Modal state
   const [streetViewModalOpen, setStreetViewModalOpen] = useState(false);
@@ -88,7 +104,7 @@ const HeritagePage = () => {
   const [newsTab, setNewsTab] = useState('monument'); // 'monument' or 'location'
   
   // Search functionality state
-  const [searchMode, setSearchMode] = useState('coordinates');
+  const [searchMode, setSearchMode] = useState('places');
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredPlaces, setFilteredPlaces] = useState([]);
@@ -103,8 +119,58 @@ const HeritagePage = () => {
   // Map style management
   const [currentMapStyle, setCurrentMapStyle] = useState('hybrid');
   const [mapStyleLoading, setMapStyleLoading] = useState(false);
+  const [chatbotPulse, setChatbotPulse] = useState(false);
+  const { theme } = useTheme();
+  const { isExpanded: sidebarExpanded, togglePanelFullscreen: toggleSidebarFullscreen } =
+    usePanelFullscreen(sidebarPanelRef);
+  const { isExpanded: weatherExpanded, togglePanelFullscreen: toggleWeatherFullscreen } =
+    usePanelFullscreen(weatherModalCardRef);
+  const { isExpanded: newsExpanded, togglePanelFullscreen: toggleNewsFullscreen } =
+    usePanelFullscreen(newsModalCardRef);
   
   const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    selectedMonument,
+    setSelectedMonument,
+    hydrateSelectionFromRoute
+  } = useHeritageSelection();
+
+  const toSafetySiteState = useCallback((source) => {
+    const normalized = normalizeMonumentSelection(source);
+    if (!normalized) {
+      return undefined;
+    }
+
+    return {
+      site: {
+        name: normalized.name,
+        coordinates: normalized.coordinates,
+        city: normalized.location?.city || '',
+        state: normalized.location?.state || '',
+        country: normalized.location?.country || 'India'
+      }
+    };
+  }, []);
+
+  const navigateWithSelection = useCallback(
+    (path, extraState = {}) => {
+      const state = buildHeritageRouteState(sidebarData || selectedMonument, extraState);
+      if (state) {
+        navigate(path, { state });
+      } else {
+        navigate(path);
+      }
+    },
+    [navigate, selectedMonument, sidebarData]
+  );
+
+  useEffect(() => {
+    const routeSelection = hydrateSelectionFromRoute(location.state);
+    if (routeSelection) {
+      restoreAppliedRef.current = false;
+    }
+  }, [location.state, hydrateSelectionFromRoute]);
 
   // Map style switching function
   const switchMapStyle = async (styleName, zoomLevel = 14, siteCoordinates = null) => {
@@ -367,15 +433,16 @@ const HeritagePage = () => {
               // Re-attach event listeners
               const handleSiteClick = async (e) => {
                 const properties = e.features[0].properties;
-                const details = await fetchDetails(properties.name);
-                setSidebarData({
-                  name: properties.name,
-                  category: properties.category,
-                  year: properties.year,
-                  coordinates: e.features[0].geometry.coordinates,
-                  ...details
-                });
-                setSidebarOpen(true);
+                const coordinates = e.features[0].geometry.coordinates?.slice?.() || e.features[0].geometry.coordinates;
+                await openSiteInSidebar(
+                  {
+                    name: properties.name,
+                    category: properties.category,
+                    year: properties.year,
+                    coordinates
+                  },
+                  { flyTo: false }
+                );
               };
               
               const handleMouseEnter = () => {
@@ -783,6 +850,97 @@ const HeritagePage = () => {
     }
   };
 
+  const openSiteInSidebar = useCallback(
+    async (siteSeed, options = {}) => {
+      if (!siteSeed?.name) {
+        return;
+      }
+
+      restoreAppliedRef.current = true;
+
+      const shouldFly = options.flyTo !== false;
+      setSidebarOpen(true);
+      setSidebarLoading(true);
+
+      const seedCoordinates = siteSeed.coordinates || siteSeed.location?.coordinates || null;
+      setSidebarData({
+        name: siteSeed.name,
+        category: siteSeed.category || 'Heritage Site',
+        year: siteSeed.year || 'Unknown',
+        coordinates: seedCoordinates,
+        location: {
+          city: siteSeed.location?.city || '',
+          state: siteSeed.location?.state || '',
+          country: siteSeed.location?.country || 'India',
+          coordinates: seedCoordinates
+        }
+      });
+
+      try {
+        const details = await fetchDetails(siteSeed.name);
+        const resolvedCoordinates =
+          siteSeed.coordinates ||
+          siteSeed.location?.coordinates ||
+          details.location?.coordinates ||
+          null;
+
+        const merged = {
+          name: siteSeed.name,
+          category: siteSeed.category || details.category || 'Heritage Site',
+          year: siteSeed.year || details.year || 'Unknown',
+          coordinates: resolvedCoordinates,
+          ...details
+        };
+
+        const mergedLocation = {
+          city: details.location?.city || siteSeed.location?.city || '',
+          state: details.location?.state || siteSeed.location?.state || '',
+          country: details.location?.country || siteSeed.location?.country || 'India',
+          coordinates: details.location?.coordinates || resolvedCoordinates
+        };
+
+        merged.location = mergedLocation;
+        setSidebarData(merged);
+        setSelectedMonument(merged);
+
+        if (merged?.monumentImage?.imageUrl) {
+          primeMonumentImageCache(merged.name, merged.monumentImage);
+        }
+
+        if (shouldFly && merged.coordinates && map.current) {
+          map.current.flyTo({
+            center: merged.coordinates,
+            zoom: Math.max(13, map.current.getZoom()),
+            pitch: map.current.getPitch() || 45,
+            bearing: map.current.getBearing() || 0,
+            duration: 900,
+            essential: true
+          });
+        }
+      } finally {
+        setSidebarLoading(false);
+      }
+    },
+    [setSelectedMonument]
+  );
+
+  const restoreSelectedMonument = useCallback(async () => {
+    if (restoreAppliedRef.current) {
+      return;
+    }
+
+    if (!selectedMonument?.name || !mapReadyRef.current || loading || !heritageSites?.features) {
+      return;
+    }
+
+    restoreAppliedRef.current = true;
+    await openSiteInSidebar(selectedMonument, { flyTo: true });
+  }, [heritageSites, loading, openSiteInSidebar, selectedMonument]);
+
+  useEffect(() => {
+    restoreSelectedMonument();
+  }, [restoreSelectedMonument]);
+
   // Weather handler function
   const handleWeatherClick = async () => {
     if (!sidebarData?.coordinates) {
@@ -960,6 +1118,7 @@ const HeritagePage = () => {
 
       map.current.on('load', () => {
         console.log('Map loaded successfully');
+        mapReadyRef.current = true;
         
         setTimeout(() => {
           console.log('Adding heritage sites to map...');
@@ -1320,16 +1479,16 @@ const HeritagePage = () => {
               const coordinates = e.features[0].geometry.coordinates.slice();
               
               console.log('Heritage site clicked:', properties.name);
-              
-              const details = await fetchDetails(properties.name);
-              setSidebarData({
-                name: properties.name,
-                category: properties.category,
-                year: properties.year,
-                coordinates: coordinates, // Add coordinates for map switching
-                ...details
-              });
-              setSidebarOpen(true);
+
+              await openSiteInSidebar(
+                {
+                  name: properties.name,
+                  category: properties.category,
+                  year: properties.year,
+                  coordinates
+                },
+                { flyTo: false }
+              );
             };
 
             // Enhanced hover effects for both icons and circles
@@ -1405,6 +1564,7 @@ const HeritagePage = () => {
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
         if (map.current) {
+          mapReadyRef.current = false;
           map.current.remove();
         }
       };
@@ -1428,11 +1588,56 @@ const HeritagePage = () => {
     };
   }, [streetViewModalOpen]);
 
+  const activeMonument = sidebarData || selectedMonument;
+  const actionCards = [
+    {
+      id: 'multiplayer-quiz',
+      icon: '👥',
+      title: 'Multiplayer Quiz',
+      description: 'Live head-to-head challenge mode.',
+      accentClass: 'heritage-action-sunset',
+      onClick: () => navigateWithSelection('/multiplayer/heritage-quiz')
+    },
+    {
+      id: 'all-india-quiz',
+      icon: '🎯',
+      title: 'All India Quiz',
+      description: 'Adaptive monument quiz session.',
+      accentClass: 'heritage-action-orchid',
+      onClick: () => navigateWithSelection('/heritage-quiz')
+    },
+    {
+      id: 'storybook',
+      icon: '📖',
+      title: 'Heritage Storybook',
+      description: 'Guided visual history chapters.',
+      accentClass: 'heritage-action-azure',
+      onClick: () => navigateWithSelection('/storybook-demo')
+    },
+    {
+      id: 'safety-navigator',
+      icon: '🚨',
+      title: 'Safety Navigator',
+      description: 'Route risk and emergency support.',
+      accentClass: 'heritage-action-danger',
+      onClick: () =>
+        navigateWithSelection(
+          '/safety-navigation',
+          toSafetySiteState(sidebarData || selectedMonument) || {}
+        )
+    }
+  ];
+
   // Show loading state
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#666' }}>
-        Loading heritage sites from database...
+      <div className="heritage-loading-shell">
+        <div className="heritage-shell-card">
+          <h2 className="heritage-shell-title">Loading Heritage Atlas</h2>
+          <p className="heritage-shell-subtitle">
+            Preparing map layers, monument metadata, and enhanced image context.
+          </p>
+        </div>
       </div>
     );
   }
@@ -1440,19 +1645,10 @@ const HeritagePage = () => {
   // Show error state
   if (error) {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '18px',
-        color: '#d32f2f',
-        textAlign: 'center',
-        padding: '20px'
-      }}>
-        <div>Error loading heritage sites</div>
-        <div style={{ fontSize: '14px', marginTop: '10px', color: '#666' }}>{error}</div>
+      <div className="heritage-error-shell">
+        <div className="heritage-shell-card">
+          <h2 className="heritage-shell-title">Unable to Load Heritage Data</h2>
+          <p className="heritage-shell-subtitle">{error}</p>
         <button
           onClick={() => window.location.reload()}
           style={{
@@ -1467,163 +1663,84 @@ const HeritagePage = () => {
         >
           Retry
         </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ margin: 0, padding: 0, overflow: 'hidden', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}>
+    <div
+      className="heritage-page-root heritage-theme-scope"
+      data-heritage-theme={theme}
+      style={{ margin: 0, padding: 0, overflow: 'hidden', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}
+    >
+      <div className="heritage-ambient-bg" aria-hidden="true">
+        <span className="heritage-orb heritage-orb-one" />
+        <span className="heritage-orb heritage-orb-two" />
+        <span className="heritage-orb heritage-orb-three" />
+      </div>
+
       {/* Map Container */}
       <div ref={mapContainer} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%', zIndex: 1 }} />
 
-      {/* Heritage Action Buttons */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '30px',
-          right: '10px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: '12px',
-          zIndex: 10,
-          maxWidth: 'calc(100vw - 320px)'
-        }}
-      >
-        <button
-          onClick={() => navigate('/multiplayer/heritage-quiz')}
-          style={{
-            background: 'linear-gradient(135deg, #ff9800, #f57c00)',
-            border: 'none',
-            borderRadius: '50px',
-            padding: '12px 24px',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(255, 152, 0, 0.3)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'transform 0.2s, box-shadow 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(255, 152, 0, 0.3)';
-          }}
-        >
-          👥 Multiplayer Quiz
-        </button>
+      {activeMonument?.name && (
+        <div className="heritage-selected-chip" style={{ zIndex: 15 }}>
+          <div className="heritage-selected-title">Selected Monument</div>
+          <div className="heritage-selected-name">{activeMonument.name}</div>
+          <div className="heritage-selected-actions">
+            <button
+              className="heritage-mini-action"
+              onClick={() => {
+                if (activeMonument.coordinates && map.current) {
+                  map.current.flyTo({
+                    center: activeMonument.coordinates,
+                    zoom: 14,
+                    pitch: 45,
+                    bearing: 0,
+                    duration: 900,
+                    essential: true
+                  });
+                }
 
-        <button
-          onClick={() => navigate('/heritage-quiz')}
-          style={{
-            background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
-            border: 'none',
-            borderRadius: '50px',
-            padding: '12px 24px',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'transform 0.2s, box-shadow 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(156, 39, 176, 0.3)';
-          }}
-        >
-          🎯 All India Quiz
-        </button>
+                if (sidebarData?.name === activeMonument.name) {
+                  setSidebarOpen(true);
+                } else {
+                  openSiteInSidebar(activeMonument, { flyTo: false });
+                }
+              }}
+            >
+              Focus
+            </button>
+            <button
+              className={`heritage-mini-action ${chatbotPulse ? 'is-pulse' : ''}`}
+              onClick={() => {
+                window.dispatchEvent(new Event('heritage-chatbot-open'));
+                setChatbotPulse(true);
+                setTimeout(() => setChatbotPulse(false), 1200);
+              }}
+            >
+              Chatbot
+            </button>
+          </div>
+        </div>
+      )}
 
-        <button
-          onClick={() => navigate('/storybook-demo')}
-          style={{
-            background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-            border: 'none',
-            borderRadius: '50px',
-            padding: '12px 24px',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'transform 0.2s, box-shadow 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
-          }}
-        >
-          📖 Open Heritage Storybook
-        </button>
-
-        <button
-          onClick={() => {
-            navigate('/safety-navigation', {
-              state: sidebarData
-                ? {
-                    site: {
-                      name: sidebarData.name,
-                      coordinates: sidebarData.coordinates || sidebarData.location?.coordinates,
-                      city: sidebarData.location?.city || '',
-                      state: sidebarData.location?.state || '',
-                      country: sidebarData.location?.country || 'India'
-                    }
-                  }
-                : undefined
-            });
-          }}
-          style={{
-            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
-            border: 'none',
-            borderRadius: '50px',
-            padding: '12px 24px',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'transform 0.2s, box-shadow 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.3)';
-          }}
-        >
-          🚨 Safety Navigator
-        </button>
+      {/* Heritage Action Cards */}
+      <div className="heritage-floating-action-grid">
+        {actionCards.map((card) => (
+          <motion.button
+            key={card.id}
+            className={`heritage-action-card ${card.accentClass}`}
+            onClick={card.onClick}
+            whileHover={{ y: -4, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+          >
+            <span className="heritage-action-icon">{card.icon}</span>
+            <span className="heritage-action-label">{card.title}</span>
+            <span className="heritage-action-desc">{card.description}</span>
+          </motion.button>
+        ))}
       </div>
 
       {/* Home Navigation Button */}
@@ -1672,22 +1789,22 @@ const HeritagePage = () => {
           <label style={{ marginRight: '10px' }}>
             <input
               type="radio"
+              value="places"
+              checked={searchMode === 'places'}
+              onChange={(e) => setSearchMode(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            Search by Place
+          </label>
+          <label>
+            <input
+              type="radio"
               value="coordinates"
               checked={searchMode === 'coordinates'}
               onChange={(e) => setSearchMode(e.target.value)}
               style={{ marginRight: '5px' }}
             />
             Coordinates
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="places"
-              checked={searchMode === 'places'}
-              onChange={(e) => setSearchMode(e.target.value)}
-              style={{ marginRight: '5px' }}
-            />
-            Places
           </label>
         </div>
 
@@ -1946,13 +2063,16 @@ const HeritagePage = () => {
 
       {/* Sidebar for heritage site details */}
       {sidebarOpen && sidebarData && (
-        <div style={{ 
+        <div
+          ref={sidebarPanelRef}
+          className="heritage-sidebar-panel heritage-animated-panel"
+          style={{ 
           position: 'absolute', 
           top: 0, 
           right: 0, 
-          width: '380px', 
+          width: sidebarExpanded ? '100vw' : '380px', 
           height: '100%', 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          background: 'var(--heritage-panel-bg)', 
           zIndex: 2000, 
           boxShadow: '-8px 0 32px rgba(0,0,0,0.4)', 
           padding: 0, 
@@ -1960,7 +2080,8 @@ const HeritagePage = () => {
           flexDirection: 'column', 
           fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
           backdropFilter: 'blur(10px)'
-        }}>
+          }}
+        >
           {/* Header */}
           <div style={{ 
             padding: '24px', 
@@ -1991,39 +2112,129 @@ const HeritagePage = () => {
                 backdropFilter: 'blur(10px)'
               }}>{sidebarData.category} • {sidebarData.year}</div>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              style={{ 
-                background: 'rgba(255,255,255,0.2)', 
-                border: 'none', 
-                fontSize: '28px', 
-                color: '#fff', 
-                cursor: 'pointer', 
-                lineHeight: '1',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s ease',
-                backdropFilter: 'blur(10px)'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(255,255,255,0.3)';
-                e.target.style.transform = 'rotate(90deg)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255,255,255,0.2)';
-                e.target.style.transform = 'rotate(0deg)';
-              }}
-            >
-              &times;
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={toggleSidebarFullscreen}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  fontSize: '16px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  lineHeight: '1',
+                  minWidth: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+                title={sidebarExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
+              >
+                {sidebarExpanded ? '🡼' : '⛶'}
+              </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                style={{ 
+                  background: 'rgba(255,255,255,0.2)', 
+                  border: 'none', 
+                  fontSize: '28px', 
+                  color: '#fff', 
+                  cursor: 'pointer', 
+                  lineHeight: '1',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255,255,255,0.3)';
+                  e.target.style.transform = 'rotate(90deg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255,255,255,0.2)';
+                  e.target.style.transform = 'rotate(0deg)';
+                }}
+              >
+                &times;
+              </button>
+            </div>
           </div>
 
           {/* Scrollable Content Area */}
           <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 0, scrollbarWidth: 'thin', scrollbarColor: '#ccc #f0f0f0' }} className="sidebar-scroll">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${sidebarData.name}-${sidebarData.monumentImage?.imageUrl || sidebarData.media?.panorama_url || 'no-image'}`}
+                className="heritage-sidebar-hero"
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              >
+                {(sidebarData.monumentImage?.imageUrl || sidebarData.media?.panorama_url) && (
+                  <div
+                    className="heritage-sidebar-hero-image"
+                    style={{
+                      backgroundImage: `url(${sidebarData.monumentImage?.imageUrl || sidebarData.media?.panorama_url})`
+                    }}
+                  />
+                )}
+                {!(sidebarData.monumentImage?.imageUrl || sidebarData.media?.panorama_url) && (
+                  <div className="heritage-sidebar-hero-skeleton" />
+                )}
+                <div className="heritage-sidebar-hero-overlay" />
+                <div className="heritage-sidebar-hero-content">
+                  <div className="heritage-sidebar-kicker">Monument Spotlight</div>
+                  <h3 className="heritage-sidebar-title">{sidebarData.name}</h3>
+                  <div className="heritage-sidebar-meta">
+                    {sidebarData.location?.city ? `${sidebarData.location.city}, ` : ''}
+                    {sidebarData.location?.state ? `${sidebarData.location.state}, ` : ''}
+                    {sidebarData.location?.country || 'India'}
+                  </div>
+                  <span className="heritage-sidebar-source">
+                    Image: {sidebarData.monumentImage?.source || 'fallback'}
+                  </span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="heritage-hub-card">
+              <div className="heritage-hub-title">Monument Hub</div>
+              <div className="heritage-hub-subtitle">
+                {sidebarData.location?.city ? `${sidebarData.location.city}, ` : ''}
+                {sidebarData.location?.state ? `${sidebarData.location.state}, ` : ''}
+                {sidebarData.location?.country || 'India'}
+              </div>
+              <div className="heritage-hub-actions">
+                <button className="heritage-mini-action" onClick={() => setQuizModalOpen(true)}>
+                  Quiz
+                </button>
+                <button className="heritage-mini-action" onClick={() => setTripPlannerModalOpen(true)}>
+                  Trip
+                </button>
+                <button
+                  className="heritage-mini-action"
+                  onClick={() =>
+                    navigateWithSelection('/safety-navigation', toSafetySiteState(sidebarData) || {})
+                  }
+                >
+                  Safety
+                </button>
+              </div>
+            </div>
+
+            {sidebarLoading && <SidebarSkeleton />}
+
+            {!sidebarLoading && (
+              <>
+            <div className="heritage-section-title">Overview</div>
             {/* Info Block */}
             {sidebarData.info && (
               <SidebarBlock
@@ -2034,7 +2245,7 @@ const HeritagePage = () => {
                   const hasStoryBook = await checkStoryBookAvailable(sidebarData.name);
                   if (hasStoryBook) {
                     const formattedName = sidebarData.name.toLowerCase().replace(/\s+/g, '-');
-                    navigate(`/heritage-storybook/${formattedName}`);
+                    navigateWithSelection(`/heritage-storybook/${formattedName}`);
                   } else {
                     setInfoModalOpen(true);
                   }
@@ -2077,7 +2288,7 @@ const HeritagePage = () => {
                 summary={sidebarData.model3d.summary}
                 onClick={() => {
                   if (sidebarData.model3d.sketchfabId) {
-                    navigate(`/sketchfab/${sidebarData.model3d.sketchfabId}`);
+                    navigateWithSelection(`/sketchfab/${sidebarData.model3d.sketchfabId}`);
                   } else {
                     window.open(sidebarData.model3d.url, '_blank');
                   }
@@ -2102,23 +2313,26 @@ const HeritagePage = () => {
             />
 
             <SidebarBlock
+              icon="🤖"
+              title="AI Chatbot"
+              summary="Open the heritage assistant without leaving this monument context"
+              onClick={() => {
+                window.dispatchEvent(new Event('heritage-chatbot-open'));
+                setChatbotPulse(true);
+                setTimeout(() => setChatbotPulse(false), 1200);
+              }}
+            />
+
+            <SidebarBlock
               icon="🚨"
               title="Safety Navigator"
               summary="Emergency mode, safe places, and route risk ranking"
               onClick={() =>
-                navigate('/safety-navigation', {
-                  state: {
-                    site: {
-                      name: sidebarData.name,
-                      coordinates: sidebarData.coordinates || sidebarData.location?.coordinates,
-                      city: sidebarData.location?.city || '',
-                      state: sidebarData.location?.state || '',
-                      country: sidebarData.location?.country || 'India'
-                    }
-                  }
-                })
+                navigateWithSelection('/safety-navigation', toSafetySiteState(sidebarData) || {})
               }
             />
+
+            <div className="heritage-section-title">Map and Live Data</div>
 
             {/* Map Viewing Options */}
             <div style={{ 
@@ -2247,6 +2461,8 @@ const HeritagePage = () => {
                 isLoading={newsLoading}
               />
             </div>
+              </>
+            )}
           </div>
           {/* End scrollable content area */}
         </div>
@@ -2782,7 +2998,7 @@ const HeritagePage = () => {
           siteData={sidebarData}
           onOpenDedicated={() => {
             setTripPlannerModalOpen(false);
-            navigate(`/trip-planner/${encodeURIComponent(sidebarData.name)}`);
+            navigateWithSelection(`/trip-planner/${encodeURIComponent(sidebarData.name)}`);
           }}
         />
       )}
@@ -2878,6 +3094,202 @@ const HeritagePage = () => {
         .sidebar-block:hover::before {
           left: 100%;
         }
+
+        .heritage-section-title {
+          margin: 16px 16px 8px;
+          color: rgba(255, 255, 255, 0.92);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-weight: 700;
+        }
+
+        .heritage-hub-card {
+          margin: 14px 12px 4px;
+          padding: 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08));
+          backdrop-filter: blur(12px);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        }
+
+        .heritage-hub-title {
+          color: #ffffff;
+          font-size: 17px;
+          font-weight: 700;
+          margin-bottom: 4px;
+        }
+
+        .heritage-hub-subtitle {
+          color: rgba(255, 255, 255, 0.82);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .heritage-hub-actions {
+          margin-top: 10px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .heritage-mini-action {
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          background: rgba(255, 255, 255, 0.14);
+          color: #ffffff;
+          border-radius: 999px;
+          padding: 7px 12px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+          cursor: pointer;
+          transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .heritage-mini-action:hover {
+          transform: translateY(-1px);
+          background: rgba(255, 255, 255, 0.24);
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18);
+        }
+
+        .heritage-mini-action.is-pulse {
+          animation: heritagePulse 0.65s ease;
+        }
+
+        .heritage-selected-chip {
+          position: absolute;
+          top: 300px;
+          left: 12px;
+          max-width: min(360px, calc(100vw - 26px));
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          background: rgba(9, 16, 24, 0.74);
+          backdrop-filter: blur(10px);
+          padding: 12px 14px;
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        }
+
+        .heritage-selected-title {
+          font-size: 11px;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.66);
+          margin-bottom: 4px;
+        }
+
+        .heritage-selected-name {
+          font-size: 16px;
+          color: #ffffff;
+          font-weight: 700;
+          margin-bottom: 8px;
+          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+
+        .heritage-selected-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .heritage-sidebar-skeleton {
+          margin: 12px;
+          display: grid;
+          gap: 10px;
+        }
+
+        .heritage-skeleton-item {
+          height: 70px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: linear-gradient(110deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.08) 100%);
+          background-size: 220% 100%;
+          animation: shimmer 1.4s linear infinite;
+        }
+
+        .heritage-ambient-bg {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          pointer-events: none;
+          overflow: hidden;
+        }
+
+        .heritage-orb {
+          position: absolute;
+          width: clamp(220px, 28vw, 420px);
+          height: clamp(220px, 28vw, 420px);
+          border-radius: 50%;
+          filter: blur(38px);
+          opacity: 0.26;
+          transform-origin: center;
+        }
+
+        .heritage-orb-one {
+          top: -80px;
+          left: -70px;
+          background: radial-gradient(circle at 30% 30%, rgba(60, 179, 113, 0.9), rgba(60, 179, 113, 0));
+          animation: orbFloatA 22s ease-in-out infinite;
+        }
+
+        .heritage-orb-two {
+          top: 34%;
+          right: -80px;
+          background: radial-gradient(circle at 40% 50%, rgba(255, 179, 71, 0.92), rgba(255, 179, 71, 0));
+          animation: orbFloatB 24s ease-in-out infinite;
+        }
+
+        .heritage-orb-three {
+          bottom: -120px;
+          left: 36%;
+          background: radial-gradient(circle at 60% 40%, rgba(80, 156, 255, 0.9), rgba(80, 156, 255, 0));
+          animation: orbFloatC 26s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+          0% {
+            background-position: 220% 0;
+          }
+          100% {
+            background-position: -220% 0;
+          }
+        }
+
+        @keyframes heritagePulse {
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.06);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+
+        @keyframes orbFloatA {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(30px, 22px, 0) scale(1.08); }
+        }
+
+        @keyframes orbFloatB {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(-26px, 28px, 0) scale(0.94); }
+        }
+
+        @keyframes orbFloatC {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(16px, -24px, 0) scale(1.07); }
+        }
+
+        @media (max-width: 880px) {
+          .heritage-selected-chip {
+            top: auto;
+            bottom: 146px;
+            left: 10px;
+            max-width: calc(100vw - 20px);
+          }
+        }
       `}} />
 
       {/* Weather Modal */}
@@ -2889,7 +3301,7 @@ const HeritagePage = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
+            background: 'var(--heritage-overlay-bg)',
             zIndex: 10000,
             display: 'flex',
             alignItems: 'center',
@@ -2899,12 +3311,15 @@ const HeritagePage = () => {
           onClick={() => setWeatherModalOpen(false)}
         >
           <div 
+            ref={weatherModalCardRef}
+            className="heritage-modal-card heritage-animated-panel"
             style={{
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              borderRadius: '20px',
-              maxWidth: '700px',
-              width: '100%',
-              maxHeight: '80vh',
+              background: 'var(--heritage-panel-bg)',
+              borderRadius: weatherExpanded ? '0px' : '20px',
+              maxWidth: weatherExpanded ? '100vw' : '700px',
+              width: weatherExpanded ? '100vw' : '100%',
+              maxHeight: weatherExpanded ? '100vh' : '80vh',
+              height: weatherExpanded ? '100vh' : 'auto',
               overflowY: 'auto',
               padding: '40px',
               color: 'white',
@@ -2913,6 +3328,30 @@ const HeritagePage = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              onClick={toggleWeatherFullscreen}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '68px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                fontSize: '17px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease',
+                lineHeight: '1'
+              }}
+              title={weatherExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
+            >
+              {weatherExpanded ? '🡼' : '⛶'}
+            </button>
             {/* Close button */}
             <button
               onClick={() => setWeatherModalOpen(false)}
@@ -3181,7 +3620,7 @@ const HeritagePage = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backgroundColor: 'var(--heritage-overlay-bg)',
             zIndex: 10000,
             display: 'flex',
             alignItems: 'center',
@@ -3191,13 +3630,16 @@ const HeritagePage = () => {
           onClick={() => setNewsModalOpen(false)}
         >
           <div 
+            ref={newsModalCardRef}
+            className="heritage-modal-card heritage-animated-panel"
             style={{
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              borderRadius: '20px',
+              background: 'var(--heritage-panel-bg)',
+              borderRadius: newsExpanded ? '0px' : '20px',
               padding: '40px',
-              maxWidth: '800px',
-              width: '100%',
-              maxHeight: '90vh',
+              maxWidth: newsExpanded ? '100vw' : '800px',
+              width: newsExpanded ? '100vw' : '100%',
+              maxHeight: newsExpanded ? '100vh' : '90vh',
+              height: newsExpanded ? '100vh' : 'auto',
               overflowY: 'auto',
               color: 'white',
               position: 'relative',
@@ -3205,6 +3647,29 @@ const HeritagePage = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              onClick={toggleNewsFullscreen}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '68px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                cursor: 'pointer',
+                color: 'white',
+                fontSize: '17px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+              title={newsExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
+            >
+              {newsExpanded ? '🡼' : '⛶'}
+            </button>
             {/* Close button */}
             <button
               onClick={() => setNewsModalOpen(false)}
@@ -3472,6 +3937,17 @@ const HeritagePage = () => {
     </div>
   );
 };
+
+function SidebarSkeleton() {
+  return (
+    <div className="heritage-sidebar-skeleton" aria-live="polite" aria-label="Loading monument details">
+      <div className="heritage-skeleton-item" />
+      <div className="heritage-skeleton-item" />
+      <div className="heritage-skeleton-item" />
+      <div className="heritage-skeleton-item" />
+    </div>
+  );
+}
 
 function SidebarBlock({ icon, title, summary, onClick, isActive = false, isLoading = false }) {
   return (

@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import GestureButton from "./GestureButton";
 
 const TOTAL_ROUNDS = 10;
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
+const FlagGuessGame = ({ selectedCountry, clearSelection, onExit }) => {
   const [currentCountry, setCurrentCountry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [score, setScore] = useState(0);
@@ -14,6 +14,7 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
   const [isCorrect, setIsCorrect] = useState(null);
   const [error, setError] = useState(null);
   const [flagLoading, setFlagLoading] = useState(true);
+  const loadedFlagsRef = useRef(new Set());
 
   // Fetch random country for flag
   const fetchRandomCountry = useCallback(async () => {
@@ -44,6 +45,7 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
       }
       
       setCurrentCountry(data);
+      setFlagLoading(!loadedFlagsRef.current.has(data.flagUrl));
     } catch (err) {
       console.error("Error fetching country:", err);
       setError(err.message);
@@ -128,6 +130,33 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
     return { percentage, message, emoji };
   }, [score]);
 
+  const renderExitButton = () => {
+    if (!onExit) {
+      return null;
+    }
+
+    return (
+      <GestureButton
+        onClick={onExit}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          padding: '8px 12px',
+          background: 'rgba(255, 255, 255, 0.14)',
+          color: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          borderRadius: '8px',
+          fontSize: '12px',
+          fontFamily: "'Orbitron', sans-serif",
+          cursor: 'pointer'
+        }}
+      >
+        Exit
+      </GestureButton>
+    );
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -139,8 +168,10 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
         borderRadius: "16px",
         border: "2px solid rgba(0, 212, 255, 0.3)",
         backdropFilter: "blur(15px)",
-        minWidth: "320px"
+        minWidth: "320px",
+        position: 'relative'
       }}>
+        {renderExitButton()}
         <div style={{ fontSize: "18px", marginBottom: "15px", fontFamily: "'Orbitron', sans-serif" }}>
           Loading flag...
         </div>
@@ -166,8 +197,10 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
         textAlign: "center",
         background: "rgba(0, 20, 40, 0.95)",
         borderRadius: "16px",
-        border: "2px solid rgba(255, 100, 100, 0.3)"
+        border: "2px solid rgba(255, 100, 100, 0.3)",
+        position: 'relative'
       }}>
+        {renderExitButton()}
         <h3 style={{ color: "#ff6b6b", marginBottom: "10px" }}>Error</h3>
         <p>{error}</p>
         <GestureButton 
@@ -202,8 +235,10 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
         borderRadius: "16px",
         border: "2px solid rgba(0, 212, 255, 0.4)",
         backdropFilter: "blur(15px)",
-        minWidth: "320px"
+        minWidth: "320px",
+        position: 'relative'
       }}>
+        {renderExitButton()}
         <h2 style={{ 
           fontFamily: "'Orbitron', sans-serif",
           color: "#00d4ff",
@@ -301,8 +336,10 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
       backdropFilter: "blur(15px)",
       color: "white",
       minWidth: "320px",
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)"
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+      position: 'relative'
     }}>
+      {renderExitButton()}
       {/* Header */}
       <div style={{ 
         display: "flex", 
@@ -371,9 +408,15 @@ const FlagGuessGame = ({ selectedCountry, clearSelection }) => {
         <img 
           src={currentCountry.flagUrl}
           alt="Country Flag"
-          onLoad={() => setFlagLoading(false)}
+          loading="eager"
+          decoding="async"
+          onLoad={() => {
+            loadedFlagsRef.current.add(currentCountry.flagUrl);
+            setFlagLoading(false);
+          }}
           onError={(e) => {
             e.target.src = `https://flagcdn.com/w320/${currentCountry.code}.png`;
+            loadedFlagsRef.current.add(e.target.src);
             setFlagLoading(false);
           }}
           style={{

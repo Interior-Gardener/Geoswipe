@@ -1,9 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Suspense, lazy, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import GlobalGestureCursor from "./GlobalGestureCursor";
 import CameraCapture from "./components/CameraCapture";
 import HeritageStoryBook from "./HeritageStoryBook";
 import StoryBookDemo from "./StoryBookDemo";
+import { useTheme } from "./context/ThemeContext";
 
 // Lazy load components for better performance
 const LandingPage = lazy(() => import("./LandingPage"));
@@ -40,11 +41,55 @@ const LoadingSpinner = () => (
   </div>
 );
 
-function App() {
+function isHeritageEcosystemPath(pathname = "") {
+  const prefixes = [
+    "/heritage",
+    "/trip-planner",
+    "/heritage-quiz",
+    "/multiplayer/heritage-quiz",
+    "/safety-navigation",
+    "/sketchfab",
+    "/how-to-reach",
+    "/heritage-storybook",
+    "/storybook-demo"
+  ];
+
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function AppShell() {
   const [showCameraPreview, setShowCameraPreview] = useState(false);
+  const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
+
+  const isHeritageRoute = useMemo(
+    () => isHeritageEcosystemPath(location.pathname),
+    [location.pathname]
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return undefined;
+    }
+
+    if (isHeritageRoute) {
+      document.body.classList.add("heritage-theme-active");
+      document.body.setAttribute("data-heritage-theme", theme);
+    } else {
+      document.body.classList.remove("heritage-theme-active");
+      document.body.removeAttribute("data-heritage-theme");
+    }
+
+    return () => {
+      if (!isHeritageRoute) {
+        document.body.classList.remove("heritage-theme-active");
+        document.body.removeAttribute("data-heritage-theme");
+      }
+    };
+  }, [isHeritageRoute, theme]);
 
   return (
-    <Router>
+    <>
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -67,6 +112,18 @@ function App() {
           <Route path="/storybook-demo" element={<StoryBookDemo />} />
         </Routes>
       </Suspense>
+
+      {isHeritageRoute && (
+        <button
+          className="heritage-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to day mode" : "Switch to night mode"}
+          title={theme === "dark" ? "Switch to day mode" : "Switch to night mode"}
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
+      )}
+
       {/* Global gesture cursor - appears on all pages */}
       <GlobalGestureCursor />
       {/* Browser-based gesture camera */}
@@ -120,6 +177,14 @@ function App() {
           {showCameraPreview ? 'HIDE' : 'SHOW'}
         </div>
       </button>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppShell />
     </Router>
   );
 }

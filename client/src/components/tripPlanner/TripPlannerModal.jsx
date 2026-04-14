@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import TripPlannerForm from './TripPlannerForm';
 import TripPlannerResult from './TripPlannerResult';
 import { generateTripPlan, getTripPlannerDefaults } from '../../utils/tripPlannerService';
+import { usePanelFullscreen } from '../../hooks/usePanelFullscreen';
+import { useTheme } from '../../context/ThemeContext';
 
 function TripPlannerModal({ isOpen, onClose, siteData, onOpenDedicated }) {
   const navigate = useNavigate();
+  const modalRef = useRef(null);
   const [isCompact, setIsCompact] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 980 : false
   );
@@ -13,6 +17,8 @@ function TripPlannerModal({ isOpen, onClose, siteData, onOpenDedicated }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastInput, setLastInput] = useState(getTripPlannerDefaults());
+  const { theme } = useTheme();
+  const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(modalRef);
 
   const normalizedSite = useMemo(() => {
     if (!siteData) return null;
@@ -89,18 +95,37 @@ function TripPlannerModal({ isOpen, onClose, siteData, onOpenDedicated }) {
 
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(event) => event.stopPropagation()}>
-        <div style={styles.header}>
+      <motion.div
+        ref={modalRef}
+        className="heritage-animated-panel"
+        style={{
+          ...styles.modal,
+          ...(theme === 'light' ? styles.modalLight : null),
+          ...(isExpanded ? styles.modalExpanded : null)
+        }}
+        onClick={(event) => event.stopPropagation()}
+        initial={{ opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ duration: 0.26, ease: 'easeOut' }}
+      >
+        <div style={{ ...styles.header, ...(theme === 'light' ? styles.headerLight : null) }}>
           <div>
-            <div style={styles.title}>Trip Planner</div>
-            <div style={styles.subtitle}>
+            <div style={{ ...styles.title, ...(theme === 'light' ? styles.titleLight : null) }}>Trip Planner</div>
+            <div style={{ ...styles.subtitle, ...(theme === 'light' ? styles.subtitleLight : null) }}>
               {normalizedSite?.name ? `Site: ${normalizedSite.name}` : 'Select a site first'}
             </div>
           </div>
 
           <div style={styles.headerActions}>
             <button
-              style={styles.pageButton}
+              style={{ ...styles.pageButton, ...(theme === 'light' ? styles.pageButtonLight : null) }}
+              onClick={togglePanelFullscreen}
+            >
+              {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+            </button>
+            <button
+              style={{ ...styles.pageButton, ...(theme === 'light' ? styles.pageButtonLight : null) }}
               onClick={() => {
                 if (onOpenDedicated) {
                   onOpenDedicated();
@@ -116,7 +141,10 @@ function TripPlannerModal({ isOpen, onClose, siteData, onOpenDedicated }) {
             >
               Open Full Page
             </button>
-            <button style={styles.closeButton} onClick={onClose}>
+            <button
+              style={{ ...styles.closeButton, ...(theme === 'light' ? styles.closeButtonLight : null) }}
+              onClick={onClose}
+            >
               x
             </button>
           </div>
@@ -137,7 +165,7 @@ function TripPlannerModal({ isOpen, onClose, siteData, onOpenDedicated }) {
             onRegenerate={handleRegenerate}
           />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -165,6 +193,17 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
   },
+  modalLight: {
+    background: 'linear-gradient(145deg, #e8f1ff, #dbeafe 45%, #eef5ff)',
+    border: '1px solid rgba(45, 88, 163, 0.24)',
+    color: '#132a4c',
+  },
+  modalExpanded: {
+    width: '100vw',
+    maxHeight: '100vh',
+    height: '100vh',
+    borderRadius: 0,
+  },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -174,15 +213,25 @@ const styles = {
     borderBottom: '1px solid rgba(255,255,255,0.2)',
     background: 'rgba(255,255,255,0.07)',
   },
+  headerLight: {
+    borderBottom: '1px solid rgba(49, 88, 164, 0.2)',
+    background: 'rgba(255,255,255,0.55)',
+  },
   title: {
     fontSize: '24px',
     fontWeight: 800,
     lineHeight: 1.15,
   },
+  titleLight: {
+    color: '#132a4c',
+  },
   subtitle: {
     marginTop: '6px',
     fontSize: '13px',
     color: 'rgba(244, 236, 255, 0.88)',
+  },
+  subtitleLight: {
+    color: 'rgba(18, 42, 76, 0.74)',
   },
   headerActions: {
     display: 'flex',
@@ -200,6 +249,11 @@ const styles = {
     fontWeight: 700,
     fontSize: '12px',
   },
+  pageButtonLight: {
+    background: 'rgba(59, 104, 178, 0.14)',
+    border: '1px solid rgba(59, 104, 178, 0.3)',
+    color: '#183863',
+  },
   closeButton: {
     width: '34px',
     height: '34px',
@@ -211,6 +265,11 @@ const styles = {
     fontSize: '16px',
     fontWeight: 700,
     lineHeight: 1,
+  },
+  closeButtonLight: {
+    background: 'rgba(59, 104, 178, 0.14)',
+    border: '1px solid rgba(59, 104, 178, 0.3)',
+    color: '#183863',
   },
   contentGrid: {
     display: 'grid',

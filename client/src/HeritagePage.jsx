@@ -1580,6 +1580,50 @@ const HeritagePage = () => {
         >
           📖 Open Heritage Storybook
         </button>
+
+        <button
+          onClick={() => {
+            navigate('/safety-navigation', {
+              state: sidebarData
+                ? {
+                    site: {
+                      name: sidebarData.name,
+                      coordinates: sidebarData.coordinates || sidebarData.location?.coordinates,
+                      city: sidebarData.location?.city || '',
+                      state: sidebarData.location?.state || '',
+                      country: sidebarData.location?.country || 'India'
+                    }
+                  }
+                : undefined
+            });
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '12px 24px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(231, 76, 60, 0.3)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(231, 76, 60, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(231, 76, 60, 0.3)';
+          }}
+        >
+          🚨 Safety Navigator
+        </button>
       </div>
 
       {/* Home Navigation Button */}
@@ -2055,6 +2099,25 @@ const HeritagePage = () => {
               title="Plan Trip"
               summary="Build a day-wise itinerary with budget and booking links"
               onClick={() => setTripPlannerModalOpen(true)}
+            />
+
+            <SidebarBlock
+              icon="🚨"
+              title="Safety Navigator"
+              summary="Emergency mode, safe places, and route risk ranking"
+              onClick={() =>
+                navigate('/safety-navigation', {
+                  state: {
+                    site: {
+                      name: sidebarData.name,
+                      coordinates: sidebarData.coordinates || sidebarData.location?.coordinates,
+                      city: sidebarData.location?.city || '',
+                      state: sidebarData.location?.state || '',
+                      country: sidebarData.location?.country || 'India'
+                    }
+                  }
+                })
+              }
             />
 
             {/* Map Viewing Options */}

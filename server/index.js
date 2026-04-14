@@ -615,6 +615,411 @@ app.get("/api/news/:siteName", async (req, res) => {
   }
 });
 
+// ===== SAFETY + EMERGENCY + NAVIGATION APIs =====
+const MAPTILER_API_KEY =
+  process.env.VITE_MAPTILER_API_KEY ||
+  process.env.MAPTILER_API_KEY ||
+  '';
+const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
+const SAFETY_DEFAULT_RADIUS = 3000;
+
+function parseCoordinate(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isValidCoordinatePair(lat, lon) {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lon >= -180 &&
+    lon <= 180
+  );
+}
+
+function haversineMeters(lon1, lat1, lon2, lat2) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadius * c;
+}
+
+function pathDistanceKm(path = []) {
+  if (!Array.isArray(path) || path.length < 2) {
+    return 0;
+  }
+
+  let distance = 0;
+  for (let i = 1; i < path.length; i += 1) {
+    const [prevLon, prevLat] = path[i - 1];
+    const [nextLon, nextLat] = path[i];
+    distance += haversineMeters(prevLon, prevLat, nextLon, nextLat);
+  }
+
+  return distance / 1000;
+}
+
+function buildFallbackSafePlaces(lat, lon, limit = 10) {
+  const syntheticPlaces = [
+    { name: 'Nearest Hospital', type: 'hospital', dLat: 0.012, dLon: 0.008 },
+    { name: 'Police Station', type: 'police', dLat: -0.009, dLon: 0.014 },
+    { name: 'Emergency Shelter', type: 'shelter', dLat: 0.006, dLon: -0.012 },
+    { name: 'Fire Station', type: 'fire_station', dLat: -0.013, dLon: -0.009 },
+    { name: '24x7 Pharmacy', type: 'pharmacy', dLat: 0.017, dLon: 0.005 }
+  ];
+
+  return syntheticPlaces.slice(0, Math.max(1, limit)).map((item, index) => {
+    const coordinates = [lon + item.dLon, lat + item.dLat];
+    return {
+      id: `fallback-safe-${index + 1}`,
+      name: item.name,
+      type: item.type,
+      coordinates,
+      distanceMeters: Math.round(haversineMeters(lon, lat, coordinates[0], coordinates[1])),
+      address: 'Approximate fallback location'
+    };
+  });
+}
+
+async function fetchSafePlacesFromOverpass(lat, lon, radius, limit) {
+  const query = `
+[out:json][timeout:25];
+(
+  node["amenity"~"hospital|police|fire_station|pharmacy|shelter"](around:${radius},${lat},${lon});
+  way["amenity"~"hospital|police|fire_station|pharmacy|shelter"](around:${radius},${lat},${lon});
+  relation["amenity"~"hospital|police|fire_station|pharmacy|shelter"](around:${radius},${lat},${lon});
+);
+out center tags;
+`;
+
+  const response = await fetch(OVERPASS_API_URL, {
+    method: 'POST',
+    body: query,
+    headers: {
+      'Content-Type': 'text/plain',
+      'User-Agent': 'GeoSwipe/1.0'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Overpass lookup failed with status ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const rawElements = Array.isArray(payload?.elements) ? payload.elements : [];
+
+  const places = rawElements
+    .map((element, index) => {
+      const coords =
+        element.type === 'node'
+          ? [element.lon, element.lat]
+          : element.center
+            ? [element.center.lon, element.center.lat]
+            : null;
+
+      if (!coords || !Array.isArray(coords)) {
+        return null;
+      }
+
+      const amenity = element.tags?.amenity || 'support';
+      const name = element.tags?.name || amenity.replace(/_/g, ' ');
+
+      const address = [
+        element.tags?.['addr:housenumber'],
+        element.tags?.['addr:street'],
+        element.tags?.['addr:city']
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      return {
+        id: `safe-place-${element.id || index + 1}`,
+        name,
+        type: amenity,
+        coordinates: coords,
+        distanceMeters: Math.round(haversineMeters(lon, lat, coords[0], coords[1])),
+        address: address || 'Address unavailable'
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, Math.max(1, limit));
+
+  return places;
+}
+
+function buildFallbackRoutes(fromLat, fromLon, toLat, toLon) {
+  const midpointLon = (fromLon + toLon) / 2;
+  const midpointLat = (fromLat + toLat) / 2;
+  const lateralOffset = 0.12 * Math.max(Math.abs(toLon - fromLon), Math.abs(toLat - fromLat), 0.03);
+
+  const paths = [
+    {
+      id: 'route-1',
+      summary: 'Primary corridor',
+      path: [
+        [fromLon, fromLat],
+        [midpointLon, midpointLat],
+        [toLon, toLat]
+      ],
+      speedKmph: 38
+    },
+    {
+      id: 'route-2',
+      summary: 'Northern bypass',
+      path: [
+        [fromLon, fromLat],
+        [midpointLon - lateralOffset, midpointLat + lateralOffset],
+        [toLon, toLat]
+      ],
+      speedKmph: 34
+    },
+    {
+      id: 'route-3',
+      summary: 'Southern bypass',
+      path: [
+        [fromLon, fromLat],
+        [midpointLon + lateralOffset, midpointLat - lateralOffset],
+        [toLon, toLat]
+      ],
+      speedKmph: 30
+    }
+  ];
+
+  return paths.map((route) => {
+    const distanceKm = Number(pathDistanceKm(route.path).toFixed(2));
+    const durationMin = Number(((distanceKm / Math.max(route.speedKmph, 1)) * 60).toFixed(1));
+
+    return {
+      id: route.id,
+      summary: route.summary,
+      distanceKm,
+      durationMin,
+      geometry: {
+        type: 'LineString',
+        coordinates: route.path
+      }
+    };
+  });
+}
+
+function classifySafetySeverity(text = '') {
+  const content = String(text).toLowerCase();
+
+  if (/(evacuation|curfew|red alert|major|emergency declared|severe)/.test(content)) {
+    return 'high';
+  }
+
+  if (/(warning|advisory|flood|cyclone|landslide|accident|road closed|protest)/.test(content)) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+function safetyHeadlineFromAlerts(alerts = [], locationName = 'this area') {
+  if (!alerts.length) {
+    return `No major safety alerts reported for ${locationName}.`;
+  }
+
+  const hasHigh = alerts.some((alert) => alert.severity === 'high');
+  const hasMedium = alerts.some((alert) => alert.severity === 'medium');
+
+  if (hasHigh) {
+    return `High-priority advisories detected near ${locationName}. Travel cautiously.`;
+  }
+
+  if (hasMedium) {
+    return `Moderate advisories active near ${locationName}. Prefer safer routes.`;
+  }
+
+  return `Low-priority advisories available for ${locationName}.`;
+}
+
+app.get('/api/safety/nearby-safe-places', async (req, res) => {
+  const lat = parseCoordinate(req.query.lat);
+  const lon = parseCoordinate(req.query.lon);
+  const radius = Math.min(10000, Math.max(500, Number(req.query.radius) || SAFETY_DEFAULT_RADIUS));
+  const limit = Math.min(30, Math.max(3, Number(req.query.limit) || 12));
+
+  if (!isValidCoordinatePair(lat, lon)) {
+    return res.status(400).json({ error: 'Valid lat and lon query parameters are required.' });
+  }
+
+  try {
+    const places = await fetchSafePlacesFromOverpass(lat, lon, radius, limit);
+
+    if (!places.length) {
+      return res.json({
+        places: buildFallbackSafePlaces(lat, lon, limit),
+        provider: 'fallback',
+        fetchedAt: new Date().toISOString()
+      });
+    }
+
+    res.json({
+      places,
+      provider: 'overpass',
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.warn('Safety places lookup failed, using fallback:', error.message);
+    res.json({
+      places: buildFallbackSafePlaces(lat, lon, limit),
+      provider: 'fallback',
+      fetchedAt: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/safety/routes', async (req, res) => {
+  const fromLat = parseCoordinate(req.query.fromLat);
+  const fromLon = parseCoordinate(req.query.fromLon);
+  const toLat = parseCoordinate(req.query.toLat);
+  const toLon = parseCoordinate(req.query.toLon);
+
+  if (!isValidCoordinatePair(fromLat, fromLon) || !isValidCoordinatePair(toLat, toLon)) {
+    return res.status(400).json({ error: 'Valid from/to coordinates are required.' });
+  }
+
+  const profileInput = String(req.query.profile || 'driving').toLowerCase();
+  const profile = ['driving', 'walking', 'cycling'].includes(profileInput)
+    ? profileInput
+    : 'driving';
+
+  const fallbackRoutes = buildFallbackRoutes(fromLat, fromLon, toLat, toLon);
+
+  if (!MAPTILER_API_KEY) {
+    return res.json({
+      routes: fallbackRoutes,
+      provider: 'fallback',
+      fetchedAt: new Date().toISOString()
+    });
+  }
+
+  try {
+    const directionsUrl =
+      `https://api.maptiler.com/directions/${profile}/` +
+      `${fromLon},${fromLat};${toLon},${toLat}.json` +
+      `?alternatives=true&steps=true&geometries=geojson&overview=full&key=${MAPTILER_API_KEY}`;
+
+    const response = await fetch(directionsUrl, {
+      headers: { 'User-Agent': 'GeoSwipe/1.0' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Directions provider responded ${response.status}`);
+    }
+
+    const data = await response.json();
+    const providerRoutes = Array.isArray(data?.routes)
+      ? data.routes
+          .slice(0, 3)
+          .map((route, index) => ({
+            id: `route-${index + 1}`,
+            summary: route.legs?.[0]?.summary || `Route ${index + 1}`,
+            distanceKm: Number(((route.distance || 0) / 1000).toFixed(2)),
+            durationMin: Number(((route.duration || 0) / 60).toFixed(1)),
+            geometry: route.geometry
+          }))
+      : [];
+
+    res.json({
+      routes: providerRoutes.length ? providerRoutes : fallbackRoutes,
+      provider: providerRoutes.length ? 'maptiler' : 'fallback',
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.warn('Route provider failed, using fallback:', error.message);
+    res.json({
+      routes: fallbackRoutes,
+      provider: 'fallback',
+      fetchedAt: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/safety/alerts', async (req, res) => {
+  const city = String(req.query.city || '').trim();
+  const state = String(req.query.state || '').trim();
+  const country = String(req.query.country || 'India').trim();
+  const locationName = city || state || country || 'this area';
+
+  const riskTerms =
+    '(flood OR cyclone OR landslide OR storm OR accident OR protest OR curfew OR evacuation OR advisory OR "road closed")';
+
+  const queries = [];
+  if (city) queries.push(`"${city}" AND ${riskTerms}`);
+  if (state) queries.push(`"${state}" AND ${riskTerms}`);
+  if (country) queries.push(`"${country}" AND ${riskTerms}`);
+  if (!queries.length) queries.push(`India AND ${riskTerms}`);
+
+  try {
+    const alerts = [];
+    const seenUrls = new Set();
+
+    for (const query of queries.slice(0, 3)) {
+      // Reuse existing NewsAPI helper for consistency with current backend stack.
+      const articles = await fetchNewsWithQuery(query);
+      for (const article of articles) {
+        if (!article?.url || seenUrls.has(article.url)) {
+          continue;
+        }
+
+        seenUrls.add(article.url);
+
+        const severity = classifySafetySeverity(
+          `${article.title || ''} ${article.description || ''}`
+        );
+
+        alerts.push({
+          title: article.title,
+          summary: article.description || 'No description available',
+          source: article.source?.name || 'Unknown source',
+          url: article.url,
+          publishedAt: article.publishedAt,
+          severity
+        });
+
+        if (alerts.length >= 8) {
+          break;
+        }
+      }
+
+      if (alerts.length >= 8) {
+        break;
+      }
+    }
+
+    const severityRank = { high: 3, medium: 2, low: 1 };
+    alerts.sort((a, b) => (severityRank[b.severity] || 1) - (severityRank[a.severity] || 1));
+
+    res.json({
+      safetyHeadline: safetyHeadlineFromAlerts(alerts, locationName),
+      alerts,
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.warn('Safety alerts fetch failed:', error.message);
+    res.json({
+      safetyHeadline: `Could not fetch live safety alerts for ${locationName}.`,
+      alerts: [],
+      fetchedAt: new Date().toISOString()
+    });
+  }
+});
+
 //Optimized Socket.IO logic with NO rate limiting for gesture controls
 const socketConnections = new Set(); // Track connections for cleanup only
 let frameCount = 0; // Track frames received

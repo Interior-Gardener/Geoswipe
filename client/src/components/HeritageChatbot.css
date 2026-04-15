@@ -3,7 +3,7 @@
 
 .heritage-chatbot-container {
   position: fixed;
-  z-index: 9500;
+  z-index: 10;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -21,7 +21,7 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  z-index: 9500;
+  z-index: 10;
   box-shadow: 0 12px 28px rgba(5, 11, 25, 0.42);
   backdrop-filter: blur(12px);
   display: flex;

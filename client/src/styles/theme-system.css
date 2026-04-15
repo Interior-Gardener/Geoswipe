@@ -32,7 +32,7 @@ body.heritage-theme-active .heritage-theme-toggle {
   position: fixed;
   top: 14px;
   right: 14px;
-  z-index: 16000;
+  z-index: 10;
   width: 44px;
   height: 44px;
   border-radius: 50%;

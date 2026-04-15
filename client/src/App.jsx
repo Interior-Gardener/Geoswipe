@@ -62,8 +62,18 @@ function AppShell() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
 
+  const isCameraVisibleRoute = useMemo(
+    () => location.pathname === "/" || location.pathname === "/explore",
+    [location.pathname]
+  );
+
   const isHeritageRoute = useMemo(
     () => isHeritageEcosystemPath(location.pathname),
+    [location.pathname]
+  );
+
+  const isHeritageMainRoute = useMemo(
+    () => location.pathname === "/heritage",
     [location.pathname]
   );
 
@@ -113,7 +123,7 @@ function AppShell() {
         </Routes>
       </Suspense>
 
-      {isHeritageRoute && (
+      {isHeritageMainRoute && (
         <button
           className="heritage-theme-toggle"
           onClick={toggleTheme}
@@ -126,57 +136,61 @@ function AppShell() {
 
       {/* Global gesture cursor - appears on all pages */}
       <GlobalGestureCursor />
-      {/* Browser-based gesture camera */}
-      <CameraCapture
-        enabled={true}
-        showPreview={showCameraPreview}
-        targetFPS={30}
-        quality={0.7}
-        width={640}
-        height={480}
-      />
-      {/* Camera preview toggle button */}
-      <button
-        onClick={() => setShowCameraPreview(!showCameraPreview)}
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          left: 20,
-          zIndex: 1001,
-          background: showCameraPreview ? '#00d4ff' : 'rgba(0, 0, 0, 0.8)',
-          color: showCameraPreview ? '#000' : '#00d4ff',
-          border: '2px solid #00d4ff',
-          borderRadius: '50%',
-          width: '60px',
-          height: '60px',
-          cursor: 'pointer',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-          fontFamily: 'Orbitron, sans-serif',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
-          padding: '0'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.1)';
-          e.target.style.boxShadow = '0 6px 20px rgba(0, 212, 255, 0.5)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 4px 15px rgba(0, 212, 255, 0.3)';
-        }}
-        title={showCameraPreview ? "Hide Camera Preview" : "Show Camera Preview"}
-      >
-        <div style={{ lineHeight: '1' }}>
-          {showCameraPreview ? '👁️' : '📷'}
-        </div>
-        <div style={{ fontSize: '8px', marginTop: '2px', fontWeight: 'bold' }}>
-          {showCameraPreview ? 'HIDE' : 'SHOW'}
-        </div>
-      </button>
+      {isCameraVisibleRoute && (
+        <>
+          {/* Browser-based gesture camera */}
+          <CameraCapture
+            enabled={true}
+            showPreview={showCameraPreview}
+            targetFPS={30}
+            quality={0.7}
+            width={640}
+            height={480}
+          />
+          {/* Camera preview toggle button */}
+          <button
+            onClick={() => setShowCameraPreview(!showCameraPreview)}
+            style={{
+              position: 'fixed',
+              bottom: 20,
+              left: 20,
+              zIndex: 1001,
+              background: showCameraPreview ? '#00d4ff' : 'rgba(0, 0, 0, 0.8)',
+              color: showCameraPreview ? '#000' : '#00d4ff',
+              border: '2px solid #00d4ff',
+              borderRadius: '50%',
+              width: '60px',
+              height: '60px',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              fontFamily: 'Orbitron, sans-serif',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
+              padding: '0'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'scale(1.1)';
+              e.target.style.boxShadow = '0 6px 20px rgba(0, 212, 255, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'scale(1)';
+              e.target.style.boxShadow = '0 4px 15px rgba(0, 212, 255, 0.3)';
+            }}
+            title={showCameraPreview ? "Hide Camera Preview" : "Show Camera Preview"}
+          >
+            <div style={{ lineHeight: '1' }}>
+              {showCameraPreview ? '👁️' : '📷'}
+            </div>
+            <div style={{ fontSize: '8px', marginTop: '2px', fontWeight: 'bold' }}>
+              {showCameraPreview ? 'HIDE' : 'SHOW'}
+            </div>
+          </button>
+        </>
+      )}
     </>
   );
 }

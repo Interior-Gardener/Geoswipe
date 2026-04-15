@@ -32,7 +32,7 @@ npm start
 ```
 This will launch:
 - ✅ Client (React app) on http://localhost:5173
-- ✅ Server (Node.js backend) on http://localhost:3001
+- ✅ Server (Node.js backend) on http://localhost:3000
 - ✅ Gesture control system (optional)
 
 #### Option B: Start Separately
@@ -40,7 +40,7 @@ This will launch:
 # Terminal 1: Start the server
 cd server
 npm run dev
-# Server runs on http://localhost:3001
+# Server runs on http://localhost:3000
 
 # Terminal 2: Start the client  
 cd client
@@ -281,7 +281,7 @@ npm run dev
    cd server
    npm run dev
    ```
-2. Check server is on port 3001 (or 3000)
+2. Check server is on port 3000
 3. Check console for errors
 4. Restart both server and client
 
@@ -362,7 +362,7 @@ npm run dev
 ### **Server Requirements**
 - Node.js 18+ installed
 - MongoDB running (for heritage data)
-- Port 3001 available
+- Port 3000 available
 
 ### **Client Requirements**
 - Modern web browser
@@ -371,7 +371,7 @@ npm run dev
 
 ### **Network Requirements**
 - Same WiFi network for local multiplayer
-- Firewall allows ports 3001 and 5173
+- Firewall allows ports 3000 and 5173
 
 ### **Socket Events Used**
 - `join-room`: Join/create a game room

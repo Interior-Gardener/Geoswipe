@@ -6,7 +6,43 @@
 
 import { io } from 'socket.io-client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const browserProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+const browserHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const apiPort = (import.meta.env.VITE_API_PORT || '3000').trim() || '3000';
+
+function resolveApiUrl() {
+  const sameHostUrl = `${browserProtocol}//${browserHost}:${apiPort}`;
+
+  if (!configuredApiUrl) {
+    return sameHostUrl;
+  }
+
+  if (typeof window === 'undefined') {
+    return configuredApiUrl;
+  }
+
+  try {
+    const parsedUrl = new URL(configuredApiUrl);
+    const configuredHost = parsedUrl.hostname.toLowerCase();
+    const currentHost = browserHost.toLowerCase();
+    const localhostHosts = ['localhost', '127.0.0.1', '::1'];
+    const configuredIsLocalhost = localhostHosts.includes(configuredHost);
+    const currentIsLocalhost = localhostHosts.includes(currentHost);
+
+    // If the app is opened from another device, don't force localhost from .env.
+    if (configuredIsLocalhost && !currentIsLocalhost) {
+      const resolvedPort = parsedUrl.port || apiPort;
+      return `${parsedUrl.protocol}//${browserHost}:${resolvedPort}`;
+    }
+
+    return configuredApiUrl;
+  } catch {
+    return sameHostUrl;
+  }
+}
+
+const API_URL = resolveApiUrl();
 
 // Singleton socket instance for multiplayer
 let multiplayerSocket = null;

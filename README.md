@@ -4,7 +4,7 @@ A modern, interactive web application that combines 3D Earth visualization, cult
 
 ## 🎬 Demo Video
 
-[![Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-GeoSwipe-blue?style=for-the-badge)](https://drive.google.com/file/d/1NzUjonejcssivGZTnOTxkJuZuxzxwtFT/view?usp=sharing)
+[![Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-GeoSwipe-blue?style=for-the-badge)](https://drive.google.com/file/d/1Lyut5of0GenXbqDONxnpip1CccRIYmYt/view?usp=drivesdk)
 
 ## ✨ Key Features
 

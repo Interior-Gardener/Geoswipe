@@ -21,18 +21,6 @@ export const hexToRgb = (hex, forShaders = false) => {
     } : null;
 }
 
-/**
- * @param {string} url - Path to equirectandular .hdr
- * @returns {Promise<THREE.Texture>}
- */
-export const loadHDRI = (url) => {
-    return new Promise((resolve) => {
-        const hdrEquirect = new RGBELoader().load(url, function () {
-            hdrEquirect.mapping = THREE.EquirectangularReflectionMapping
-            resolve(hdrEquirect)
-        })
-    })
-}
 
 /**
  * 
@@ -52,25 +40,6 @@ export const loadTexture = async (url) => {
     return new Promise(resolve => {
         textureLoader.load(url, texture => {
             resolve(texture)
-        })
-    })
-}
-
-/**
- * 
- * @param {string} url - Path to locally imported glb or remote url
- * @returns {Promise<Object>}
- * 
- * Usage:
- * let { model } = await this.loadModel(ModelUrl)
- * scene.add(model)
- */
-export const loadModel = async (url) => {
-    let modelLoader = new GLTFLoader()
-    return new Promise(resolve => {
-        modelLoader.load(url, gltf => {
-            const result = { model: gltf.scene }
-            resolve(result)
         })
     })
 }

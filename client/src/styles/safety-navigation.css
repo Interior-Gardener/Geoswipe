@@ -1,0 +1,428 @@
+/* ==========================================================================
+   Smart Tourist Safety & Emergency Navigation
+   --------------------------------------------------------------------------
+   Extracted from a 428-line <style> block that lived inside the component's
+   JSX, and rebuilt on the design-system tokens so this page matches the rest
+   of the app and follows the light/dark theme.
+   ========================================================================== */
+
+/* Layout is a full-bleed map with floating glass panels over it - not a grid.
+   The map element is first in the DOM and fills the viewport. */
+.safety-page-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--gs-bg-deep);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
+}
+
+.safety-map-canvas {
+  position: absolute;
+  inset: 0;
+  background: var(--gs-surface-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* Top bar                                                             */
+/* ------------------------------------------------------------------ */
+
+.safety-top-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gs-space-4);
+  padding: var(--gs-space-3) var(--gs-space-4);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+}
+
+.safety-top-title {
+  font-size: var(--gs-text-base);
+  font-weight: 680;
+  letter-spacing: var(--gs-tracking-tight);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.safety-top-actions { display: flex; align-items: center; gap: var(--gs-space-2); flex-shrink: 0; }
+
+/* ------------------------------------------------------------------ */
+/* Floating panels                                                     */
+/* ------------------------------------------------------------------ */
+
+.safety-left-panel,
+.safety-right-panel {
+  position: absolute;
+  top: 74px;
+  bottom: 14px;
+  width: min(360px, calc(50vw - 24px));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gs-border-strong) transparent;
+}
+.safety-left-panel::-webkit-scrollbar,
+.safety-right-panel::-webkit-scrollbar { width: 6px; }
+.safety-left-panel::-webkit-scrollbar-thumb,
+.safety-right-panel::-webkit-scrollbar-thumb { background: var(--gs-border-strong); border-radius: var(--gs-radius-pill); }
+
+.safety-left-panel { left: 12px; }
+.safety-right-panel { right: 12px; }
+
+.safety-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-4);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-1);
+  border: 1px solid var(--gs-border-faint);
+  flex-shrink: 0;
+}
+
+.safety-section-title {
+  margin: 0;
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+/* ------------------------------------------------------------------ */
+/* Controls                                                            */
+/* ------------------------------------------------------------------ */
+
+.safety-input,
+.safety-select,
+.safety-textarea {
+  width: 100%;
+  padding: 0.625rem 0.8125rem;
+  min-height: 42px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-surface-2);
+  color: var(--gs-text);
+  font-family: inherit;
+  font-size: var(--gs-text-sm);
+  line-height: 1.45;
+  transition: border-color var(--gs-dur-fast) var(--gs-ease), box-shadow var(--gs-dur-fast) var(--gs-ease);
+}
+.safety-input::placeholder,
+.safety-textarea::placeholder { color: var(--gs-text-faint); }
+.safety-input:focus,
+.safety-select:focus,
+.safety-textarea:focus {
+  outline: none;
+  border-color: var(--gs-accent);
+  box-shadow: 0 0 0 3px var(--gs-accent-soft);
+}
+
+.safety-textarea { min-height: 84px; resize: vertical; font-family: inherit; }
+
+.safety-select { cursor: pointer; appearance: none; padding-right: 2rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.safety-select option { background: var(--gs-surface-solid); color: var(--gs-text); }
+
+.safety-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gs-space-2);
+  padding: 0.5625rem 1rem;
+  min-height: 40px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-surface-2);
+  color: var(--gs-text);
+  font-family: inherit;
+  font-size: var(--gs-text-xs);
+  font-weight: 650;
+  letter-spacing: var(--gs-tracking-wide);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--gs-dur-fast) var(--gs-ease-out),
+              background-color var(--gs-dur-fast) var(--gs-ease),
+              border-color var(--gs-dur-fast) var(--gs-ease),
+              color var(--gs-dur-fast) var(--gs-ease);
+}
+.safety-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--gs-accent-border);
+  color: var(--gs-accent);
+}
+.safety-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+.safety-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.safety-btn.primary {
+  background: linear-gradient(135deg, var(--gs-accent), var(--gs-accent-strong));
+  border-color: transparent;
+  color: var(--gs-accent-contrast);
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.26);
+}
+.safety-btn.primary:hover:not(:disabled) { filter: brightness(1.06); color: var(--gs-accent-contrast); box-shadow: 0 8px 24px rgba(34, 211, 238, 0.34); }
+
+/* Emergency / evacuation are destructive-intent toggles. */
+.safety-btn.active {
+  background: linear-gradient(135deg, var(--gs-gold), var(--gs-gold-strong));
+  border-color: transparent;
+  color: var(--gs-gold-contrast);
+  font-weight: 700;
+}
+.safety-btn.active:hover:not(:disabled) { color: var(--gs-gold-contrast); filter: brightness(1.05); }
+
+.safety-inline-controls { display: flex; align-items: center; gap: var(--gs-space-2); flex-wrap: wrap; }
+.safety-inline-controls .safety-select,
+.safety-inline-controls .safety-input { flex: 1 1 140px; min-width: 0; }
+
+.safety-toggle-row { display: flex; flex-direction: column; gap: var(--gs-space-2); }
+
+/* ------------------------------------------------------------------ */
+/* Chips & status                                                      */
+/* ------------------------------------------------------------------ */
+
+.safety-chip-row { display: flex; flex-wrap: wrap; gap: var(--gs-space-2); }
+
+.safety-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--gs-radius-pill);
+  background: var(--gs-surface-3);
+  border: 1px solid var(--gs-border-faint);
+  color: var(--gs-text-muted);
+  font-size: var(--gs-text-2xs);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.safety-status {
+  font-size: var(--gs-text-xs);
+  color: var(--gs-text-subtle);
+  line-height: var(--gs-leading-normal);
+}
+
+.safety-muted-block {
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-2);
+  border: 1px dashed var(--gs-border-strong);
+  color: var(--gs-text-subtle);
+  font-size: var(--gs-text-xs);
+  line-height: var(--gs-leading-normal);
+}
+
+.safety-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-danger-soft);
+  border: 1px solid rgba(248, 113, 113, 0.34);
+  color: var(--gs-danger);
+  font-size: var(--gs-text-xs);
+  font-weight: 550;
+}
+
+/* ------------------------------------------------------------------ */
+/* Lists: places, routes, alerts, contacts, suggestions                */
+/* ------------------------------------------------------------------ */
+
+.safety-place-item,
+.safety-alert-item,
+.safety-contact-item,
+.safety-suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-2);
+  border: 1px solid var(--gs-border-faint);
+  transition: background-color var(--gs-dur-fast) var(--gs-ease),
+              border-color var(--gs-dur-fast) var(--gs-ease),
+              transform var(--gs-dur-fast) var(--gs-ease-out);
+}
+
+.safety-place-item + .safety-place-item,
+.safety-alert-item + .safety-alert-item,
+.safety-contact-item + .safety-contact-item { margin-top: var(--gs-space-2); }
+
+.safety-suggestion-item,
+.safety-contact-item,
+.safety-place-item { cursor: pointer; }
+
+.safety-place-item:hover,
+.safety-contact-item:hover,
+.safety-suggestion-item:hover {
+  background: var(--gs-accent-soft);
+  border-color: var(--gs-accent-border);
+  transform: translateX(2px);
+}
+
+.safety-place-name,
+.safety-suggestion-name { font-size: var(--gs-text-sm); font-weight: 620; color: var(--gs-text); }
+.safety-place-meta,
+.safety-suggestion-meta { font-size: var(--gs-text-2xs); color: var(--gs-text-faint); margin-top: 1px; }
+
+.safety-contact-item { font-size: var(--gs-text-sm); }
+.safety-contact-item strong,
+.safety-contact-item b { color: var(--gs-accent); font-variant-numeric: tabular-nums; }
+
+.safety-contact-list { display: flex; flex-direction: column; }
+
+/* Search suggestions overlay */
+.safety-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-1);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: var(--gs-space-1);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-raised);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+}
+
+/* Routes */
+.safety-route-list { display: flex; flex-direction: column; gap: var(--gs-space-2); }
+
+.safety-route-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gs-space-2);
+}
+
+.safety-route-title { font-size: var(--gs-text-sm); font-weight: 650; color: var(--gs-text); }
+.safety-route-meta { font-size: var(--gs-text-2xs); color: var(--gs-text-faint); }
+
+.safety-route-score {
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--gs-radius-xs);
+  background: var(--gs-success-soft);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: var(--gs-success);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Alerts */
+.safety-alert-item { flex-direction: column; align-items: flex-start; gap: var(--gs-space-1); }
+.safety-alert-headline { font-size: var(--gs-text-xs); font-weight: 650; color: var(--gs-warning); }
+.safety-alert-title { font-size: var(--gs-text-sm); font-weight: 600; color: var(--gs-text); line-height: 1.35; }
+.safety-alert-meta { font-size: var(--gs-text-2xs); color: var(--gs-text-faint); }
+
+/* AI guidance output */
+.safety-ai-output {
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-2);
+  border: 1px solid var(--gs-border-faint);
+  font-size: var(--gs-text-sm);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-muted);
+  white-space: pre-wrap;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 1180px) {
+  .safety-left-panel,
+  .safety-right-panel { width: min(320px, calc(50vw - 20px)); }
+}
+
+/* Below this width two floating rails leave no usable map, so the page
+   becomes a normal scrolling document with the map on top. */
+@media (max-width: 900px) {
+  .safety-page-root {
+    position: relative;
+    inset: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gs-space-3);
+    padding: var(--gs-space-3);
+  }
+
+  .safety-map-canvas {
+    position: relative;
+    inset: auto;
+    order: 2;
+    height: 46vh;
+    min-height: 300px;
+    border-radius: var(--gs-radius-lg);
+    border: 1px solid var(--gs-border-strong);
+    overflow: hidden;
+  }
+
+  .safety-top-bar {
+    position: relative;
+    top: auto; left: auto; right: auto;
+    order: 1;
+    flex-wrap: wrap;
+  }
+
+  .safety-left-panel { order: 3; }
+  .safety-right-panel { order: 4; }
+
+  .safety-left-panel,
+  .safety-right-panel {
+    position: relative;
+    top: auto; bottom: auto; left: auto; right: auto;
+    width: 100%;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 560px) {
+  .safety-page-root { padding: var(--gs-space-2); }
+  .safety-top-actions { width: 100%; }
+  .safety-top-actions .safety-btn { flex: 1 1 auto; }
+  .safety-top-title { white-space: normal; }
+}
+
+/* The custom-contact row put two inputs plus a button on one line inside a
+   360px rail, which truncated both placeholders. Give the inputs the full
+   width and let the button sit on its own line. */
+.safety-section .safety-inline-controls .safety-input { flex: 1 1 100%; }
+.safety-section .safety-inline-controls .safety-btn { flex: 0 0 auto; margin-left: auto; }

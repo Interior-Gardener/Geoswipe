@@ -1,0 +1,1355 @@
+/* ==========================================================================
+   GeoSwipe Design System
+   --------------------------------------------------------------------------
+   Single source of truth for tokens, primitives and component classes.
+   Loaded before every other stylesheet so feature CSS can layer on top.
+
+   Contents
+     1. Tokens (color, type, space, radius, shadow, motion, z-index)
+     2. Base / reset
+     3. Typography
+     4. Layout primitives
+     5. Buttons
+     6. Form controls
+     7. Cards & surfaces
+     8. Chips, badges, segmented controls
+     9. Modals, sheets & overlays
+    10. Toolbars & docks
+    11. States: loading, empty, error, skeleton
+    12. Tooltips
+    13. Scrollbars
+    14. Animation utilities
+    15. Utilities
+    16. Responsive helpers
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 1. TOKENS                                                           */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* --- Brand accents ------------------------------------------------ */
+  /* Cyan/teal carries the "geo / globe" identity.                      */
+  --gs-accent: #22d3ee;
+  --gs-accent-strong: #06b6d4;
+  --gs-accent-soft: rgba(34, 211, 238, 0.14);
+  --gs-accent-border: rgba(34, 211, 238, 0.36);
+  --gs-accent-contrast: #04222b;
+
+  /* Amber carries the "heritage / monument" warmth.                    */
+  --gs-gold: #f5b342;
+  --gs-gold-strong: #e09b1f;
+  --gs-gold-soft: rgba(245, 179, 66, 0.14);
+  --gs-gold-contrast: #2b1d02;
+
+  /* Violet for depth and tertiary emphasis.                            */
+  --gs-violet: #a78bfa;
+  --gs-violet-strong: #8b5cf6;
+  --gs-violet-soft: rgba(167, 139, 250, 0.14);
+
+  /* --- Semantic ----------------------------------------------------- */
+  --gs-success: #34d399;
+  --gs-success-soft: rgba(52, 211, 153, 0.14);
+  --gs-warning: #fbbf24;
+  --gs-warning-soft: rgba(251, 191, 36, 0.14);
+  --gs-danger: #f87171;
+  --gs-danger-soft: rgba(248, 113, 113, 0.14);
+  --gs-info: #60a5fa;
+  --gs-info-soft: rgba(96, 165, 250, 0.14);
+
+  /* --- Surfaces (dark is the default) ------------------------------- */
+  --gs-bg: #060b18;
+  --gs-bg-deep: #030711;
+  --gs-surface-1: rgba(17, 26, 47, 0.82);
+  --gs-surface-2: rgba(24, 35, 60, 0.78);
+  --gs-surface-3: rgba(36, 50, 79, 0.72);
+  --gs-surface-solid: #111a2f;
+  --gs-surface-raised: rgba(30, 43, 71, 0.94);
+
+  /* Glass recipe used by floating panels. */
+  --gs-glass: linear-gradient(150deg, rgba(23, 34, 58, 0.9), rgba(14, 22, 41, 0.82));
+  --gs-glass-blur: blur(18px) saturate(1.25);
+
+  /* --- Text --------------------------------------------------------- */
+  --gs-text: #eef4ff;
+  --gs-text-muted: rgba(238, 244, 255, 0.72);
+  --gs-text-subtle: rgba(238, 244, 255, 0.5);
+  --gs-text-faint: rgba(238, 244, 255, 0.34);
+  --gs-text-inverse: #0a1220;
+
+  /* --- Borders ------------------------------------------------------ */
+  --gs-border: rgba(255, 255, 255, 0.1);
+  --gs-border-strong: rgba(255, 255, 255, 0.18);
+  --gs-border-faint: rgba(255, 255, 255, 0.06);
+
+  /* --- Typography --------------------------------------------------- */
+  --gs-font: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --gs-font-display: 'Orbitron', 'Inter', system-ui, sans-serif;
+  --gs-font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  /* Fluid type scale - comfortable on phones, generous on desktop. */
+  --gs-text-2xs: 0.6875rem;
+  --gs-text-xs: 0.75rem;
+  --gs-text-sm: 0.8125rem;
+  --gs-text-base: 0.9375rem;
+  --gs-text-md: 1rem;
+  --gs-text-lg: clamp(1.0625rem, 0.4vw + 1rem, 1.1875rem);
+  --gs-text-xl: clamp(1.25rem, 0.7vw + 1.05rem, 1.5rem);
+  --gs-text-2xl: clamp(1.5rem, 1.2vw + 1.2rem, 2rem);
+  --gs-text-3xl: clamp(1.875rem, 2vw + 1.4rem, 2.75rem);
+  --gs-text-4xl: clamp(2.25rem, 3.4vw + 1.5rem, 3.75rem);
+
+  --gs-leading-tight: 1.18;
+  --gs-leading-snug: 1.35;
+  --gs-leading-normal: 1.55;
+  --gs-leading-relaxed: 1.7;
+
+  --gs-tracking-tight: -0.02em;
+  --gs-tracking-normal: 0;
+  --gs-tracking-wide: 0.02em;
+  --gs-tracking-caps: 0.08em;
+
+  /* --- Spacing (4px base) ------------------------------------------- */
+  --gs-space-0: 0;
+  --gs-space-1: 0.25rem;
+  --gs-space-2: 0.5rem;
+  --gs-space-3: 0.75rem;
+  --gs-space-4: 1rem;
+  --gs-space-5: 1.25rem;
+  --gs-space-6: 1.5rem;
+  --gs-space-8: 2rem;
+  --gs-space-10: 2.5rem;
+  --gs-space-12: 3rem;
+  --gs-space-16: 4rem;
+
+  /* --- Radius ------------------------------------------------------- */
+  --gs-radius-xs: 6px;
+  --gs-radius-sm: 9px;
+  --gs-radius-md: 13px;
+  --gs-radius-lg: 18px;
+  --gs-radius-xl: 24px;
+  --gs-radius-2xl: 32px;
+  --gs-radius-pill: 999px;
+
+  /* --- Elevation ---------------------------------------------------- */
+  --gs-shadow-xs: 0 1px 2px rgba(2, 6, 18, 0.32);
+  --gs-shadow-sm: 0 2px 8px rgba(2, 6, 18, 0.34);
+  --gs-shadow-md: 0 8px 24px rgba(2, 6, 18, 0.4);
+  --gs-shadow-lg: 0 18px 44px rgba(2, 6, 18, 0.48);
+  --gs-shadow-xl: 0 30px 70px rgba(2, 6, 18, 0.56);
+  --gs-shadow-glow: 0 0 0 1px var(--gs-accent-border), 0 10px 34px rgba(34, 211, 238, 0.24);
+
+  /* --- Motion ------------------------------------------------------- */
+  --gs-dur-instant: 90ms;
+  --gs-dur-fast: 160ms;
+  --gs-dur-base: 240ms;
+  --gs-dur-slow: 380ms;
+  --gs-dur-slower: 620ms;
+
+  --gs-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --gs-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --gs-ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+  --gs-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --- Z-index scale ------------------------------------------------ */
+  --gs-z-base: 1;
+  --gs-z-raised: 10;
+  --gs-z-sticky: 100;
+  --gs-z-dock: 400;
+  --gs-z-overlay: 900;
+  --gs-z-modal: 1000;
+  --gs-z-toast: 1200;
+  --gs-z-tooltip: 1400;
+  --gs-z-cursor: 2000;
+
+  /* --- Layout ------------------------------------------------------- */
+  --gs-header-h: 64px;
+  --gs-container: 1280px;
+  --gs-container-narrow: 880px;
+
+  color-scheme: dark;
+}
+
+/* --- Light theme ---------------------------------------------------
+   The app already toggles body[data-heritage-theme]; mirror it here so a
+   single control drives the whole system.                              */
+:root[data-gs-theme='light'],
+body[data-heritage-theme='light'] {
+  --gs-accent: #0891b2;
+  --gs-accent-strong: #0e7490;
+  --gs-accent-soft: rgba(8, 145, 178, 0.1);
+  --gs-accent-border: rgba(8, 145, 178, 0.3);
+  --gs-accent-contrast: #ffffff;
+
+  --gs-gold: #c2830c;
+  --gs-gold-strong: #a06c05;
+  --gs-gold-soft: rgba(194, 131, 12, 0.12);
+  --gs-gold-contrast: #ffffff;
+
+  --gs-violet: #7c3aed;
+  --gs-violet-strong: #6d28d9;
+  --gs-violet-soft: rgba(124, 58, 237, 0.1);
+
+  --gs-success: #059669;
+  --gs-success-soft: rgba(5, 150, 105, 0.12);
+  --gs-warning: #b45309;
+  --gs-warning-soft: rgba(180, 83, 9, 0.12);
+  --gs-danger: #dc2626;
+  --gs-danger-soft: rgba(220, 38, 38, 0.1);
+  --gs-info: #2563eb;
+  --gs-info-soft: rgba(37, 99, 235, 0.1);
+
+  --gs-bg: #eef3fb;
+  --gs-bg-deep: #e2e9f5;
+  --gs-surface-1: rgba(255, 255, 255, 0.92);
+  --gs-surface-2: rgba(248, 251, 255, 0.88);
+  --gs-surface-3: rgba(238, 244, 253, 0.9);
+  --gs-surface-solid: #ffffff;
+  --gs-surface-raised: #ffffff;
+
+  --gs-glass: linear-gradient(150deg, rgba(255, 255, 255, 0.95), rgba(240, 246, 255, 0.88));
+
+  --gs-text: #0f1e33;
+  --gs-text-muted: rgba(15, 30, 51, 0.74);
+  --gs-text-subtle: rgba(15, 30, 51, 0.56);
+  --gs-text-faint: rgba(15, 30, 51, 0.36);
+  --gs-text-inverse: #ffffff;
+
+  --gs-border: rgba(15, 30, 51, 0.12);
+  --gs-border-strong: rgba(15, 30, 51, 0.2);
+  --gs-border-faint: rgba(15, 30, 51, 0.07);
+
+  --gs-shadow-xs: 0 1px 2px rgba(15, 30, 51, 0.07);
+  --gs-shadow-sm: 0 2px 8px rgba(15, 30, 51, 0.08);
+  --gs-shadow-md: 0 8px 24px rgba(15, 30, 51, 0.1);
+  --gs-shadow-lg: 0 18px 44px rgba(15, 30, 51, 0.14);
+  --gs-shadow-xl: 0 30px 70px rgba(15, 30, 51, 0.18);
+  --gs-shadow-glow: 0 0 0 1px var(--gs-accent-border), 0 10px 30px rgba(8, 145, 178, 0.18);
+
+  color-scheme: light;
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. BASE / RESET                                                     */
+/* ------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--gs-font);
+  font-size: var(--gs-text-base);
+  line-height: var(--gs-leading-normal);
+  color: var(--gs-text);
+  background-color: var(--gs-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis-weight: none;
+}
+
+::selection {
+  background: var(--gs-accent);
+  color: var(--gs-accent-contrast);
+}
+
+/* A single, consistent focus ring for keyboard users only. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--gs-accent);
+  outline-offset: 2px;
+  border-radius: var(--gs-radius-xs);
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. TYPOGRAPHY                                                       */
+/* ------------------------------------------------------------------ */
+
+.gs-display {
+  font-family: var(--gs-font-display);
+  font-size: var(--gs-text-4xl);
+  line-height: var(--gs-leading-tight);
+  letter-spacing: var(--gs-tracking-tight);
+  font-weight: 700;
+  margin: 0;
+}
+
+.gs-h1 { font-size: var(--gs-text-3xl); line-height: var(--gs-leading-tight); letter-spacing: var(--gs-tracking-tight); font-weight: 700; margin: 0; }
+.gs-h2 { font-size: var(--gs-text-2xl); line-height: var(--gs-leading-snug); letter-spacing: var(--gs-tracking-tight); font-weight: 650; margin: 0; }
+.gs-h3 { font-size: var(--gs-text-xl); line-height: var(--gs-leading-snug); font-weight: 620; margin: 0; }
+.gs-h4 { font-size: var(--gs-text-lg); line-height: var(--gs-leading-snug); font-weight: 600; margin: 0; }
+
+.gs-body { font-size: var(--gs-text-base); line-height: var(--gs-leading-normal); margin: 0; }
+.gs-body-lg { font-size: var(--gs-text-md); line-height: var(--gs-leading-relaxed); margin: 0; }
+.gs-small { font-size: var(--gs-text-sm); line-height: var(--gs-leading-normal); margin: 0; }
+.gs-caption { font-size: var(--gs-text-xs); line-height: var(--gs-leading-normal); color: var(--gs-text-subtle); margin: 0; }
+
+/* Section eyebrow / overline label. */
+.gs-overline {
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-subtle);
+  margin: 0;
+}
+
+.gs-muted { color: var(--gs-text-muted); }
+.gs-subtle { color: var(--gs-text-subtle); }
+
+.gs-gradient-text {
+  background: linear-gradient(120deg, var(--gs-accent), var(--gs-violet) 55%, var(--gs-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. LAYOUT PRIMITIVES                                                */
+/* ------------------------------------------------------------------ */
+
+.gs-stack { display: flex; flex-direction: column; gap: var(--gs-space-4); }
+.gs-stack-sm { display: flex; flex-direction: column; gap: var(--gs-space-2); }
+.gs-stack-lg { display: flex; flex-direction: column; gap: var(--gs-space-6); }
+
+.gs-row { display: flex; align-items: center; gap: var(--gs-space-3); }
+.gs-row-sm { display: flex; align-items: center; gap: var(--gs-space-2); }
+.gs-row-wrap { display: flex; align-items: center; gap: var(--gs-space-3); flex-wrap: wrap; }
+.gs-row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--gs-space-3); }
+
+.gs-spacer { flex: 1 1 auto; }
+
+.gs-container {
+  width: 100%;
+  max-width: var(--gs-container);
+  margin-inline: auto;
+  padding-inline: clamp(var(--gs-space-4), 3vw, var(--gs-space-8));
+}
+
+.gs-grid { display: grid; gap: var(--gs-space-4); }
+.gs-grid-auto {
+  display: grid;
+  gap: var(--gs-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
+
+.gs-divider {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: var(--gs-border);
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. BUTTONS                                                          */
+/* ------------------------------------------------------------------ */
+
+.gs-btn {
+  --_bg: var(--gs-surface-2);
+  --_fg: var(--gs-text);
+  --_border: var(--gs-border-strong);
+  --_shadow: var(--gs-shadow-xs);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gs-space-2);
+  padding: 0.625rem 1.125rem;
+  min-height: 40px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--_border);
+  background: var(--_bg);
+  color: var(--_fg);
+  font-family: inherit;
+  font-size: var(--gs-text-sm);
+  font-weight: 600;
+  letter-spacing: var(--gs-tracking-wide);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--_shadow);
+  transition:
+    transform var(--gs-dur-fast) var(--gs-ease-out),
+    background-color var(--gs-dur-fast) var(--gs-ease),
+    border-color var(--gs-dur-fast) var(--gs-ease),
+    box-shadow var(--gs-dur-fast) var(--gs-ease),
+    color var(--gs-dur-fast) var(--gs-ease),
+    opacity var(--gs-dur-fast) var(--gs-ease);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gs-btn:hover:not(:disabled):not([aria-disabled='true']) {
+  transform: translateY(-1px);
+  border-color: var(--gs-accent-border);
+  box-shadow: var(--gs-shadow-md);
+}
+
+.gs-btn:active:not(:disabled):not([aria-disabled='true']) {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--gs-shadow-xs);
+  transition-duration: var(--gs-dur-instant);
+}
+
+.gs-btn:disabled,
+.gs-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: saturate(0.6);
+}
+
+/* Variants ---------------------------------------------------------- */
+.gs-btn--primary {
+  --_bg: linear-gradient(135deg, var(--gs-accent), var(--gs-accent-strong));
+  --_fg: var(--gs-accent-contrast);
+  --_border: transparent;
+  --_shadow: 0 6px 20px rgba(34, 211, 238, 0.28);
+  font-weight: 700;
+}
+.gs-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 10px 30px rgba(34, 211, 238, 0.38);
+  filter: brightness(1.06);
+}
+
+.gs-btn--gold {
+  --_bg: linear-gradient(135deg, var(--gs-gold), var(--gs-gold-strong));
+  --_fg: var(--gs-gold-contrast);
+  --_border: transparent;
+  --_shadow: 0 6px 20px rgba(245, 179, 66, 0.28);
+  font-weight: 700;
+}
+.gs-btn--gold:hover:not(:disabled) {
+  box-shadow: 0 10px 30px rgba(245, 179, 66, 0.38);
+  filter: brightness(1.06);
+}
+
+.gs-btn--secondary {
+  --_bg: var(--gs-surface-2);
+  --_fg: var(--gs-text);
+  --_border: var(--gs-border-strong);
+}
+
+.gs-btn--ghost {
+  --_bg: transparent;
+  --_fg: var(--gs-text-muted);
+  --_border: transparent;
+  --_shadow: none;
+}
+.gs-btn--ghost:hover:not(:disabled) {
+  --_bg: var(--gs-surface-2);
+  --_fg: var(--gs-text);
+}
+
+.gs-btn--outline {
+  --_bg: transparent;
+  --_fg: var(--gs-accent);
+  --_border: var(--gs-accent-border);
+  --_shadow: none;
+}
+.gs-btn--outline:hover:not(:disabled) {
+  --_bg: var(--gs-accent-soft);
+}
+
+.gs-btn--danger {
+  --_bg: var(--gs-danger-soft);
+  --_fg: var(--gs-danger);
+  --_border: rgba(248, 113, 113, 0.34);
+}
+.gs-btn--danger:hover:not(:disabled) {
+  --_bg: var(--gs-danger);
+  --_fg: #fff;
+}
+
+/* Sizes ------------------------------------------------------------- */
+.gs-btn--sm { min-height: 32px; padding: 0.375rem 0.75rem; font-size: var(--gs-text-xs); border-radius: var(--gs-radius-sm); }
+.gs-btn--lg { min-height: 50px; padding: 0.875rem 1.75rem; font-size: var(--gs-text-md); border-radius: var(--gs-radius-lg); }
+
+.gs-btn--icon { width: 40px; padding: 0; }
+.gs-btn--icon.gs-btn--sm { width: 32px; }
+.gs-btn--icon.gs-btn--lg { width: 50px; }
+
+.gs-btn--block { width: 100%; }
+
+/* Loading state - hides the label and shows a spinner. */
+.gs-btn--loading { color: transparent !important; pointer-events: none; }
+.gs-btn--loading::after {
+  content: '';
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: gs-spin 0.6s linear infinite;
+  color: var(--_fg);
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. FORM CONTROLS                                                    */
+/* ------------------------------------------------------------------ */
+
+.gs-field { display: flex; flex-direction: column; gap: var(--gs-space-2); min-width: 0; }
+
+.gs-label {
+  font-size: var(--gs-text-xs);
+  font-weight: 650;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-subtle);
+}
+
+.gs-input,
+.gs-select,
+.gs-textarea {
+  width: 100%;
+  padding: 0.6875rem 0.875rem;
+  min-height: 44px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-surface-2);
+  color: var(--gs-text);
+  font-family: inherit;
+  font-size: var(--gs-text-base);
+  line-height: 1.4;
+  transition:
+    border-color var(--gs-dur-fast) var(--gs-ease),
+    box-shadow var(--gs-dur-fast) var(--gs-ease),
+    background-color var(--gs-dur-fast) var(--gs-ease);
+}
+
+.gs-input::placeholder,
+.gs-textarea::placeholder { color: var(--gs-text-faint); }
+
+.gs-input:hover:not(:disabled),
+.gs-select:hover:not(:disabled),
+.gs-textarea:hover:not(:disabled) { border-color: var(--gs-border-strong); background: var(--gs-surface-3); }
+
+.gs-input:focus,
+.gs-select:focus,
+.gs-textarea:focus {
+  outline: none;
+  border-color: var(--gs-accent);
+  box-shadow: 0 0 0 3px var(--gs-accent-soft);
+  background: var(--gs-surface-3);
+}
+
+.gs-input:disabled,
+.gs-select:disabled,
+.gs-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.gs-input[aria-invalid='true'],
+.gs-select[aria-invalid='true'] { border-color: var(--gs-danger); }
+.gs-input[aria-invalid='true']:focus { box-shadow: 0 0 0 3px var(--gs-danger-soft); }
+
+.gs-textarea { min-height: 96px; resize: vertical; }
+
+/* Native select needs an explicit chevron once the default is themed. */
+.gs-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.25rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+/* Options must be readable in both themes (they render natively). */
+.gs-select option { background: var(--gs-surface-solid); color: var(--gs-text); }
+
+.gs-help { font-size: var(--gs-text-xs); color: var(--gs-text-subtle); }
+.gs-error-text { font-size: var(--gs-text-xs); color: var(--gs-danger); font-weight: 550; }
+
+/* Input with a leading icon. */
+.gs-input-group { position: relative; display: flex; align-items: center; width: 100%; }
+.gs-input-group__icon {
+  position: absolute;
+  left: 0.875rem;
+  display: grid;
+  place-items: center;
+  color: var(--gs-text-faint);
+  pointer-events: none;
+  font-size: var(--gs-text-md);
+}
+.gs-input-group .gs-input { padding-left: 2.5rem; }
+
+/* ------------------------------------------------------------------ */
+/* 7. CARDS & SURFACES                                                 */
+/* ------------------------------------------------------------------ */
+
+.gs-card {
+  background: var(--gs-surface-1);
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius-lg);
+  box-shadow: var(--gs-shadow-sm);
+  padding: var(--gs-space-5);
+  transition:
+    transform var(--gs-dur-base) var(--gs-ease-out),
+    box-shadow var(--gs-dur-base) var(--gs-ease),
+    border-color var(--gs-dur-base) var(--gs-ease);
+  min-width: 0;
+}
+
+.gs-card--glass {
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border-color: var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+}
+
+.gs-card--flush { padding: 0; overflow: hidden; }
+.gs-card--tight { padding: var(--gs-space-4); }
+
+.gs-card--interactive { cursor: pointer; }
+.gs-card--interactive:hover {
+  transform: translateY(-3px);
+  border-color: var(--gs-accent-border);
+  box-shadow: var(--gs-shadow-lg);
+}
+.gs-card--interactive:active { transform: translateY(-1px); }
+
+.gs-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gs-space-3);
+  margin-bottom: var(--gs-space-4);
+}
+
+.gs-card__title { font-size: var(--gs-text-lg); font-weight: 640; margin: 0; letter-spacing: var(--gs-tracking-tight); }
+.gs-card__subtitle { font-size: var(--gs-text-sm); color: var(--gs-text-subtle); margin: var(--gs-space-1) 0 0; }
+.gs-card__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-3);
+  margin-top: var(--gs-space-5);
+  padding-top: var(--gs-space-4);
+  border-top: 1px solid var(--gs-border-faint);
+}
+
+/* Section heading used across long pages. */
+.gs-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-3);
+  font-size: var(--gs-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-subtle);
+  margin: var(--gs-space-6) 0 var(--gs-space-3);
+}
+.gs-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gs-border);
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. CHIPS, BADGES, SEGMENTED CONTROLS                                */
+/* ------------------------------------------------------------------ */
+
+.gs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  padding: 0.3125rem 0.75rem;
+  border-radius: var(--gs-radius-pill);
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-surface-2);
+  color: var(--gs-text-muted);
+  font-size: var(--gs-text-xs);
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--gs-dur-fast) var(--gs-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.gs-chip:hover { border-color: var(--gs-accent-border); color: var(--gs-text); transform: translateY(-1px); }
+.gs-chip[aria-pressed='true'],
+.gs-chip--active {
+  background: var(--gs-accent-soft);
+  border-color: var(--gs-accent);
+  color: var(--gs-accent);
+}
+.gs-chip--static { cursor: default; }
+.gs-chip--static:hover { transform: none; border-color: var(--gs-border-strong); }
+
+.gs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gs-space-1);
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--gs-radius-xs);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-wide);
+  text-transform: uppercase;
+  background: var(--gs-surface-3);
+  color: var(--gs-text-muted);
+  border: 1px solid var(--gs-border-faint);
+}
+.gs-badge--accent { background: var(--gs-accent-soft); color: var(--gs-accent); border-color: var(--gs-accent-border); }
+.gs-badge--gold { background: var(--gs-gold-soft); color: var(--gs-gold); border-color: rgba(245, 179, 66, 0.3); }
+.gs-badge--success { background: var(--gs-success-soft); color: var(--gs-success); border-color: rgba(52, 211, 153, 0.3); }
+.gs-badge--warning { background: var(--gs-warning-soft); color: var(--gs-warning); border-color: rgba(251, 191, 36, 0.3); }
+.gs-badge--danger { background: var(--gs-danger-soft); color: var(--gs-danger); border-color: rgba(248, 113, 113, 0.3); }
+
+/* Segmented control - a compact set of mutually exclusive options. */
+.gs-segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-2);
+  border: 1px solid var(--gs-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+.gs-segmented::-webkit-scrollbar { display: none; }
+
+.gs-segmented__item {
+  flex: 1 0 auto;
+  padding: 0.4375rem 0.875rem;
+  border: 0;
+  border-radius: var(--gs-radius-sm);
+  background: transparent;
+  color: var(--gs-text-subtle);
+  font-family: inherit;
+  font-size: var(--gs-text-xs);
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--gs-dur-fast) var(--gs-ease);
+}
+.gs-segmented__item:hover { color: var(--gs-text); background: var(--gs-surface-3); }
+.gs-segmented__item[aria-selected='true'],
+.gs-segmented__item.is-active {
+  background: var(--gs-accent);
+  color: var(--gs-accent-contrast);
+  box-shadow: var(--gs-shadow-xs);
+}
+
+/* ------------------------------------------------------------------ */
+/* 9. MODALS, SHEETS & OVERLAYS                                        */
+/* ------------------------------------------------------------------ */
+
+.gs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--gs-z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--gs-space-4);
+  background: rgba(3, 7, 17, 0.66);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-fade-in var(--gs-dur-base) var(--gs-ease-out);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.gs-modal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(86vh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  border-radius: var(--gs-radius-xl);
+  box-shadow: var(--gs-shadow-xl);
+  animation: gs-modal-in var(--gs-dur-slow) var(--gs-ease-out);
+  overflow: hidden;
+}
+
+.gs-modal--wide { width: min(880px, 100%); }
+.gs-modal--full { width: min(1180px, 100%); max-height: 92vh; }
+
+.gs-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gs-space-4);
+  padding: var(--gs-space-5) var(--gs-space-6);
+  border-bottom: 1px solid var(--gs-border-faint);
+  flex-shrink: 0;
+}
+
+.gs-modal__body {
+  padding: var(--gs-space-6);
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.gs-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-4) var(--gs-space-6);
+  border-top: 1px solid var(--gs-border-faint);
+  background: var(--gs-surface-2);
+  flex-shrink: 0;
+}
+
+.gs-modal__close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--gs-radius-sm);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-surface-2);
+  color: var(--gs-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--gs-dur-fast) var(--gs-ease);
+}
+.gs-modal__close:hover {
+  background: var(--gs-danger-soft);
+  border-color: var(--gs-danger);
+  color: var(--gs-danger);
+  transform: rotate(90deg);
+}
+
+/* Mobile: modals become bottom sheets. */
+@media (max-width: 640px) {
+  .gs-overlay { padding: 0; align-items: flex-end; }
+  .gs-modal,
+  .gs-modal--wide,
+  .gs-modal--full {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--gs-radius-xl) var(--gs-radius-xl) 0 0;
+    animation: gs-sheet-in var(--gs-dur-slow) var(--gs-ease-out);
+  }
+  .gs-modal__header { padding: var(--gs-space-4) var(--gs-space-4); }
+  .gs-modal__body { padding: var(--gs-space-4); }
+  .gs-modal__footer { padding: var(--gs-space-4); }
+  /* A grab handle reads as "draggable sheet" on touch. */
+  .gs-modal::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    border-radius: var(--gs-radius-pill);
+    background: var(--gs-border-strong);
+  }
+  .gs-modal__header { padding-top: var(--gs-space-6); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 10. TOOLBARS & DOCKS                                                */
+/* ------------------------------------------------------------------ */
+
+.gs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-2);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+}
+
+.gs-toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  margin-inline: var(--gs-space-1);
+  background: var(--gs-border);
+}
+
+/* Circular icon control used on map/globe surfaces. */
+.gs-fab {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  color: var(--gs-text);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: var(--gs-shadow-md);
+  transition: all var(--gs-dur-fast) var(--gs-ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.gs-fab:hover {
+  transform: translateY(-2px) scale(1.04);
+  border-color: var(--gs-accent-border);
+  box-shadow: var(--gs-shadow-lg);
+  color: var(--gs-accent);
+}
+.gs-fab:active { transform: translateY(0) scale(0.97); }
+.gs-fab--active {
+  background: linear-gradient(135deg, var(--gs-accent), var(--gs-accent-strong));
+  color: var(--gs-accent-contrast);
+  border-color: transparent;
+}
+.gs-fab--lg { width: 54px; height: 54px; font-size: 22px; }
+
+/* ------------------------------------------------------------------ */
+/* 11. STATES: LOADING, EMPTY, ERROR, SKELETON                         */
+/* ------------------------------------------------------------------ */
+
+.gs-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--gs-border-strong);
+  border-top-color: var(--gs-accent);
+  animation: gs-spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+.gs-spinner--lg { width: 40px; height: 40px; border-width: 3px; }
+.gs-spinner--sm { width: 14px; height: 14px; }
+
+.gs-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--gs-radius-sm);
+  background: var(--gs-surface-2);
+}
+.gs-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: gs-shimmer 1.4s infinite;
+}
+.gs-skeleton--text { height: 0.75rem; margin-block: 0.375rem; }
+.gs-skeleton--title { height: 1.25rem; width: 55%; margin-bottom: var(--gs-space-3); }
+.gs-skeleton--block { height: 120px; }
+.gs-skeleton--circle { border-radius: 50%; }
+
+/* Centred state panel: empty / error / loading. */
+.gs-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-10) var(--gs-space-6);
+  text-align: center;
+  border-radius: var(--gs-radius-lg);
+  border: 1px dashed var(--gs-border-strong);
+  background: var(--gs-surface-1);
+  min-height: 200px;
+}
+.gs-state__icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gs-surface-3);
+  font-size: 26px;
+  margin-bottom: var(--gs-space-1);
+}
+.gs-state__title { font-size: var(--gs-text-lg); font-weight: 640; margin: 0; }
+.gs-state__text { font-size: var(--gs-text-sm); color: var(--gs-text-subtle); margin: 0; max-width: 42ch; }
+
+.gs-state--error { border-color: rgba(248, 113, 113, 0.4); border-style: solid; background: var(--gs-danger-soft); }
+.gs-state--error .gs-state__icon { background: rgba(248, 113, 113, 0.18); }
+.gs-state--error .gs-state__title { color: var(--gs-danger); }
+
+/* Full-page loader. */
+.gs-page-loader {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 30%, #0b1730 0%, var(--gs-bg-deep) 70%);
+  z-index: var(--gs-z-overlay);
+}
+.gs-page-loader__inner { display: flex; flex-direction: column; align-items: center; gap: var(--gs-space-5); }
+.gs-page-loader__mark {
+  font-family: var(--gs-font-display);
+  font-size: var(--gs-text-2xl);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  background: linear-gradient(120deg, var(--gs-accent), var(--gs-violet) 60%, var(--gs-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gs-pulse-soft 2s var(--gs-ease) infinite;
+}
+.gs-page-loader__bar {
+  width: 180px;
+  height: 3px;
+  border-radius: var(--gs-radius-pill);
+  background: var(--gs-surface-3);
+  overflow: hidden;
+}
+.gs-page-loader__bar::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gs-accent), var(--gs-violet));
+  animation: gs-indeterminate 1.2s var(--gs-ease) infinite;
+}
+.gs-page-loader__hint { font-size: var(--gs-text-xs); color: var(--gs-text-faint); letter-spacing: var(--gs-tracking-wide); }
+
+/* Thin progress bar for inline async work. */
+.gs-progress { width: 100%; height: 3px; border-radius: var(--gs-radius-pill); background: var(--gs-surface-3); overflow: hidden; }
+.gs-progress__fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gs-accent), var(--gs-violet)); transition: width var(--gs-dur-slow) var(--gs-ease-out); }
+.gs-progress--indeterminate .gs-progress__fill { width: 40%; animation: gs-indeterminate 1.2s var(--gs-ease) infinite; }
+
+/* ------------------------------------------------------------------ */
+/* 12. TOOLTIPS                                                        */
+/* ------------------------------------------------------------------ */
+
+.gs-tip { position: relative; }
+.gs-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--gs-radius-sm);
+  background: var(--gs-surface-raised);
+  border: 1px solid var(--gs-border-strong);
+  color: var(--gs-text);
+  font-size: var(--gs-text-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: var(--gs-shadow-md);
+  transition: opacity var(--gs-dur-fast) var(--gs-ease), transform var(--gs-dur-fast) var(--gs-ease-out);
+  z-index: var(--gs-z-tooltip);
+}
+.gs-tip:hover::after,
+.gs-tip:focus-visible::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.gs-tip--below::after { bottom: auto; top: calc(100% + 8px); }
+
+/* Tooltips are noise on touch devices. */
+@media (hover: none) {
+  .gs-tip::after { display: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 13. SCROLLBARS                                                      */
+/* ------------------------------------------------------------------ */
+
+.gs-scroll { scrollbar-width: thin; scrollbar-color: var(--gs-border-strong) transparent; }
+.gs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.gs-scroll::-webkit-scrollbar-track { background: transparent; }
+.gs-scroll::-webkit-scrollbar-thumb { background: var(--gs-border-strong); border-radius: var(--gs-radius-pill); }
+.gs-scroll::-webkit-scrollbar-thumb:hover { background: var(--gs-accent-border); }
+
+/* ------------------------------------------------------------------ */
+/* 14. ANIMATIONS                                                      */
+/* ------------------------------------------------------------------ */
+
+@keyframes gs-spin { to { transform: rotate(360deg); } }
+
+@keyframes gs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes gs-modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gs-sheet-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gs-shimmer { to { transform: translateX(100%); } }
+
+@keyframes gs-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+@keyframes gs-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes gs-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gs-slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gs-scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.gs-animate-in { animation: gs-slide-up var(--gs-dur-slow) var(--gs-ease-out) both; }
+.gs-animate-scale { animation: gs-scale-in var(--gs-dur-base) var(--gs-ease-out) both; }
+.gs-animate-fade { animation: gs-fade-in var(--gs-dur-base) var(--gs-ease) both; }
+
+/* Stagger helpers for lists. */
+.gs-stagger > * { animation: gs-slide-up var(--gs-dur-slow) var(--gs-ease-out) both; }
+.gs-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.gs-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.gs-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.gs-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.gs-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.gs-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.gs-stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.gs-stagger > *:nth-child(8) { animation-delay: 0.3s; }
+
+/* ------------------------------------------------------------------ */
+/* 15. UTILITIES                                                       */
+/* ------------------------------------------------------------------ */
+
+.gs-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.gs-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gs-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.gs-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.gs-hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.gs-hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Wide content (tables, code) must scroll inside its own box. */
+.gs-overflow-x { overflow-x: auto; max-width: 100%; }
+
+/* ------------------------------------------------------------------ */
+/* 16. RESPONSIVE HELPERS                                              */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .gs-hide-tablet { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  .gs-hide-mobile { display: none !important; }
+  .gs-card { padding: var(--gs-space-4); border-radius: var(--gs-radius-md); }
+  .gs-btn { min-height: 42px; }
+  .gs-grid-auto { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 641px) {
+  .gs-only-mobile { display: none !important; }
+}
+
+/* Touch targets must stay comfortable on coarse pointers. */
+@media (pointer: coarse) {
+  .gs-btn { min-height: 44px; }
+  .gs-fab { width: 48px; height: 48px; }
+  .gs-chip { padding: 0.4375rem 0.875rem; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 17. GESTURE CAMERA HUD                                              */
+/* ------------------------------------------------------------------ */
+
+/* The capture element must stay mounted to keep streaming, so when the
+   preview is closed the whole widget is visually removed but not unmounted. */
+.gs-camera {
+  position: fixed;
+  bottom: 96px;
+  right: 16px;
+  z-index: var(--gs-z-dock);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.98);
+  transition: opacity var(--gs-dur-base) var(--gs-ease),
+              transform var(--gs-dur-base) var(--gs-ease-out),
+              visibility var(--gs-dur-base);
+}
+.gs-camera.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.gs-camera__status { display: flex; flex-direction: column; gap: 4px; }
+
+.gs-camera__row {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  font-size: var(--gs-text-2xs);
+  font-weight: 600;
+  color: var(--gs-text-muted);
+  white-space: nowrap;
+}
+
+.gs-camera__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.gs-camera__dot.is-ok { background: var(--gs-success); box-shadow: 0 0 0 3px var(--gs-success-soft); }
+.gs-camera__dot.is-bad { background: var(--gs-danger); box-shadow: 0 0 0 3px var(--gs-danger-soft); }
+.gs-camera__dot.is-wait { background: var(--gs-warning); box-shadow: 0 0 0 3px var(--gs-warning-soft); animation: gs-pulse-soft 1.2s var(--gs-ease) infinite; }
+
+.gs-camera__preview { position: relative; display: none; border-radius: var(--gs-radius-md); overflow: hidden; }
+.gs-camera.is-visible .gs-camera__preview { display: block; }
+.gs-camera__preview video { display: block; border-radius: var(--gs-radius-md); transform: scaleX(-1); border: 1px solid var(--gs-border); }
+
+.gs-camera__error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--gs-space-3);
+  text-align: center;
+  background: rgba(3, 7, 17, 0.9);
+  color: var(--gs-danger);
+  font-size: var(--gs-text-2xs);
+  border-radius: var(--gs-radius-md);
+}
+
+/* Keep the toggle clear of the chatbot launcher. */
+.gs-camera-toggle { position: fixed; bottom: 22px; left: 22px; z-index: var(--gs-z-dock); }
+
+@media (max-width: 640px) {
+  .gs-camera { bottom: 84px; right: 12px; }
+  .gs-camera-toggle { bottom: 16px; left: 16px; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 18. GAME TOOLBAR                                                    */
+/* ------------------------------------------------------------------ */
+
+/* Quiz / flag pages previously pinned each control with a hardcoded
+   `left: 90px` / `left: 260px`, which overflowed the viewport on phones.
+   They now share one wrapping toolbar. */
+.gs-game-toolbar {
+  position: absolute;
+  bottom: 22px;
+  left: 22px;
+  z-index: var(--gs-z-dock);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gs-space-2);
+  max-width: calc(100vw - 44px);
+}
+
+.gs-game-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gs-space-2);
+  padding: 0.75rem 1.125rem;
+  min-height: 46px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-accent-border);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  color: var(--gs-text);
+  font-family: inherit;
+  font-size: var(--gs-text-sm);
+  font-weight: 650;
+  letter-spacing: var(--gs-tracking-wide);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--gs-shadow-md);
+  transition: transform var(--gs-dur-fast) var(--gs-ease-out),
+              border-color var(--gs-dur-fast) var(--gs-ease),
+              box-shadow var(--gs-dur-fast) var(--gs-ease),
+              color var(--gs-dur-fast) var(--gs-ease);
+}
+.gs-game-btn:hover {
+  transform: translateY(-2px);
+  color: var(--gs-accent);
+  border-color: var(--gs-accent);
+  box-shadow: var(--gs-shadow-lg);
+}
+.gs-game-btn:active { transform: translateY(0) scale(0.98); }
+
+@media (max-width: 640px) {
+  .gs-game-toolbar { bottom: 14px; left: 12px; right: 12px; max-width: none; }
+  .gs-game-btn { padding: 0.625rem 0.875rem; min-height: 42px; font-size: var(--gs-text-xs); flex: 1 1 auto; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 19. OVERLAY-OPEN STATE                                              */
+/* ------------------------------------------------------------------ */
+
+/* Pages that render inside a position:fixed root create their own stacking
+   context, so their dialogs cannot out-stack the fixed global nav by z-index.
+   While a dialog is open the nav steps aside - which is also the correct
+   behaviour, since a modal should own the screen. */
+body.gs-overlay-open .app-nav {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--gs-dur-fast) var(--gs-ease), visibility var(--gs-dur-fast);
+}

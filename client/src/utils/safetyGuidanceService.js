@@ -1,12 +1,13 @@
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+// Safety guidance service.
+//
+// SECURITY: previously called api.groq.com directly from the browser using
+// VITE_GROQ_CHATBOT_API_KEY. The key is now server-side only; this talks to the
+// server's /api/ai/chat proxy, which owns the safety system prompt.
 
-const SAFETY_SYSTEM_PROMPT = `You are a calm tourist safety assistant. Give practical travel safety steps.
-Keep answers short and actionable.
-Do not invent emergency numbers.
-When risk is high, prioritize immediate steps and nearest safe places.
-If evacuation mode is active, provide a direct evacuation checklist.
-Use plain English and numbered points.`;
+import { API_BASE_URL } from './apiConfig';
+import { reportApiFailure, reportNetworkFailure } from './apiError';
+
+const NEWLINE = String.fromCharCode(10);
 
 function formatContextSummary(payload) {
   const parts = [];
@@ -40,43 +41,38 @@ function formatContextSummary(payload) {
 }
 
 export async function requestSafetyGuidance(payload) {
-  const apiKey = import.meta.env.VITE_GROQ_CHATBOT_API_KEY;
-
-  if (!apiKey) {
-    return {
-      success: false,
-      error: 'Safety AI key not configured.'
-    };
-  }
-
   const userPrompt = [
     `Question: ${payload?.question || 'Share travel safety guidance for my current route.'}`,
     '',
     'Context:',
     formatContextSummary(payload)
-  ].join('\n');
+  ].join(NEWLINE);
+
+  const url = `${API_BASE_URL}/api/ai/chat`;
 
   try {
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0.4,
-        max_tokens: 450,
-        messages: [
-          { role: 'system', content: SAFETY_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ]
-      })
-    });
-
-    const data = await response.json().catch(() => ({}));
+    // The server owns the safety system prompt, the model and the limits.
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: 'safety',
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+    } catch (networkError) {
+      reportNetworkFailure(networkError, 'Safety assistant', url);
+      return {
+        success: false,
+        error: 'Could not reach the safety assistant. Is the API server running?'
+      };
+    }
 
     if (!response.ok) {
+      const reported = await reportApiFailure(response, 'Safety assistant', url);
+
       if (response.status === 429) {
         return {
           success: false,
@@ -87,11 +83,15 @@ export async function requestSafetyGuidance(payload) {
 
       return {
         success: false,
-        error: data?.error?.message || `Safety assistant failed (${response.status}).`
+        error: reported.message || `Safety assistant failed (${response.status}).`,
+        detail: reported.detail,
+        hint: reported.hint
       };
     }
 
-    const message = data?.choices?.[0]?.message?.content?.trim();
+    const data = await response.json().catch(() => ({}));
+
+    const message = data?.message?.trim();
     if (!message) {
       return {
         success: false,

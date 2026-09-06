@@ -1,9 +1,11 @@
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+// Trip planner AI service.
+//
+// SECURITY: previously called api.groq.com directly from the browser using
+// VITE_GROQ_CHATBOT_API_KEY. The key is now server-side only; this talks to the
+// server's /api/ai/chat proxy under the 'tripPlanner' profile.
 
-function getGroqApiKey() {
-  return import.meta.env.VITE_GROQ_CHATBOT_API_KEY || null;
-}
+import { API_BASE_URL } from './apiConfig';
+import { reportApiFailure, reportNetworkFailure } from './apiError';
 
 function stripJsonFence(text) {
   if (!text || typeof text !== 'string') return null;
@@ -140,43 +142,36 @@ function normalizeAiPlan(rawPlan) {
 }
 
 export async function generateTripPlanWithAI({ siteData, tripInput, weatherData }) {
-  const apiKey = getGroqApiKey();
-  if (!apiKey) {
-    return null;
-  }
+  const url = `${API_BASE_URL}/api/ai/chat`;
 
   try {
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0.3,
-        max_tokens: 1800,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a professional travel planner for India. You must return strict JSON only with practical plans and realistic costs.',
-          },
-          {
-            role: 'user',
-            content: buildPrompt({ siteData, tripInput, weatherData }),
-          },
-        ],
-      }),
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: 'tripPlanner',
+          messages: [
+            {
+              role: 'user',
+              content: buildPrompt({ siteData, tripInput, weatherData }),
+            },
+          ],
+        }),
+      });
+    } catch (networkError) {
+      reportNetworkFailure(networkError, 'Trip planner AI', url);
+      return null;
+    }
 
     if (!response.ok) {
+      await reportApiFailure(response, 'Trip planner AI', url);
       return null;
     }
 
     const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const content = data?.message;
     const jsonText = stripJsonFence(content);
     if (!jsonText) {
       return null;

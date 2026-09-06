@@ -1,69 +1,17 @@
-const fs = require('fs');
-const path = require('path');
+const { secrets } = require('../../config/env');
 
 const fetch = (...args) =>
   import('node-fetch').then(({ default: fetchImpl }) => fetchImpl(...args));
 
 const UNSPLASH_SEARCH_URL = 'https://api.unsplash.com/search/photos';
 const REQUEST_TIMEOUT_MS = 9000;
-let cachedClientEnvAccessKey = null;
 
-function parseEnvValue(rawLine = '') {
-  const equalsIndex = rawLine.indexOf('=');
-  if (equalsIndex === -1) {
-    return '';
-  }
-
-  return rawLine.slice(equalsIndex + 1).trim().replace(/^['"]|['"]$/g, '');
-}
-
-function readClientUnsplashKey() {
-  if (cachedClientEnvAccessKey !== null) {
-    return cachedClientEnvAccessKey;
-  }
-
-  cachedClientEnvAccessKey = '';
-
-  if (process.env.NODE_ENV === 'production') {
-    return cachedClientEnvAccessKey;
-  }
-
-  const envCandidates = [
-    path.resolve(__dirname, '../../../client/.env.development'),
-    path.resolve(__dirname, '../../../client/.env')
-  ];
-
-  for (const envPath of envCandidates) {
-    if (!fs.existsSync(envPath)) {
-      continue;
-    }
-
-    const content = fs.readFileSync(envPath, 'utf8');
-    const accessLine = content
-      .split(/\r?\n/)
-      .find((line) => line.trim().toUpperCase().startsWith('VITE_UNSPLASH_ACCESS_KEY'));
-
-    if (accessLine) {
-      cachedClientEnvAccessKey = parseEnvValue(accessLine);
-      break;
-    }
-  }
-
-  return cachedClientEnvAccessKey;
-}
-
+// SECURITY: this used to fall back to reading `client/.env.development` off
+// disk and scraping VITE_UNSPLASH_ACCESS_KEY out of it. That coupled a server
+// secret to a client-side, browser-exposed file and kept the key alive in a
+// location Vite compiles into the bundle. The key is now server-side only.
 function getUnsplashAccessKey() {
-  const explicitKey = (
-    process.env.UNSPLASH_ACCESS_KEY ||
-    process.env.VITE_UNSPLASH_ACCESS_KEY ||
-    ''
-  ).trim();
-
-  if (explicitKey) {
-    return explicitKey;
-  }
-
-  return readClientUnsplashKey();
+  return secrets.unsplashAccessKey || '';
 }
 
 function uniqueQueries(values = []) {

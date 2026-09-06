@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { API_BASE_URL, getGestureSessionId } from './utils/apiConfig';
 
 // Reuse the same socket connection pattern
 const getSocket = (() => {
   let socket = null;
   return () => {
     if (!socket) {
-      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+      socket = io(API_BASE_URL, {
+        // Tags every socket from this tab so gesture frames/results stay private to it.
+        auth: { gestureSession: getGestureSessionId() },
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: 5,

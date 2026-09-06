@@ -1,16 +1,25 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import * as dat from 'dat.gui';
+
+// dat.GUI exposes renderer tuning controls (sun intensity, material, atmosphere).
+// That is a developer tool, not product UI: it shipped visible on the quiz and
+// flag pages and overflowed the viewport on mobile. Opt in with
+// VITE_DEBUG_MODE=true in client/.env.development.
+const DEBUG_UI = String(import.meta.env.VITE_DEBUG_MODE).toLowerCase() === 'true';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import earcut from 'earcut';
 import { io } from "socket.io-client";
+import { API_BASE_URL, getGestureSessionId } from './utils/apiConfig';
 
 // Memoize socket connection to prevent reconnections
 const getSocket = (() => {
   let socket = null;
   return () => {
     if (!socket) {
-      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+      socket = io(API_BASE_URL, {
+        // Tags every socket from this tab so gesture frames/results stay private to it.
+        auth: { gestureSession: getGestureSessionId() },
         autoConnect: true, // Enable auto connect for gesture controls
         reconnection: true,
         reconnectionAttempts: 5,
@@ -52,13 +61,13 @@ const NightLights = '/assets/night_lights_modified.png';
 const GaiaSky = '/assets/Gaia_EDR3_darkened.png';
 const CountriesData = '/assets/countrieslite.geo.json';
 
-const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideControls = false, onBackToHome = null }) => {
+const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideControls = false, onBackToHome = null }) => {
   const mountRef = useRef(null);
   const cameraRef = useRef();
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
   const animationIdRef = useRef(null);
-  const [cursorPos, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
+  const [, setCursorPos] = useState({ x: 400, y: 300 }); // Initialize cursor at center
   const cursorPosRef = useRef({ x: 400, y: 300 }); // Ref to store current cursor position for gesture handlers
   
   // Initialize guard to prevent double initialization
@@ -199,6 +208,14 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
     renderer.domElement.style.zIndex = '0';
+
+    // Remove any renderer canvas left by a previous mount before attaching this
+    // one. React StrictMode double-invokes effects in development; when the
+    // teardown does not fully win that race, two full-size WebGL canvases end
+    // up stacked and the customization panel appears dead because it is driving
+    // the scene you are NOT looking at.
+    container.querySelectorAll('canvas').forEach((stale) => stale.remove());
+
     container.appendChild(renderer.domElement);
 
     // Create Enhanced Loading Overlay
@@ -413,26 +430,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
     // FIXED: Title positioned at very top, smaller, non-obstructive
     const title = document.createElement('div');
     title.textContent = 'GESTURE CONTROLLED EARTH';
-    title.style.cssText = `
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #00d4ff;
-      font-family: 'Orbitron', sans-serif;
-      font-size: 22px;
-      font-weight: 700;
-      text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
-      background: rgba(0, 0, 0, 0.35);
-      letter-spacing: 2px;
-      z-index: 10;
-      text-align: center;
-      padding: 6px 18px;
-      border-radius: 8px;
-      backdrop-filter: blur(5px);
-      pointer-events: none;
-      user-select: none;
-    `;
+    title.className = 'earth-title';
     container.appendChild(title);
 
     // Add Back to Home button if callback provided
@@ -440,74 +438,21 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       const backButton = document.createElement('button');
       backButton.innerHTML = '← Back to Home';
       backButton.id = 'back-to-home-button'; // Add ID for easier gesture targeting
-      backButton.style.cssText = `
-        position: absolute;
-        top: 55px;
-        left: 120px;
-        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3));
-        color: #00d4ff;
-        border: 2px solid rgba(0, 212, 255, 0.5);
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        z-index: 1001;
-        backdrop-filter: blur(10px);
-        transition: all 0.3s ease;
-        text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        user-select: none;
-        min-width: 160px;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        white-space: nowrap;
-      `;
+      // Layout and theming live in styles/explore.css so these overlays stay
+      // responsive instead of being pinned with hardcoded pixel offsets.
+      backButton.className = 'earth-overlay-btn earth-overlay-btn--back';
       
-      // Enhanced hover effects for better visual feedback
-      backButton.onmouseenter = () => {
-        backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
-        backButton.style.transform = 'scale(1.05)';
-        backButton.style.boxShadow = '0 6px 16px rgba(0, 212, 255, 0.3)';
-        backButton.style.borderColor = 'rgba(0, 212, 255, 0.8)';
-      };
-      
-      backButton.onmouseleave = () => {
-        backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3))';
-        backButton.style.transform = 'scale(1)';
-        backButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-        backButton.style.borderColor = 'rgba(0, 212, 255, 0.5)';
-      };
-      
-      // Add visual feedback for gesture clicks
-      backButton.onmousedown = () => {
-        backButton.style.transform = 'scale(0.95)';
-        backButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.3), rgba(0, 212, 255, 0.4))';
-      };
-      
-      backButton.onmouseup = () => {
-        backButton.style.transform = 'scale(1.05)';
-        setTimeout(() => {
-          backButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
-        }, 100);
-      };
-      
-      // Main click handler - works for both mouse and gesture clicks
+      // Hover/active styling is handled by CSS (.earth-overlay-btn). Only the
+      // gesture-click confirmation needs a JS-driven state, because gesture
+      // "clicks" are synthetic and produce no native :active feedback.
       backButton.onclick = (e) => {
         console.log('🏠 Back to Home button clicked via:', e.isTrusted ? 'mouse' : 'gesture');
-        
-        // Add click animation
-        backButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.5), rgba(0, 212, 255, 0.6))';
-        backButton.style.boxShadow = '0 8px 20px rgba(0, 255, 128, 0.4)';
-        
+        backButton.classList.add('is-confirming');
         setTimeout(() => {
           onBackToHome();
         }, 150); // Small delay for visual feedback
       };
-      
+
       container.appendChild(backButton);
     }
 
@@ -517,63 +462,16 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       const instructionsButton = document.createElement('button');
       instructionsButton.innerHTML = '📖 Controls & Instructions';
       instructionsButton.id = 'instructions-button';
-      instructionsButton.style.cssText = `
-        position: absolute;
-        bottom: 170px;
-        left: 80px;
-        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3));
-        color: #00d4ff;
-        border: 2px solid rgba(0, 212, 255, 0.5);
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        z-index: 1001;
-        backdrop-filter: blur(10px);
-        transition: all 0.3s ease;
-        text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        user-select: none;
-        min-width: 220px;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      `;
+      instructionsButton.className = 'earth-overlay-btn earth-overlay-btn--instructions';
       
       // Create Instructions Modal
       const instructionsModal = document.createElement('div');
       instructionsModal.id = 'instructions-modal';
-      instructionsModal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(10px);
-        z-index: 9999;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        font-family: 'Orbitron', sans-serif;
-      `;
+      instructionsModal.className = 'earth-modal';
       
       // Modal Content
       instructionsModal.innerHTML = `
-        <div style="
-          background: linear-gradient(135deg, rgb(0, 212, 255), rgb(0, 128, 255))
-          border: 2px solid rgba(0, 212, 255, 0.4);
-          border-radius: 20px;
-          padding: 40px;
-          max-width: 800px;
-          max-height: 85vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.2);
-          position: relative;
-        ">
+        <div class="earth-modal__card">
           <!-- Close Button -->
           <button id="close-instructions-modal" style="
             position: absolute;
@@ -654,8 +552,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
             <div style="color: rgba(255, 255, 255, 0.9); font-size: 16px; line-height: 2;">
               <p><strong>🌟 Bright Mode:</strong> Press 'B' key for enhanced lighting</p>
               <p><strong>🔧 GUI Panel:</strong> Use the right-side panel for fine-tuning</p>
-              <p><strong>📊 Performance Stats:</strong> FPS counter shown at top-left</p>
-              <p><strong>🎯 Country Selection:</strong> Click any country to highlight and explore</p>
+                            <p><strong>🎯 Country Selection:</strong> Click any country to highlight and explore</p>
               <p><strong>🔄 Auto-Rotation:</strong> Enable via GUI panel for hands-free viewing</p>
             </div>
           </div>
@@ -696,34 +593,8 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         </div>
       `;
       
-      // Button hover effects - Enhanced for better visual feedback
-      instructionsButton.onmouseenter = () => {
-        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
-        instructionsButton.style.transform = 'scale(1.05)';
-        instructionsButton.style.boxShadow = '0 6px 16px rgba(0, 212, 255, 0.3)';
-        instructionsButton.style.borderColor = 'rgba(0, 212, 255, 0.8)';
-      };
-      
-      instructionsButton.onmouseleave = () => {
-        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 128, 255, 0.3))';
-        instructionsButton.style.transform = 'scale(1)';
-        instructionsButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-        instructionsButton.style.borderColor = 'rgba(0, 212, 255, 0.5)';
-      };
-      
-      // Add visual feedback for gesture clicks
-      instructionsButton.onmousedown = () => {
-        instructionsButton.style.transform = 'scale(0.95)';
-        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.3), rgba(0, 212, 255, 0.4))';
-      };
-      
-      instructionsButton.onmouseup = () => {
-        instructionsButton.style.transform = 'scale(1.05)';
-        setTimeout(() => {
-          instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.4), rgba(0, 128, 255, 0.5))';
-        }, 100);
-      };
-      
+      // Hover/active styling comes from CSS (.earth-overlay-btn).
+
       // Open modal function
       const openModal = () => {
         instructionsModal.style.display = 'flex';
@@ -746,12 +617,9 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       // Main click handler - works for both mouse and gesture clicks
       instructionsButton.onclick = (e) => {
         console.log('📖 Instructions button clicked via:', e.isTrusted ? 'mouse' : 'gesture');
-        
-        // Add click animation
-        instructionsButton.style.background = 'linear-gradient(135deg, rgba(0, 255, 128, 0.5), rgba(0, 212, 255, 0.6))';
-        instructionsButton.style.boxShadow = '0 8px 20px rgba(0, 255, 128, 0.4)';
-        
+        instructionsButton.classList.add('is-confirming');
         setTimeout(() => {
+          instructionsButton.classList.remove('is-confirming');
           openModal();
         }, 150); // Small delay for visual feedback
       };
@@ -901,7 +769,11 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       border-radius: 0 0 8px 0;
       overflow: hidden;
     `;
-    container.appendChild(stats.dom);
+    // Developer FPS meter: keep the instance (the render loop calls it) but
+    // only attach it to the DOM when debugging.
+    if (DEBUG_UI) {
+      container.appendChild(stats.dom);
+    }
 
     // Earth group
     const group = new THREE.Group();
@@ -1371,10 +1243,21 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       socket.on("gesture", handleGesture);
       cleanupFunctions.push(() => socket.off("gesture", handleGesture));
 
-      // Enhanced GUI with better styling
-      gui = new dat.GUI();
+      // Earth customization panel (lighting, materials, animation, atmosphere).
+      // Layout and theming come from styles/explore.css; dat.GUI's own absolute
+      // positioning is replaced there so the panel sits below the global nav
+      // and stays inside the viewport on small screens.
+      // Purge any panel left behind by a previous mount before building a new
+      // one. React StrictMode double-invokes effects in development, and a
+      // failed teardown otherwise leaves a second, dead panel on screen.
+      document.querySelectorAll('.earth-gui').forEach((stale) => stale.remove());
+
+      gui = new dat.GUI({ width: 268 });
       cleanupRefs.current.gui = gui; // Store for cleanup
-      gui.domElement.style.cssText = 'position: fixed; top: 0; right: 0; z-index: 1003;'; // Increased z-index to be above performance display
+      gui.domElement.classList.add('earth-gui');
+      if (gui.domElement.parentElement) {
+        gui.domElement.parentElement.classList.add('earth-gui-host');
+      }
 
       const lightingFolder = gui.addFolder('🌞 Lighting Controls');
       lightingFolder.add(params, "sunIntensity", 0.0, 5.0, 0.1).onChange(v => {
@@ -1675,8 +1558,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
           
           // Select the best overall match
           const bestMatch = bestCountryMatches[0];
-          const bestIntersect = bestMatch.intersect;
-          const clickedName = bestMatch.country;
+                const clickedName = bestMatch.country;
           if (!clickedName) return;
 
           // Hide previous highlights
@@ -1768,8 +1650,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       // Enhanced animation loop with adaptive FPS management and better performance optimizations
       let lastFrameTime = 0;
       const targetFPS = 120; // Increase target FPS
-      const frameInterval = 1000 / targetFPS;
-      
+        
       // Add performance optimization variables
       let frameCount = 0;
       let lastPerformanceCheck = 0;
@@ -1789,7 +1670,9 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
         padding: 5px;
         border-radius: 3px;
       `;
-      container.appendChild(performanceDisplay);
+      if (DEBUG_UI) {
+        container.appendChild(performanceDisplay);
+      }
 
       const animate = (currentTime = 0) => {
         if (!isMounted) return;
@@ -1928,9 +1811,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, hideContro
       // Clean up dat.GUI completely
       if (cleanupRefs.current.gui) {
         try {
-          // Force close all folders and remove event listeners
-          cleanupRefs.current.gui.__closeButton?.click?.();
-          
           // Remove GUI domElement from DOM if it exists
           if (cleanupRefs.current.gui.domElement) {
             const guiElement = cleanupRefs.current.gui.domElement;

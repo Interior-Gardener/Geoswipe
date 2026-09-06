@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import TripPlannerForm from './components/tripPlanner/TripPlannerForm';
+import './components/tripPlanner/TripPlannerPage.css';
 import TripPlannerResult from './components/tripPlanner/TripPlannerResult';
 import { generateTripPlan, getTripPlannerDefaults } from './utils/tripPlannerService';
 import { fetchMonumentImage, primeMonumentImageCache } from './utils/heritageImageService';
@@ -23,10 +24,6 @@ function TripPlannerPage() {
   const pageRef = useRef(null);
   const { theme } = useTheme();
   const { selectedMonument } = useHeritageSelection();
-  const [isCompact, setIsCompact] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 980 : false
-  );
-
   const [sites, setSites] = useState([]);
   const [sitesLoading, setSitesLoading] = useState(true);
   const [sitesError, setSitesError] = useState(null);
@@ -49,15 +46,6 @@ function TripPlannerPage() {
       setSelectedSiteName(routeSiteName);
     }
   }, [params?.name]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsCompact(window.innerWidth < 980);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -227,11 +215,6 @@ function TripPlannerPage() {
     navigate('/heritage');
   };
 
-  const contentGridStyle = {
-    ...styles.contentGrid,
-    gridTemplateColumns: isCompact ? '1fr' : 'minmax(300px, 360px) 1fr',
-  };
-
   const handleGenerate = async (input) => {
     if (!selectedSite) {
       setGenerationError('Please select a heritage site first.');
@@ -274,67 +257,90 @@ function TripPlannerPage() {
   return (
     <div
       ref={pageRef}
-      style={{
-        ...styles.pageRoot,
-        ...(theme === 'light' ? styles.pageRootLight : null),
-        ...(isExpanded ? styles.pageRootExpanded : null)
-      }}
-      className="heritage-animated-panel"
+      className={`tp-page heritage-animated-panel${isExpanded ? ' is-expanded' : ''}`}
+      data-theme={theme}
     >
-      <div style={styles.backgroundGlowTop} />
-      <div style={styles.backgroundGlowBottom} />
+      <div className="tp-page__glow tp-page__glow--top" aria-hidden="true" />
+      <div className="tp-page__glow tp-page__glow--bottom" aria-hidden="true" />
 
-      <div style={styles.mainContainer}>
-        <div style={styles.topBar}>
-          <button style={styles.navButton} onClick={togglePanelFullscreen}>
-            {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+      <div className="tp-page__inner">
+        {/* Top navigation */}
+        <nav className="tp-topbar" aria-label="Trip planner navigation">
+          <button
+            type="button"
+            className="gs-btn gs-btn--ghost gs-btn--sm"
+            onClick={navigateBackToHeritage}
+          >
+            <span aria-hidden="true">←</span> Heritage
           </button>
-          <button style={styles.navButton} onClick={navigateBackToHeritage}>
-            Back to Heritage
-          </button>
-          <button style={styles.navButton} onClick={() => navigate('/')}>
-            Home
-          </button>
-        </div>
 
-        <motion.div
-          style={styles.headerCard}
+          <div className="gs-spacer" />
+
+          <button
+            type="button"
+            className="gs-btn gs-btn--ghost gs-btn--sm gs-hide-mobile"
+            onClick={togglePanelFullscreen}
+          >
+            <span aria-hidden="true">{isExpanded ? '⤡' : '⛶'}</span>
+            {isExpanded ? 'Exit fullscreen' : 'Fullscreen'}
+          </button>
+          <button
+            type="button"
+            className="gs-btn gs-btn--secondary gs-btn--sm"
+            onClick={() => navigate('/')}
+          >
+            <span aria-hidden="true">⌂</span> Home
+          </button>
+        </nav>
+
+        {/* Hero */}
+        <motion.header
+          className="tp-hero"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.36, ease: 'easeOut' }}
+          transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
         >
           <div
-            style={{
-              ...styles.headerVisual,
-              backgroundImage: siteImage?.imageUrl
-                ? `linear-gradient(140deg, rgba(7, 18, 40, 0.78), rgba(25, 34, 71, 0.82)), url(${siteImage.imageUrl})`
-                : styles.headerVisual.backgroundImage
-            }}
-          >
-            <div style={styles.pageEyebrow}>Smart Monument Journey Builder</div>
-            <div style={styles.pageTitle}>Trip Planner</div>
-            <div style={styles.pageSubtitle}>{subtitle}</div>
+            className="tp-hero__visual"
+            style={
+              siteImage?.imageUrl
+                ? { backgroundImage: `url(${siteImage.imageUrl})` }
+                : undefined
+            }
+            aria-hidden="true"
+          />
+          <div className="tp-hero__scrim" aria-hidden="true" />
+          <div className="tp-hero__content">
+            <p className="gs-overline tp-hero__eyebrow">Smart Monument Journey Builder</p>
+            <h1 className="tp-hero__title">Trip Planner</h1>
+            <p className="tp-hero__subtitle">{subtitle}</p>
             {siteImage?.source && (
-              <div style={styles.imageSourceTag}>Image source: {siteImage.source}</div>
+              <span className="tp-hero__credit">Image: {siteImage.source}</span>
             )}
           </div>
-        </motion.div>
+        </motion.header>
 
-        <motion.div
-          style={contentGridStyle}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut', delay: 0.08 }}
-        >
-          <motion.div style={styles.leftColumn} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }}>
-            <div style={styles.selectorCard}>
-              <label style={styles.selectorLabel}>Select Heritage Site</label>
+        {/* Content */}
+        <div className="tp-layout">
+          <motion.aside
+            className="tp-layout__side"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1], delay: 0.06 }}
+          >
+            <div className="tp-selector">
+              <label className="tp-label" htmlFor="tp-site-select">
+                <span aria-hidden="true">🏛️</span> Heritage site
+              </label>
               <select
+                id="tp-site-select"
+                className="gs-select"
                 value={selectedSiteName}
                 onChange={handleSiteSelection}
-                style={styles.selectorInput}
                 disabled={sitesLoading}
               >
+                {sitesLoading && <option value="">Loading sites…</option>}
+                {!sitesLoading && sites.length === 0 && <option value="">No sites available</option>}
                 {sites.map((site) => (
                   <option key={site._id || site.name} value={site.name}>
                     {site.name}
@@ -342,10 +348,22 @@ function TripPlannerPage() {
                 ))}
               </select>
 
-              {sitesLoading && <div style={styles.inlineInfo}>Loading site list...</div>}
-              {sitesError && <div style={styles.inlineError}>{sitesError}</div>}
-              {siteLoading && <div style={styles.inlineInfo}>Loading selected site details...</div>}
-              {siteError && <div style={styles.inlineError}>{siteError}</div>}
+              {(sitesLoading || siteLoading) && (
+                <div className="tp-inline tp-inline--info">
+                  <span className="gs-spinner gs-spinner--sm" />
+                  {sitesLoading ? 'Loading site list…' : 'Loading site details…'}
+                </div>
+              )}
+              {sitesError && (
+                <div className="tp-inline tp-inline--error" role="alert">
+                  <span aria-hidden="true">⚠️</span> {sitesError}
+                </div>
+              )}
+              {siteError && (
+                <div className="tp-inline tp-inline--error" role="alert">
+                  <span aria-hidden="true">⚠️</span> {siteError}
+                </div>
+              )}
             </div>
 
             <TripPlannerForm
@@ -355,175 +373,25 @@ function TripPlannerPage() {
               onSubmit={handleGenerate}
               submitLabel="Generate Itinerary"
             />
-          </motion.div>
+          </motion.aside>
 
-          <motion.div style={styles.rightColumn} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}>
+          <motion.main
+            className="tp-layout__main gs-scroll"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          >
             <TripPlannerResult
               plan={plan}
               isLoading={isGenerating}
               error={generationError}
               onRegenerate={handleRegenerate}
             />
-          </motion.div>
-        </motion.div>
+          </motion.main>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  pageRoot: {
-    position: 'relative',
-    minHeight: '100vh',
-    padding: '18px',
-    background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 42%, #5b21b6 100%)',
-    overflow: 'hidden',
-    fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-  },
-  pageRootLight: {
-    background: 'linear-gradient(135deg, #cfe8ff 0%, #dbeafe 42%, #f4f8ff 100%)',
-    color: '#10243e',
-  },
-  pageRootExpanded: {
-    width: '100vw',
-    height: '100vh',
-    padding: '10px',
-  },
-  backgroundGlowTop: {
-    position: 'absolute',
-    width: '460px',
-    height: '460px',
-    borderRadius: '999px',
-    top: '-150px',
-    left: '-120px',
-    background: 'radial-gradient(circle, rgba(34,211,238,0.35), transparent 70%)',
-    filter: 'blur(10px)',
-    pointerEvents: 'none',
-  },
-  backgroundGlowBottom: {
-    position: 'absolute',
-    width: '520px',
-    height: '520px',
-    borderRadius: '999px',
-    bottom: '-170px',
-    right: '-140px',
-    background: 'radial-gradient(circle, rgba(249,115,22,0.32), transparent 70%)',
-    filter: 'blur(10px)',
-    pointerEvents: 'none',
-  },
-  mainContainer: {
-    position: 'relative',
-    zIndex: 1,
-    width: 'min(1280px, 100%)',
-    margin: '0 auto',
-    color: 'white',
-  },
-  topBar: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '14px',
-    flexWrap: 'wrap',
-  },
-  navButton: {
-    height: '36px',
-    padding: '0 14px',
-    borderRadius: '10px',
-    border: '1px solid rgba(255,255,255,0.35)',
-    background: 'rgba(255,255,255,0.14)',
-    color: 'white',
-    cursor: 'pointer',
-    fontWeight: 700,
-  },
-  headerCard: {
-    padding: 0,
-    borderRadius: '16px',
-    border: '1px solid rgba(255,255,255,0.22)',
-    background: 'rgba(255,255,255,0.1)',
-    marginBottom: '14px',
-    backdropFilter: 'blur(14px)',
-    overflow: 'hidden',
-  },
-  headerVisual: {
-    minHeight: '170px',
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-    gap: '8px',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundImage:
-      'linear-gradient(145deg, rgba(8, 16, 38, 0.82), rgba(34, 33, 88, 0.8), rgba(91, 33, 182, 0.72))',
-  },
-  pageEyebrow: {
-    fontSize: '11px',
-    letterSpacing: '1.1px',
-    textTransform: 'uppercase',
-    fontWeight: 700,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  pageTitle: {
-    fontSize: '32px',
-    fontWeight: 800,
-    lineHeight: 1.1,
-    textShadow: '0 4px 16px rgba(2, 6, 20, 0.32)',
-  },
-  pageSubtitle: {
-    fontSize: '14px',
-    color: 'rgba(255,255,255,0.92)',
-  },
-  imageSourceTag: {
-    marginTop: '4px',
-    width: 'fit-content',
-    borderRadius: '999px',
-    border: '1px solid rgba(255,255,255,0.3)',
-    padding: '3px 10px',
-    fontSize: '11px',
-    color: 'rgba(255,255,255,0.84)',
-    background: 'rgba(8, 16, 38, 0.4)',
-  },
-  contentGrid: {
-    display: 'grid',
-    gap: '12px',
-    alignItems: 'start',
-  },
-  leftColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  },
-  rightColumn: {
-    minHeight: '420px',
-  },
-  selectorCard: {
-    padding: '14px',
-    borderRadius: '14px',
-    border: '1px solid rgba(255,255,255,0.2)',
-    background: 'rgba(255,255,255,0.08)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  selectorLabel: {
-    fontSize: '13px',
-    fontWeight: 700,
-  },
-  selectorInput: {
-    height: '38px',
-    borderRadius: '8px',
-    border: '1px solid rgba(255,255,255,0.3)',
-    background: 'rgba(255,255,255,0.18)',
-    color: 'white',
-    padding: '0 10px',
-  },
-  inlineInfo: {
-    fontSize: '12px',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  inlineError: {
-    fontSize: '12px',
-    color: '#fecaca',
-  },
-};
 
 export default TripPlannerPage;

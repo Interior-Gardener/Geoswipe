@@ -1,8 +1,257 @@
-.trip-planner-input::placeholder {
-  color: black;
-  opacity: 1;
+/* ==========================================================================
+   Trip Planner - input form
+   ========================================================================== */
+
+.tp-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+  overflow: hidden;
+  color: var(--gs-text);
 }
 
-.trip-planner-input:focus::placeholder {
-  color: rgba(76, 29, 149, 0.55);
+.tp-form__header {
+  padding: var(--gs-space-5) var(--gs-space-5) var(--gs-space-4);
+  border-bottom: 1px solid var(--gs-border-faint);
+  flex-shrink: 0;
+}
+
+.tp-form__title {
+  margin: 0;
+  font-size: var(--gs-text-xl);
+  font-weight: 680;
+  letter-spacing: var(--gs-tracking-tight);
+}
+
+.tp-form__subtitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: var(--gs-space-1) 0 0;
+  font-size: var(--gs-text-sm);
+  color: var(--gs-text-subtle);
+}
+
+.tp-form__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gs-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-6);
+}
+
+.tp-form__footer {
+  padding: var(--gs-space-4) var(--gs-space-5);
+  border-top: 1px solid var(--gs-border-faint);
+  background: var(--gs-surface-2);
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sections & fields                                                   */
+/* ------------------------------------------------------------------ */
+
+.tp-section { display: flex; flex-direction: column; gap: var(--gs-space-3); }
+
+.tp-section__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gs-space-2);
+  margin: 0;
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+.tp-section__count {
+  font-size: var(--gs-text-2xs);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--gs-accent);
+}
+
+.tp-field { display: flex; flex-direction: column; gap: var(--gs-space-2); min-width: 0; }
+
+.tp-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--gs-text-xs);
+  font-weight: 620;
+  color: var(--gs-text-muted);
+}
+
+.tp-optional {
+  font-size: var(--gs-text-2xs);
+  font-weight: 600;
+  color: var(--gs-text-faint);
+  text-transform: uppercase;
+  letter-spacing: var(--gs-tracking-wide);
+}
+
+.tp-hint { font-size: var(--gs-text-2xs); color: var(--gs-text-faint); }
+
+.tp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gs-space-3); }
+
+/* ------------------------------------------------------------------ */
+/* Stepper                                                             */
+/* ------------------------------------------------------------------ */
+
+.tp-stepper {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-surface-2);
+  overflow: hidden;
+  transition: border-color var(--gs-dur-fast) var(--gs-ease), box-shadow var(--gs-dur-fast) var(--gs-ease);
+}
+.tp-stepper:focus-within { border-color: var(--gs-accent); box-shadow: 0 0 0 3px var(--gs-accent-soft); }
+
+.tp-stepper__btn {
+  width: 38px;
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gs-text-muted);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--gs-dur-fast) var(--gs-ease), color var(--gs-dur-fast) var(--gs-ease);
+}
+.tp-stepper__btn:hover:not(:disabled) { background: var(--gs-accent-soft); color: var(--gs-accent); }
+.tp-stepper__btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.tp-stepper__value {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  border-inline: 1px solid var(--gs-border-faint);
+  background: transparent;
+  color: var(--gs-text);
+  font-family: inherit;
+  font-size: var(--gs-text-md);
+  font-weight: 650;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.tp-stepper__value::-webkit-outer-spin-button,
+.tp-stepper__value::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ------------------------------------------------------------------ */
+/* Prefixed input (currency)                                           */
+/* ------------------------------------------------------------------ */
+
+.tp-prefix-input { position: relative; display: flex; align-items: center; }
+.tp-prefix-input__prefix {
+  position: absolute;
+  left: 0.875rem;
+  font-size: var(--gs-text-md);
+  font-weight: 650;
+  color: var(--gs-text-subtle);
+  pointer-events: none;
+}
+.tp-prefix-input .gs-input { padding-left: 2rem; }
+
+/* ------------------------------------------------------------------ */
+/* Segmented budget control                                            */
+/* ------------------------------------------------------------------ */
+
+.tp-segmented { width: 100%; }
+.tp-segmented .gs-segmented__item { flex: 1 1 0; text-align: center; }
+
+/* ------------------------------------------------------------------ */
+/* Transport mode grid                                                 */
+/* ------------------------------------------------------------------ */
+
+.tp-mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gs-space-2); }
+
+.tp-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--gs-space-3) var(--gs-space-1);
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-surface-2);
+  color: var(--gs-text-subtle);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--gs-dur-fast) var(--gs-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.tp-mode:hover { border-color: var(--gs-accent-border); color: var(--gs-text); transform: translateY(-2px); }
+.tp-mode.is-active {
+  background: var(--gs-accent-soft);
+  border-color: var(--gs-accent);
+  color: var(--gs-accent);
+  box-shadow: 0 0 0 1px var(--gs-accent-border) inset;
+}
+
+.tp-mode__icon { font-size: 18px; line-height: 1; }
+.tp-mode__label { font-size: var(--gs-text-2xs); font-weight: 650; }
+
+/* ------------------------------------------------------------------ */
+/* Interest chips                                                      */
+/* ------------------------------------------------------------------ */
+
+.tp-chip-grid { display: flex; flex-wrap: wrap; gap: var(--gs-space-2); }
+.tp-chip { font-size: var(--gs-text-xs); }
+
+/* ------------------------------------------------------------------ */
+/* Placeholder colour fix                                              */
+/* The original rule forced black placeholders, which were unreadable  */
+/* on the dark panel.                                                  */
+/* ------------------------------------------------------------------ */
+
+.trip-planner-input::placeholder { color: var(--gs-text-faint); opacity: 1; }
+.trip-planner-input:focus::placeholder { color: var(--gs-text-subtle); }
+
+/* Date inputs render a native picker icon that is invisible on dark. */
+.trip-planner-input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity var(--gs-dur-fast) var(--gs-ease);
+}
+.trip-planner-input[type='date']::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+:root:not([data-gs-theme='light']) .trip-planner-input[type='date']::-webkit-calendar-picker-indicator,
+body:not([data-heritage-theme='light']) .trip-planner-input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .tp-form__header { padding: var(--gs-space-4); }
+  .tp-form__body { padding: var(--gs-space-4); gap: var(--gs-space-5); }
+  .tp-form__footer { padding: var(--gs-space-3) var(--gs-space-4); }
+  .tp-mode-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 360px) {
+  .tp-grid-2 { grid-template-columns: 1fr; }
 }

@@ -133,3 +133,24 @@ npm-debug.log*
 yarn-debug.log*
 package-lock.json
 yarn.lock
+
+# ---------------------------------------------------------------------------
+# Secrets hardening: catch every env variant at any depth, plus backups of them.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.env.bak
+*.pre-hardening.bak
+
+# Data population scripts may embed Sketchfab IDs. The previous rules missed
+# copies with suffixes such as "populate-heritage-sites_only_India (1).js".
+server/populate-heritage-sites_only_*
+!server/populate-heritage-sites.example.js
+
+# Debug webcam captures from the gesture detector (never commit an image of a user)
+gesture-control/debug_frame_received.jpg
+*debug_frame*.jpg

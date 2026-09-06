@@ -138,7 +138,7 @@ export class AssetCache {
 
   calculateCacheSize() {
     let size = 0;
-    this.cache.forEach((asset, path) => {
+    this.cache.forEach((asset) => {
       if (asset instanceof HTMLImageElement) {
         size += asset.naturalWidth * asset.naturalHeight * 4; // Rough estimate
       } else if (typeof asset === 'object') {

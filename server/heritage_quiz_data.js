@@ -1,12 +1,18 @@
-// Heritage Sites Quiz Questions - MongoDB Insert Script
-// Run with: node heritage_quiz_data.js
-// Requires: MongoDB connection setup
+// Heritage Sites Quiz Questions.
+//
+// This file is BOTH a data module and a standalone seed script:
+//   - `require('./heritage_quiz_data')` exports { quizQuestions } only.
+//   - `node heritage_quiz_data.js` inserts them into MongoDB.
+//
+// It previously ran insertQuizData() at import time against a hardcoded
+// mongodb://localhost:27017, so it could not be imported by the server and it
+// wrote to the wrong database. The connection now comes from MONGODB_URI.
 
+require('dotenv').config();
 const { MongoClient } = require('mongodb');
 
-// MongoDB connection URL - UPDATE THIS WITH YOUR CONNECTION STRING
-const MONGO_URL = 'mongodb://localhost:27017';
-const DATABASE_NAME = 'geoswipedb';
+const MONGO_URL = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/geoswipedb';
+const DATABASE_NAME = process.env.MONGODB_DB || 'geoswipedb';
 const COLLECTION_NAME = 'quiz_questions';
 
 // Quiz Questions Data
@@ -6435,8 +6441,11 @@ async function insertQuizData() {
   }
 }
 
-// Run the insert function
-insertQuizData();
+// Only seed when executed directly - importing this file must have no side
+// effects, or the server cannot reuse the question set.
+if (require.main === module) {
+  insertQuizData();
+}
 
 // Export for use as module
 module.exports = { quizQuestions };

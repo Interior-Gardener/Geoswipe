@@ -24,11 +24,32 @@ sio = socketio.Client()
 
 connected = False
 
+# Shared secret proving this process is the trusted gesture detector. The
+# server refuses to hand webcam frames to an unregistered client, so without a
+# matching GESTURE_WORKER_TOKEN this worker receives nothing.
+GESTURE_WORKER_TOKEN = os.getenv('GESTURE_WORKER_TOKEN', '')
+
+# Writing a received webcam frame to disk is a debugging aid, not normal
+# operation - it must be requested explicitly.
+SAVE_DEBUG_FRAME = os.getenv('SAVE_DEBUG_FRAME', 'false').strip().lower() == 'true'
+
+
 @sio.event
 def connect():
     global connected
     connected = True
     print("Connected to server.")
+
+    # Register as a gesture worker so the server will route frames here.
+    def _registered(response):
+        if response and response.get('ok'):
+            print("Registered as gesture worker.")
+        else:
+            reason = (response or {}).get('error', 'unknown error')
+            print(f"Gesture worker registration REJECTED: {reason}")
+            print("Set GESTURE_WORKER_TOKEN in gesture-control/.env to match server/.env")
+
+    sio.emit('register-gesture-worker', {'token': GESTURE_WORKER_TOKEN}, callback=_registered)
 
 @sio.event
 def process_frame(data):
@@ -48,17 +69,20 @@ def process_frame(data):
         print(f"📸 Processing frame #{frame_count} | FPS: {actual_fps:.1f}")
         last_frame_log_time = current_time
 
+    session = data.get('session')
+
     result = process_frame_from_base64(data['frame'])
 
     if result and connected:
-        # Emit gesture if detected
+        # `session` addresses the answer back to the tab the frame came from.
+        # Without it the server drops the result rather than broadcasting.
         if result['gesture']:
             print(f" Gesture detected: {result['gesture']}")
-            sio.emit('gesture', {'gesture': result['gesture']})
+            sio.emit('gesture', {'gesture': result['gesture'], 'session': session})
 
         # Always emit cursor position (even if None to clear cursor)
         if result['cursor']:
-            sio.emit('cursor', result['cursor'])
+            sio.emit('cursor', {**result['cursor'], 'session': session})
 
 # Get server URL from environment variable
 SOCKET_SERVER_URL = os.getenv('SOCKET_SERVER_URL', 'http://localhost:3000')
@@ -324,12 +348,17 @@ def process_frame_from_base64(base64_data):
             print(f"   - Data type: {frame.dtype}")
             print(f"   - Value range: [{frame.min()}, {frame.max()}]")
 
-        # Save debug frame (first frame only for verification)
-        if not debug_frame_saved and frame_count == 1:
+        # Save debug frame (first frame only for verification).
+        #
+        # PRIVACY: this writes a real user's webcam image to disk. It used to
+        # happen unconditionally on every run, leaving an unignored JPEG in the
+        # repo that a `git add .` would commit. It is now opt-in.
+        if SAVE_DEBUG_FRAME and not debug_frame_saved and frame_count == 1:
             try:
                 debug_path = os.path.join(os.path.dirname(__file__), 'debug_frame_received.jpg')
                 cv2.imwrite(debug_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
                 print(f" Debug frame saved to: {debug_path}")
+                print(" WARNING: this file contains a webcam image. Delete it when done.")
                 debug_frame_saved = True
             except Exception as save_err:
                 print(f" Could not save debug frame: {save_err}")

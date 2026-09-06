@@ -1,0 +1,396 @@
+/* ==========================================================================
+   Explore mode - shell and globe chrome
+   ========================================================================== */
+
+.explore-page {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--gs-bg-deep);
+}
+
+/* ------------------------------------------------------------------ */
+/* Primary CTA                                                         */
+/* ------------------------------------------------------------------ */
+
+.explore-cta {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  z-index: var(--gs-z-dock);
+}
+
+.explore-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gs-space-3);
+  padding: 0.875rem 1.75rem;
+  min-height: 54px;
+  border: 0;
+  border-radius: var(--gs-radius-pill);
+  background: linear-gradient(135deg, var(--gs-accent), var(--gs-violet-strong));
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--gs-text-md);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-wide);
+  cursor: pointer;
+  box-shadow: 0 12px 34px rgba(34, 211, 238, 0.36);
+  transition: transform var(--gs-dur-fast) var(--gs-ease-out),
+              box-shadow var(--gs-dur-fast) var(--gs-ease),
+              filter var(--gs-dur-fast) var(--gs-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.explore-cta__btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(34, 211, 238, 0.46);
+  filter: brightness(1.06);
+}
+.explore-cta__btn:active { transform: translateY(0) scale(0.98); }
+
+.explore-cta__icon { font-size: 22px; line-height: 1; }
+
+/* ------------------------------------------------------------------ */
+/* Globe overlays created imperatively by EarthThreeJS                 */
+/* These are plain DOM nodes, so they are styled by id/class here.     */
+/* ------------------------------------------------------------------ */
+
+.earth-overlay-btn {
+  position: absolute;
+  z-index: var(--gs-z-dock);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  padding: 0.6875rem 1.125rem;
+  min-height: 44px;
+  border-radius: var(--gs-radius-md);
+  border: 1px solid var(--gs-border-strong);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
+  font-size: var(--gs-text-sm);
+  font-weight: 650;
+  letter-spacing: var(--gs-tracking-wide);
+  cursor: pointer;
+  box-shadow: var(--gs-shadow-md);
+  transition: transform var(--gs-dur-fast) var(--gs-ease-out),
+              border-color var(--gs-dur-fast) var(--gs-ease),
+              color var(--gs-dur-fast) var(--gs-ease),
+              box-shadow var(--gs-dur-fast) var(--gs-ease);
+}
+.earth-overlay-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--gs-accent);
+  color: var(--gs-accent);
+  box-shadow: var(--gs-shadow-lg);
+}
+.earth-overlay-btn:active { transform: translateY(0) scale(0.98); }
+
+/* Gesture "clicks" are synthetic and fire no native :active state, so the
+   detector adds this class to confirm the press visually. */
+.earth-overlay-btn.is-confirming {
+  background: linear-gradient(135deg, var(--gs-success), var(--gs-accent));
+  border-color: transparent;
+  color: #04222b;
+  transform: scale(0.97);
+}
+
+/* Placement */
+.earth-overlay-btn--back { top: 16px; left: 16px; }
+/* Sits to the right of the fixed camera-preview toggle (bottom-left). */
+.earth-overlay-btn--instructions { bottom: 22px; left: 86px; }
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .explore-cta { bottom: 14px; }
+  .explore-cta__btn { padding: 0.75rem 1.25rem; min-height: 48px; font-size: var(--gs-text-sm); }
+  .earth-overlay-btn { padding: 0.5625rem 0.875rem; min-height: 40px; font-size: var(--gs-text-xs); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Globe title                                                         */
+/* ------------------------------------------------------------------ */
+
+.earth-title {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--gs-z-raised);
+  padding: 0.375rem 1rem;
+  border-radius: var(--gs-radius-pill);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border);
+  color: var(--gs-text-muted);
+  font-family: var(--gs-font);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Instructions modal (built imperatively)                             */
+/* ------------------------------------------------------------------ */
+
+.earth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--gs-z-modal);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gs-space-4);
+  background: rgba(3, 7, 17, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow-y: auto;
+}
+
+.earth-modal__card {
+  width: min(720px, 100%);
+  max-height: min(86vh, 860px);
+  overflow-y: auto;
+  padding: clamp(var(--gs-space-5), 3vw, var(--gs-space-8));
+  border-radius: var(--gs-radius-xl);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-xl);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
+  scrollbar-width: thin;
+  scrollbar-color: var(--gs-border-strong) transparent;
+}
+.earth-modal__card::-webkit-scrollbar { width: 7px; }
+.earth-modal__card::-webkit-scrollbar-thumb { background: var(--gs-border-strong); border-radius: var(--gs-radius-pill); }
+
+.earth-modal__card h2 {
+  margin: 0 0 var(--gs-space-2);
+  font-size: var(--gs-text-2xl);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-tight);
+  color: var(--gs-text);
+}
+
+.earth-modal__card h3 {
+  margin: var(--gs-space-6) 0 var(--gs-space-2);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+.earth-modal__card p,
+.earth-modal__card li {
+  font-size: var(--gs-text-sm);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-muted);
+}
+
+.earth-modal__card strong { color: var(--gs-text); font-weight: 650; }
+
+@media (max-width: 640px) {
+  .earth-title { font-size: 9px; padding: 0.3125rem 0.75rem; }
+  .earth-overlay-btn--back { top: 12px; left: 12px; }
+  .earth-overlay-btn--instructions { bottom: 22px; left: 72px; }
+}
+
+/* ==========================================================================
+   Earth customization panel (dat.GUI)
+   --------------------------------------------------------------------------
+   A real user feature - lighting, materials, animation and atmosphere. Its
+   default styling clashed with the app and its fixed full-width host element
+   pushed the page 32px wide on phones, so both are re-based here.
+   ========================================================================== */
+
+/* dat.GUI injects a full-width fixed host (.dg.ac). Neutralise it so only the
+   panel itself occupies space. */
+.dg.ac.earth-gui-host,
+.earth-gui-host {
+  position: fixed !important;
+  top: 62px !important;
+  right: 12px !important;
+  left: auto !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: var(--gs-z-dock) !important;
+  pointer-events: none;
+}
+.earth-gui-host > * { pointer-events: auto; }
+
+.dg.main.earth-gui,
+.earth-gui {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  /* Height is driven by the controls list below; keeping the panel itself
+     unclipped is what lets the collapsed "Open Controls" bar stay readable. */
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  border-radius: var(--gs-radius-lg) !important;
+  border: 1px solid var(--gs-border-strong) !important;
+  background: var(--gs-glass) !important;
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  box-shadow: var(--gs-shadow-lg) !important;
+  font-family: var(--gs-font) !important;
+  color: var(--gs-text) !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gs-border-strong) transparent;
+}
+.earth-gui > ul::-webkit-scrollbar { width: 6px; }
+.earth-gui > ul::-webkit-scrollbar-thumb { background: var(--gs-border-strong); border-radius: var(--gs-radius-pill); }
+
+/* Panel internals ---------------------------------------------------- */
+.earth-gui .dg { background: transparent !important; }
+.earth-gui ul { background: transparent !important; }
+
+/* The controls list is the scroll container. dat.GUI collapses the panel by
+   giving this element height 0, so the bar below it simply becomes the whole
+   panel - no clipping, no sliver. */
+.earth-gui > ul {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gs-border-strong) transparent;
+}
+.earth-gui > ul.closed { max-height: 0 !important; overflow: hidden !important; }
+
+.earth-gui li:not(.folder):not(.title) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--gs-border-faint) !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  padding: 6px 0 !important;
+}
+
+.earth-gui li.title {
+  background: var(--gs-surface-2) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--gs-border-faint) !important;
+  color: var(--gs-text) !important;
+  font-size: var(--gs-text-xs) !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--gs-tracking-wide);
+  padding: 9px 10px !important;
+  text-shadow: none !important;
+  cursor: pointer;
+  transition: background-color var(--gs-dur-fast) var(--gs-ease);
+}
+.earth-gui li.title:hover { background: var(--gs-surface-3) !important; }
+
+.earth-gui .closed li.title { border-bottom-color: transparent !important; }
+
+.earth-gui .property-name {
+  color: var(--gs-text-muted) !important;
+  font-size: var(--gs-text-2xs) !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  width: 42% !important;
+  padding-left: 10px !important;
+}
+
+.earth-gui .c { width: 55% !important; }
+
+/* Sliders */
+.earth-gui .slider {
+  background: var(--gs-surface-3) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  height: 6px !important;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.earth-gui .slider-fg {
+  background: linear-gradient(90deg, var(--gs-accent), var(--gs-violet)) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  height: 6px !important;
+}
+
+/* Numeric fields */
+.earth-gui .c input[type='text'] {
+  background: var(--gs-surface-2) !important;
+  border: 1px solid var(--gs-border) !important;
+  border-radius: var(--gs-radius-xs) !important;
+  color: var(--gs-accent) !important;
+  font-family: var(--gs-font-mono) !important;
+  font-size: var(--gs-text-2xs) !important;
+  padding: 2px 5px !important;
+}
+.earth-gui .c input[type='text']:focus {
+  border-color: var(--gs-accent) !important;
+  outline: none;
+}
+
+/* Checkboxes */
+.earth-gui .c input[type='checkbox'] { accent-color: var(--gs-accent); width: 15px; height: 15px; cursor: pointer; }
+
+/* dat.GUI's own open/close bar.
+   When collapsed, dat.GUI zeroes the panel height; combined with the
+   scroll container that clipped the "Open Controls" label to an
+   unreadable sliver. Give the bar a real height and let the collapsed
+   panel size to it. */
+.earth-gui .close-button {
+  /* dat.GUI absolutely-positions this bar (.close-bottom), so it contributed
+     no height and the collapsed panel shrank to 2px around it. Put it back in
+     the flow and the panel is exactly as tall as the bar when collapsed. */
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: var(--gs-surface-2) !important;
+  border: 0 !important;
+  border-top: 1px solid var(--gs-border-faint) !important;
+  color: var(--gs-text) !important;
+  font-family: var(--gs-font) !important;
+  font-size: var(--gs-text-xs) !important;
+  font-weight: 650 !important;
+  letter-spacing: var(--gs-tracking-wide);
+  text-align: center !important;
+  line-height: 34px !important;
+  height: 34px !important;
+  cursor: pointer;
+  transition: background-color var(--gs-dur-fast) var(--gs-ease), color var(--gs-dur-fast) var(--gs-ease);
+}
+.earth-gui .close-button:hover { background: var(--gs-surface-3) !important; color: var(--gs-accent) !important; }
+
+/* When collapsed the bar is the entire panel, so round it fully. */
+.earth-gui:has(> ul.closed) .close-button {
+  border-top: 0 !important;
+  border-radius: var(--gs-radius-lg) !important;
+}
+
+/* Responsive --------------------------------------------------------- */
+@media (max-width: 820px) {
+  .earth-gui-host { top: 54px !important; right: 8px !important; }
+  .dg.main.earth-gui,
+  .earth-gui { width: min(240px, calc(100vw - 20px)) !important; }
+  .earth-gui > ul { max-height: 42vh; }
+  .earth-gui .property-name { width: 46% !important; }
+  .earth-gui .c { width: 50% !important; }
+}
+
+@media (max-width: 480px) {
+  .dg.main.earth-gui,
+  .earth-gui { width: min(210px, calc(100vw - 18px)) !important; }
+}

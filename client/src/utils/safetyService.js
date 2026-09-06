@@ -1,23 +1,26 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from './apiConfig';
+import { reportApiFailure, reportNetworkFailure } from './apiError';
 
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    },
-    ...options
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message = data?.error || `Request failed (${response.status})`;
-    throw new Error(message);
+async function requestJson(url, options = {}, label = 'Safety service') {
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      },
+      ...options
+    });
+  } catch (networkError) {
+    throw reportNetworkFailure(networkError, label, url);
   }
 
-  return data;
+  if (!response.ok) {
+    throw await reportApiFailure(response, label, url);
+  }
+
+  return response.json().catch(() => null);
 }
 
 export async function fetchNearbySafePlaces({ lat, lon, radius = 3000, limit = 20 }) {

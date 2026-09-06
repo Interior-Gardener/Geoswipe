@@ -1,12 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { API_BASE_URL, getGestureSessionId } from '../utils/apiConfig';
 
 // Reuse socket singleton pattern (same as other components)
 const getSocket = (() => {
   let socket = null;
   return () => {
     if (!socket) {
-      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+      socket = io(API_BASE_URL, {
+        // Tags every socket from this tab so gesture frames/results stay private to it.
+        auth: { gestureSession: getGestureSessionId() },
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: 5,
@@ -211,110 +214,45 @@ const CameraCapture = ({
 
   if (!enabled) return null;
 
-  return (
-    <div style={{
-      position: 'fixed',
-      bottom: 110,
-      right: 1,
-      zIndex: 1000,
-      background: 'rgba(0,0,0,0.8)',
-      borderRadius: '12px',
-      padding: '10px',
-      border: '2px solid #00d4ff'
-    }}>
-      {/* Status indicator */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        marginBottom: '8px',
-        color: '#fff',
-        fontSize: '11px',
-        fontFamily: 'monospace'
-      }}>
-        {/* Camera status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            background: cameraStatus === 'active' ? '#00ff00' :
-                        cameraStatus === 'error' ? '#ff0000' : '#ffaa00'
-          }} />
-          <span>
-            {cameraStatus === 'active' ? `Camera: ${fps} FPS` :
-             cameraStatus === 'error' ? 'Camera Error' :
-             cameraStatus === 'requesting' ? 'Requesting...' :
-             'Initializing...'}
-          </span>
-        </div>
-        {/* Socket status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            background: socketConnected ? '#00ff00' : '#ff0000'
-          }} />
-          <span>
-            {socketConnected ? 'Server Connected' : 'Server Disconnected'}
-          </span>
-        </div>
-        {/* Frames sent counter */}
-        {isStreaming && socketConnected && (
-          <div style={{ fontSize: '10px', color: '#00d4ff', marginLeft: '18px' }}>
-            Sent: {framesSentRef.current} frames
-          </div>
-        )}
-      </div>
+  const statusLabel =
+    cameraStatus === 'active' ? `Camera · ${fps} FPS`
+      : cameraStatus === 'error' ? 'Camera error'
+      : cameraStatus === 'requesting' ? 'Requesting access…'
+      : 'Initializing…';
 
-      {/* Video preview */}
-      <div style={{
-        position: 'relative',
-        display: showPreview ? 'block' : 'none'
-      }}>
+  return (
+    <div className={`gs-camera${showPreview ? ' is-visible' : ''}`}>
+      {/* Telemetry is debugging detail: only surface it while the preview is
+          open. It previously sat on screen permanently, on every page. */}
+      {showPreview && (
+        <div className="gs-camera__status">
+          <span className="gs-camera__row">
+            <span className={`gs-camera__dot is-${cameraStatus === 'active' ? 'ok' : cameraStatus === 'error' ? 'bad' : 'wait'}`} />
+            {statusLabel}
+          </span>
+          <span className="gs-camera__row">
+            <span className={`gs-camera__dot is-${socketConnected ? 'ok' : 'bad'}`} />
+            {socketConnected ? 'Server connected' : 'Server disconnected'}
+          </span>
+        </div>
+      )}
+
+      {/* The video element must stay mounted for frame capture even when the
+          preview is hidden, so visibility is handled with CSS. */}
+      <div className="gs-camera__preview">
         <video
           ref={videoRef}
-          width={width / 2}  // Show preview at half resolution
+          width={width / 2}
           height={height / 2}
-          style={{
-            display: 'block',
-            borderRadius: '8px',
-            transform: 'scaleX(-1)',  // Mirror effect
-            border: '1px solid #00d4ff'
-          }}
           muted
           playsInline
         />
-        {error && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.9)',
-            color: '#ff4444',
-            padding: '10px',
-            fontSize: '11px',
-            textAlign: 'center',
-            borderRadius: '8px'
-          }}>
-            {error}
-          </div>
+        {error && showPreview && (
+          <div className="gs-camera__error" role="alert">{error}</div>
         )}
       </div>
 
-      {/* Hidden canvas for frame capture */}
-      <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
-        style={{ display: 'none' }}
-      />
+      <canvas ref={canvasRef} width={width} height={height} style={{ display: 'none' }} />
     </div>
   );
 };

@@ -72,9 +72,6 @@ const HeritageMultiplayerQuiz = ({ monumentName: propMonumentName, mode: propMod
   const { isExpanded, togglePanelFullscreen } = usePanelFullscreen(multiplayerPanelRef);
 
   // Get current player's info
-  const myScore = players.find((p) => p.name === playerName)?.score || 0;
-  const myPlayer = players.find((p) => p.name === playerName);
-  const opponents = players.filter((p) => p.name !== playerName);
 
   // Check connection status
   useEffect(() => {

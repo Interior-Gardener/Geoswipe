@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import Globe from 'three-globe';
 import { io } from "socket.io-client";
+import { API_BASE_URL, gestureSocketOptions } from './utils/apiConfig';
 
 // Connect to backend
-const socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000");
+const socket = io(API_BASE_URL, gestureSocketOptions());
 
 // Setup Three.js scene
 const scene = new THREE.Scene();

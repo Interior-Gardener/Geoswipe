@@ -82,7 +82,7 @@ export const performanceTimer = {
 };
 
 // Lazy loading utility for images
-export const lazyLoadImage = (src, placeholder = '') => {
+export const lazyLoadImage = (src, _placeholder = '') => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(src);

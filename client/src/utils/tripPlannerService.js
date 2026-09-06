@@ -89,7 +89,6 @@ function roundToHundreds(value) {
 function buildBookingLinks({ siteName, city, state, originCity, coordinates }) {
   const destinationLabel = [city, state].filter(Boolean).join(', ') || siteName;
   const encodedDestination = encodeURIComponent(destinationLabel);
-  const encodedOrigin = encodeURIComponent(originCity || 'India');
   const encodedRouteQuery = encodeURIComponent(`flights from ${originCity || 'India'} to ${destinationLabel}`);
 
   const links = [

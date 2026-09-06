@@ -1,387 +1,318 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatINR } from '../../utils/tripPlannerService';
 import { downloadTripPlanPdf } from '../../utils/tripPlanPdf';
+import { renderRichText } from '../../utils/richText';
+import './TripPlannerResult.css';
+
+const COST_META = {
+  stay: { label: 'Stay', icon: '🏨' },
+  food: { label: 'Food', icon: '🍽️' },
+  transport: { label: 'Transport', icon: '🚕' },
+  entryFees: { label: 'Entry Fees', icon: '🎟️' },
+};
+
+/** Skeleton that mirrors the real layout, so the swap is not jarring. */
+function LoadingState() {
+  return (
+    <div className="tpr" aria-busy="true" aria-live="polite">
+      <div className="tpr-card tpr-hero">
+        <div className="gs-skeleton gs-skeleton--title" />
+        <div className="gs-skeleton gs-skeleton--text" style={{ width: '92%' }} />
+        <div className="gs-skeleton gs-skeleton--text" style={{ width: '78%' }} />
+      </div>
+
+      <div className="tpr-section-title"><span>Cost estimation</span></div>
+      <div className="tpr-cost-grid">
+        {[0, 1, 2, 3].map((i) => (
+          <div className="tpr-card tpr-cost" key={i}>
+            <div className="gs-skeleton gs-skeleton--text" style={{ width: '52%' }} />
+            <div className="gs-skeleton gs-skeleton--text" style={{ width: '72%', height: '1.1rem' }} />
+          </div>
+        ))}
+      </div>
+
+      <div className="tpr-section-title"><span>Itinerary</span></div>
+      {[0, 1].map((i) => (
+        <div className="tpr-card" key={i}>
+          <div className="gs-skeleton gs-skeleton--title" />
+          <div className="gs-skeleton gs-skeleton--text" />
+          <div className="gs-skeleton gs-skeleton--text" style={{ width: '85%' }} />
+          <div className="gs-skeleton gs-skeleton--text" style={{ width: '60%' }} />
+        </div>
+      ))}
+
+      <div className="tpr-progress-note">
+        <span className="gs-spinner gs-spinner--sm" />
+        Building your day-by-day plan, costs and booking links…
+      </div>
+    </div>
+  );
+}
+
+function CostCard({ id, value, total }) {
+  const meta = COST_META[id];
+  const numeric = Number(value) || 0;
+  const share = total > 0 ? Math.round((numeric / total) * 100) : 0;
+
+  return (
+    <div className="tpr-card tpr-cost">
+      <div className="tpr-cost__head">
+        <span className="tpr-cost__icon" aria-hidden="true">{meta.icon}</span>
+        <span className="tpr-cost__label">{meta.label}</span>
+      </div>
+      <div className="tpr-cost__value">{formatINR(value)}</div>
+      {total > 0 && (
+        <>
+          <div className="tpr-cost__bar" role="presentation">
+            <span style={{ width: `${share}%` }} />
+          </div>
+          <div className="tpr-cost__share">{share}% of total</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DayCard({ day, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const schedule = Array.isArray(day.schedule) ? day.schedule : [];
+  const food = day.foodRecommendations || [];
+  const travel = day.travelSuggestions || [];
+  const notes = day.notes || [];
+
+  return (
+    <article className={`tpr-card tpr-day${open ? ' is-open' : ''}`}>
+      <button
+        type="button"
+        className="tpr-day__header"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="tpr-day__badge">Day {day.day}</span>
+        <span className="tpr-day__headings">
+          <span className="tpr-day__focus">{day.focus}</span>
+          {day.dateLabel && <span className="tpr-day__date">{day.dateLabel}</span>}
+        </span>
+        <span className="tpr-day__meta">
+          {schedule.length > 0 && <span className="tpr-day__count">{schedule.length} stops</span>}
+          <span className="tpr-day__chevron" aria-hidden="true">⌄</span>
+        </span>
+      </button>
+
+      {open && (
+        <div className="tpr-day__body">
+          {schedule.length > 0 && (
+            <ol className="tpr-timeline">
+              {schedule.map((slot, index) => (
+                <li className="tpr-timeline__item" key={`${slot.time}-${index}`}>
+                  <div className="tpr-timeline__time">{slot.time}</div>
+                  <div className="tpr-timeline__marker" aria-hidden="true" />
+                  <div className="tpr-timeline__content">
+                    <div className="tpr-timeline__activity">{slot.activity}</div>
+                    {slot.details && <div className="tpr-timeline__detail">{slot.details}</div>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <div className="tpr-day__lists">
+            {food.length > 0 && (
+              <div className="tpr-list-block">
+                <h5 className="tpr-list-block__title"><span aria-hidden="true">🍽️</span> Food</h5>
+                <ul className="tpr-list">
+                  {food.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {travel.length > 0 && (
+              <div className="tpr-list-block">
+                <h5 className="tpr-list-block__title"><span aria-hidden="true">🧭</span> Getting around</h5>
+                <ul className="tpr-list">
+                  {travel.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {notes.length > 0 && (
+            <div className="tpr-notes">
+              <h5 className="tpr-list-block__title"><span aria-hidden="true">💡</span> Notes</h5>
+              <ul className="tpr-list">
+                {notes.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
 
 function TripPlannerResult({ plan, error, isLoading, onRegenerate }) {
-  if (isLoading) {
-    return (
-      <div style={styles.placeholderCard}>
-        <div style={styles.loadingTitle}>Generating your itinerary...</div>
-        <div style={styles.loadingSubtext}>This includes day plan, cost estimation, and booking links.</div>
-      </div>
-    );
-  }
+  const [downloading, setDownloading] = useState(false);
+
+  if (isLoading) return <LoadingState />;
 
   if (error) {
     return (
-      <div style={styles.errorCard}>
-        <div style={styles.errorTitle}>Unable to generate trip plan</div>
-        <div style={styles.errorText}>{error}</div>
+      <div className="gs-state gs-state--error tpr-state">
+        <div className="gs-state__icon" aria-hidden="true">⚠️</div>
+        <h3 className="gs-state__title">Unable to generate trip plan</h3>
+        <p className="gs-state__text">{error}</p>
+        {onRegenerate && (
+          <button type="button" className="gs-btn gs-btn--secondary" onClick={onRegenerate}>
+            Try again
+          </button>
+        )}
       </div>
     );
   }
 
   if (!plan) {
     return (
-      <div style={styles.placeholderCard}>
-        <div style={styles.loadingTitle}>Your itinerary will appear here</div>
-        <div style={styles.loadingSubtext}>Submit trip inputs to generate day-wise recommendations.</div>
+      <div className="gs-state tpr-state">
+        <div className="gs-state__icon" aria-hidden="true">🗺️</div>
+        <h3 className="gs-state__title">Your itinerary will appear here</h3>
+        <p className="gs-state__text">
+          Set your days, budget and interests, then generate a plan to see a day-by-day
+          schedule, cost estimate and booking links.
+        </p>
       </div>
     );
   }
 
+  const cost = plan.costBreakdown || {};
+  const total = Number(cost.total) || 0;
+  const notes = Array.isArray(cost.notes) ? cost.notes : [];
+  const days = Array.isArray(plan.days) ? plan.days : [];
+  const links = Array.isArray(plan.bookingLinks) ? plan.bookingLinks : [];
+  const isAi = plan?.metadata?.source === 'ai';
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadTripPlanPdf(plan);
+    } catch (err) {
+      console.error('Trip plan PDF export failed:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <div style={styles.root}>
-      <div style={styles.summaryCard}>
-        <div style={styles.title}>{plan.title}</div>
-        <div style={styles.summary}>{plan.summary}</div>
-        <div style={styles.weatherAdvice}>{plan.weatherAdvice}</div>
-        <div style={styles.metaLine}>
-          Source: {plan?.metadata?.source === 'ai' ? 'AI-assisted' : 'Logical planner'}
+    <div className="tpr">
+      {/* Hero summary */}
+      <section className="tpr-card tpr-hero">
+        <div className="tpr-hero__top">
+          <h2 className="tpr-hero__title">{plan.title}</h2>
+          <span className={`gs-badge ${isAi ? 'gs-badge--accent' : ''}`}>
+            {isAi ? '✨ AI-assisted' : 'Logical planner'}
+          </span>
         </div>
+
+        {plan.summary && (
+          <div className="tpr-hero__summary">{renderRichText(plan.summary)}</div>
+        )}
+
+        {plan.weatherAdvice && (
+          <div className="tpr-advice">
+            <span className="tpr-advice__icon" aria-hidden="true">🌤️</span>
+            <div className="tpr-advice__text">{renderRichText(plan.weatherAdvice)}</div>
+          </div>
+        )}
+
+        <div className="tpr-hero__stats">
+          {days.length > 0 && (
+            <div className="tpr-stat">
+              <span className="tpr-stat__value">{days.length}</span>
+              <span className="tpr-stat__label">{days.length === 1 ? 'Day' : 'Days'}</span>
+            </div>
+          )}
+          {total > 0 && (
+            <div className="tpr-stat">
+              <span className="tpr-stat__value">{formatINR(total)}</span>
+              <span className="tpr-stat__label">Est. total</span>
+            </div>
+          )}
+          {links.length > 0 && (
+            <div className="tpr-stat">
+              <span className="tpr-stat__value">{links.length}</span>
+              <span className="tpr-stat__label">Booking links</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Cost */}
+      <div className="tpr-section-title"><span>Cost estimation</span></div>
+      <div className="tpr-cost-grid">
+        {Object.keys(COST_META).map((id) => (
+          <CostCard key={id} id={id} value={cost[id]} total={total} />
+        ))}
       </div>
 
-      <div style={styles.sectionTitle}>Cost Estimation (INR)</div>
-      <div style={styles.costGrid}>
-        <CostItem label="Stay" value={plan.costBreakdown?.stay} />
-        <CostItem label="Food" value={plan.costBreakdown?.food} />
-        <CostItem label="Transport" value={plan.costBreakdown?.transport} />
-        <CostItem label="Entry Fees" value={plan.costBreakdown?.entryFees} />
+      <div className="tpr-total">
+        <span className="tpr-total__label">Total estimate</span>
+        <span className="tpr-total__value">{formatINR(cost.total)}</span>
       </div>
-      <div style={styles.totalLine}>Total Estimate: {formatINR(plan.costBreakdown?.total)}</div>
-      {Array.isArray(plan.costBreakdown?.notes) && plan.costBreakdown.notes.length > 0 && (
-        <div style={styles.noteBox}>
-          {plan.costBreakdown.notes.map((note, index) => (
-            <div key={`${note}-${index}`} style={styles.noteItem}>{note}</div>
-          ))}
-        </div>
+
+      {notes.length > 0 && (
+        <ul className="tpr-cost-notes">
+          {notes.map((note, index) => <li key={`${note}-${index}`}>{note}</li>)}
+        </ul>
       )}
 
-      <div style={styles.sectionTitle}>Day-wise Itinerary</div>
-      <div style={styles.daysRoot}>
-        {Array.isArray(plan.days) && plan.days.map((day) => (
-          <div key={day.day} style={styles.dayCard}>
-            <div style={styles.dayHeader}>
-              <div style={styles.dayTitle}>Day {day.day}: {day.focus}</div>
-              <div style={styles.dayDate}>{day.dateLabel}</div>
-            </div>
-
-            <div style={styles.subSection}>Schedule</div>
-            <div style={styles.scheduleList}>
-              {Array.isArray(day.schedule) && day.schedule.map((slot, index) => (
-                <div key={`${slot.time}-${index}`} style={styles.scheduleItem}>
-                  <div style={styles.scheduleTime}>{slot.time}</div>
-                  <div style={styles.scheduleContent}>
-                    <span style={styles.scheduleDot} />
-                    <div>
-                      <div style={styles.scheduleActivity}>{slot.activity}</div>
-                      <div style={styles.scheduleDetail}>{slot.details}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={styles.subSection}>Food Recommendations</div>
-            <ul style={styles.list}>
-              {(day.foodRecommendations || []).map((item, index) => (
-                <li key={`${item}-${index}`} style={styles.listItem}>{item}</li>
-              ))}
-            </ul>
-
-            <div style={styles.subSection}>Travel Suggestions</div>
-            <ul style={styles.list}>
-              {(day.travelSuggestions || []).map((item, index) => (
-                <li key={`${item}-${index}`} style={styles.listItem}>{item}</li>
-              ))}
-            </ul>
-
-            {(day.notes || []).length > 0 && (
-              <>
-                <div style={styles.subSection}>Notes</div>
-                <ul style={styles.list}>
-                  {(day.notes || []).map((item, index) => (
-                    <li key={`${item}-${index}`} style={styles.listItem}>{item}</li>
-                  ))}
-                </ul>
-              </>
-            )}
+      {/* Itinerary */}
+      {days.length > 0 && (
+        <>
+          <div className="tpr-section-title"><span>Day-wise itinerary</span></div>
+          <div className="tpr-days">
+            {days.map((day, index) => (
+              <DayCard key={day.day ?? index} day={day} defaultOpen={index === 0} />
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
-      <div style={styles.sectionTitle}>Booking Links</div>
-      <div style={styles.linkGrid}>
-        {(plan.bookingLinks || []).map((link, index) => (
-          <a
-            key={`${link.url}-${index}`}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={styles.linkButton}
-          >
-            {link.label}
-          </a>
-        ))}
-      </div>
+      {/* Booking links */}
+      {links.length > 0 && (
+        <>
+          <div className="tpr-section-title"><span>Booking links</span></div>
+          <div className="tpr-links">
+            {links.map((link, index) => (
+              <a
+                key={`${link.url}-${index}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tpr-link"
+              >
+                <span className="tpr-link__label">{link.label}</span>
+                <span className="tpr-link__arrow" aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
 
-      <div style={styles.actionsRow}>
-        <button style={styles.downloadButton} onClick={() => downloadTripPlanPdf(plan)}>
-          Download Plan
+      {/* Actions */}
+      <div className="tpr-actions">
+        <button
+          type="button"
+          className={`gs-btn gs-btn--primary${downloading ? ' gs-btn--loading' : ''}`}
+          onClick={handleDownload}
+          disabled={downloading}
+        >
+          <span aria-hidden="true">⬇</span> Download PDF
         </button>
-        <button style={styles.regenerateButton} onClick={onRegenerate}>
-          Regenerate Plan
+        <button type="button" className="gs-btn gs-btn--secondary" onClick={onRegenerate}>
+          <span aria-hidden="true">↻</span> Regenerate
         </button>
       </div>
     </div>
   );
 }
-
-function CostItem({ label, value }) {
-  return (
-    <div style={styles.costItem}>
-      <div style={styles.costLabel}>{label}</div>
-      <div style={styles.costValue}>{formatINR(value)}</div>
-    </div>
-  );
-}
-
-const styles = {
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-    color: 'white',
-  },
-  summaryCard: {
-    background: 'rgba(248, 245, 255, 0.12)',
-    border: '1px solid rgba(236, 221, 255, 0.22)',
-    borderRadius: '14px',
-    padding: '14px',
-  },
-  title: {
-    fontSize: '20px',
-    fontWeight: 700,
-    marginBottom: '6px',
-  },
-  summary: {
-    fontSize: '14px',
-    lineHeight: 1.6,
-    color: 'rgba(255,255,255,0.92)',
-  },
-  weatherAdvice: {
-    marginTop: '8px',
-    fontSize: '13px',
-    lineHeight: 1.5,
-    background: 'rgba(255,255,255,0.16)',
-    borderRadius: '8px',
-    padding: '8px',
-  },
-  metaLine: {
-    marginTop: '8px',
-    fontSize: '12px',
-    color: 'rgba(255,255,255,0.8)',
-  },
-  sectionTitle: {
-    fontSize: '16px',
-    fontWeight: 700,
-    marginTop: '4px',
-  },
-  costGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-    gap: '8px',
-  },
-  costItem: {
-    background: 'rgba(248, 245, 255, 0.1)',
-    border: '1px solid rgba(236, 221, 255, 0.2)',
-    borderRadius: '10px',
-    padding: '10px',
-  },
-  costLabel: {
-    fontSize: '12px',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  costValue: {
-    fontSize: '16px',
-    fontWeight: 700,
-    marginTop: '4px',
-  },
-  totalLine: {
-    fontSize: '18px',
-    fontWeight: 800,
-    padding: '8px 10px',
-    background: 'rgba(251, 191, 36, 0.2)',
-    borderRadius: '10px',
-    border: '1px solid rgba(251, 191, 36, 0.45)',
-  },
-  noteBox: {
-    background: 'rgba(248, 245, 255, 0.1)',
-    borderRadius: '10px',
-    padding: '10px',
-    border: '1px solid rgba(236, 221, 255, 0.2)',
-  },
-  noteItem: {
-    fontSize: '12px',
-    lineHeight: 1.4,
-    color: 'rgba(255,255,255,0.88)',
-    marginBottom: '4px',
-  },
-  daysRoot: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  dayCard: {
-    background: 'rgba(248, 245, 255, 0.09)',
-    border: '1px solid rgba(236, 221, 255, 0.2)',
-    borderRadius: '12px',
-    padding: '12px',
-  },
-  dayHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: '8px',
-    flexWrap: 'wrap',
-    marginBottom: '8px',
-  },
-  dayTitle: {
-    fontSize: '15px',
-    fontWeight: 700,
-  },
-  dayDate: {
-    fontSize: '12px',
-    color: 'rgba(255,255,255,0.8)',
-  },
-  subSection: {
-    fontSize: '13px',
-    fontWeight: 700,
-    marginTop: '8px',
-    marginBottom: '4px',
-  },
-  scheduleList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '7px',
-  },
-  scheduleItem: {
-    display: 'grid',
-    gridTemplateColumns: '110px 1fr',
-    gap: '10px',
-    background: 'rgba(255,255,255,0.14)',
-    borderRadius: '8px',
-    padding: '8px',
-    border: '1px solid rgba(255,255,255,0.18)',
-  },
-  scheduleTime: {
-    fontSize: '12px',
-    fontWeight: 700,
-    color: 'rgba(255,255,255,0.9)',
-    alignSelf: 'center',
-  },
-  scheduleContent: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'flex-start',
-  },
-  scheduleDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    marginTop: '6px',
-    background: 'linear-gradient(135deg, #22d3ee, #ec4899)',
-    boxShadow: '0 0 0 4px rgba(34, 211, 238, 0.12)',
-  },
-  scheduleActivity: {
-    fontSize: '13px',
-    fontWeight: 700,
-  },
-  scheduleDetail: {
-    fontSize: '12px',
-    color: 'rgba(255,255,255,0.88)',
-    marginTop: '2px',
-    lineHeight: 1.45,
-  },
-  list: {
-    margin: 0,
-    paddingLeft: '18px',
-  },
-  listItem: {
-    fontSize: '12px',
-    lineHeight: 1.5,
-    marginBottom: '3px',
-    color: 'rgba(255,255,255,0.9)',
-  },
-  linkGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-    gap: '8px',
-  },
-  linkButton: {
-    background: 'rgba(255,255,255,0.16)',
-    border: '1px solid rgba(236, 221, 255, 0.26)',
-    borderRadius: '10px',
-    color: 'white',
-    textDecoration: 'none',
-    padding: '10px',
-    fontSize: '13px',
-    fontWeight: 600,
-  },
-  actionsRow: {
-    display: 'flex',
-    gap: '10px',
-    flexWrap: 'wrap',
-  },
-  downloadButton: {
-    height: '38px',
-    borderRadius: '10px',
-    border: '1px solid rgba(255,255,255,0.24)',
-    cursor: 'pointer',
-    background: 'linear-gradient(135deg, #0ea5e9, #4f46e5)',
-    color: 'white',
-    fontWeight: 700,
-    padding: '0 14px',
-  },
-  regenerateButton: {
-    height: '38px',
-    borderRadius: '10px',
-    border: 'none',
-    cursor: 'pointer',
-    background: 'linear-gradient(135deg, #f59e0b, #ec4899)',
-    color: 'white',
-    fontWeight: 700,
-  },
-  placeholderCard: {
-    background: 'rgba(248, 245, 255, 0.1)',
-    border: '1px solid rgba(236, 221, 255, 0.22)',
-    borderRadius: '12px',
-    padding: '18px',
-    color: 'white',
-  },
-  loadingTitle: {
-    fontSize: '16px',
-    fontWeight: 700,
-    marginBottom: '6px',
-  },
-  loadingSubtext: {
-    fontSize: '13px',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  errorCard: {
-    background: 'rgba(239,68,68,0.2)',
-    border: '1px solid rgba(248,113,113,0.45)',
-    borderRadius: '12px',
-    padding: '14px',
-    color: 'white',
-  },
-  errorTitle: {
-    fontWeight: 700,
-    marginBottom: '6px',
-  },
-  errorText: {
-    fontSize: '13px',
-    color: 'rgba(255,255,255,0.92)',
-  },
-};
 
 export default TripPlannerResult;

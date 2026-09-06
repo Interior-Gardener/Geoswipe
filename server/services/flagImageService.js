@@ -1,10 +1,8 @@
 const FlagImage = require('../models/FlagImage');
-
-const fetch = (...args) =>
-  import('node-fetch').then(({ default: fetchImpl }) => fetchImpl(...args));
+const COUNTRIES = require('../data/countries');
 
 const FLAG_CACHE_DURATION_MS = 24 * 60 * 60 * 1000;
-const FLAG_SOURCE_URL = 'https://restcountries.com/v3.1/all?fields=name,cca2';
+const FLAG_IMAGE_BASE = 'https://flagcdn.com/w320';
 
 let cachedFlags = null;
 let cacheExpiresAt = 0;
@@ -48,40 +46,18 @@ async function loadFlagsFromDatabase() {
     .filter((entry) => entry.name && entry.flagUrl);
 }
 
-async function fetchFlagsFromApi() {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-  try {
-    const response = await fetch(FLAG_SOURCE_URL, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'GeoSwipe/1.0'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Flag source returned ${response.status}`);
-    }
-
-    const payload = await response.json();
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload
-      .filter((country) => country?.name?.common && country?.cca2)
-      .map((country) => {
-        const code = String(country.cca2).toLowerCase();
-        return {
-          name: country.name.common,
-          code,
-          flagUrl: `https://flagcdn.com/w320/${code}.png`
-        };
-      });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+// Builds the country/flag list from the bundled static dataset.
+//
+// This previously fetched restcountries.com, which has since been deprecated:
+// it 301-redirects and returns {success:false,...} rather than an array, so
+// this returned [] and the flag game answered 503. Country names and ISO codes
+// are static data, so they are now bundled - no network call, no outage.
+function buildFlagsFromStaticData() {
+  return COUNTRIES.map((country) => ({
+    name: country.name,
+    code: country.code,
+    flagUrl: `${FLAG_IMAGE_BASE}/${country.code}.png`
+  }));
 }
 
 async function persistFlags(countries = []) {
@@ -120,13 +96,21 @@ async function getFlagCountriesWithCache() {
     return dbCountries;
   }
 
-  const apiCountries = await fetchFlagsFromApi();
-  if (apiCountries.length > 0) {
-    await persistFlags(apiCountries);
-    writeMemoryCache(apiCountries);
+  const staticCountries = buildFlagsFromStaticData();
+  if (staticCountries.length > 0) {
+    writeMemoryCache(staticCountries);
+    // Persist for the DB-backed path, but never let a write failure break the
+    // game - the in-memory list is already usable.
+    try {
+      await persistFlags(staticCountries);
+    } catch (err) {
+      console.warn('[flags] Could not persist flag cache to MongoDB:', err.message || err);
+    }
+  } else {
+    console.error('[flags] Static country dataset is empty - server/data/countries.js may be corrupt.');
   }
 
-  return apiCountries;
+  return staticCountries;
 }
 
 module.exports = {

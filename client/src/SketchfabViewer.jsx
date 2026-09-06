@@ -21,14 +21,26 @@ const SketchfabViewer = ({ uid: propUid }) => {
     navigate('/heritage');
   };
   
-  // Allow both prop and URL param usage
-  let uid = propUid;
+  // Hooks must run unconditionally on every render - useParams was previously
+  // called inside an `if`, which breaks the rules of hooks and can desync
+  // React's hook order when the component is used with a `uid` prop.
+  const params = useParams();
+  const uid = propUid || params.uid;
+
   if (!uid) {
-    // If not passed as prop, get from URL
-    const params = useParams();
-    uid = params.uid;
+    return (
+      <div className="gs-page-loader">
+        <div className="gs-state" style={{ background: 'transparent', border: 0 }}>
+          <div className="gs-state__icon" aria-hidden="true">🗿</div>
+          <h2 className="gs-state__title">No 3D model specified</h2>
+          <p className="gs-state__text">This viewer needs a Sketchfab model id to load.</p>
+          <button type="button" className="gs-btn gs-btn--primary" onClick={navigateBackToHeritage}>
+            Back to Heritage
+          </button>
+        </div>
+      </div>
+    );
   }
-  if (!uid) return <div>No Sketchfab UID provided.</div>;
   
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#111', position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>

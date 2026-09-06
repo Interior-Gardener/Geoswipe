@@ -81,16 +81,6 @@ const MultiplayerFlagPage = () => {
     joinRoom(normalizedRoomId, inputPlayerName.trim(), 'flag');
   }, [inputPlayerName, inputRoomId]);
 
-  // Leave room
-  const handleLeaveRoom = useCallback(() => {
-    if (roomId) {
-      leaveRoom(roomId);
-    }
-    setInRoom(false);
-    setRoomId('');
-    setSelectedCountry(null);
-  }, [roomId]);
-
   const handleExitToPrevious = useCallback(() => {
     if (roomId) {
       leaveRoom(roomId);

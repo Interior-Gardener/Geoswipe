@@ -69,72 +69,18 @@ const QuizPage = () => {
       </div>
 
       {/* 🔙 Back Button */}
-      <GestureButton
-        onClick={togglePanelFullscreen}
-        style={{
-          position: "absolute",
-          bottom: "70px",
-          left: "260px",
-          zIndex: 1000,
-          background: "linear-gradient(135deg, rgba(80, 120, 220, 0.9), rgba(60, 90, 190, 0.9))",
-          color: "#f0f7ff",
-          border: "2px solid rgba(190, 220, 255, 0.55)",
-          padding: "18px 20px",
-          borderRadius: "12px",
-          fontSize: "16px",
-          fontWeight: "bold",
-          fontFamily: "'Orbitron', sans-serif",
-          cursor: "pointer",
-          backdropFilter: "blur(15px)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.28)",
-          transition: "all 0.3s ease",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <span style={{ fontSize: "16px" }}>{isExpanded ? "🡼" : "⛶"}</span>
-        {isExpanded ? "Exit Fullscreen" : "Fullscreen"}
-      </GestureButton>
+      {/* Game controls - one wrapping toolbar instead of pixel-pinned buttons */}
+      <div className="gs-game-toolbar">
+        <GestureButton className="gs-game-btn" onClick={() => navigate(-1)}>
+          <span aria-hidden="true">←</span> Back
+        </GestureButton>
 
-      <GestureButton
-        onClick={() => navigate(-1)} // Go back to previous page
-        style={{
-          position: "absolute",
-          bottom: "70px",
-          left: "90px",
-          zIndex: 1000,
-          background: "linear-gradient(135deg, rgba(0, 40, 80, 0.9), rgba(0, 20, 40, 0.9))",
-          color: "#00d4ff",
-          border: "2px solid rgba(0, 212, 255, 0.4)",
-          padding: "18px 26px",
-          borderRadius: "12px",
-          fontSize: "20px",
-          fontWeight: "bold",
-          fontFamily: "'Orbitron', sans-serif",
-          cursor: "pointer",
-          backdropFilter: "blur(15px)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.2)",
-          textShadow: "0 0 8px rgba(0, 212, 255, 0.6)",
-          transition: "all 0.3s ease",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = "linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 40, 80, 0.9))";
-          e.target.style.transform = "translateY(-2px)";
-          e.target.style.boxShadow = "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 212, 255, 0.3)";
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = "linear-gradient(135deg, rgba(0, 40, 80, 0.9), rgba(0, 20, 40, 0.9))";
-          e.target.style.transform = "translateY(0px)";
-          e.target.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.2)";
-        }}
-      >
-        <span style={{ fontSize: "18px" }}>⬅️</span>
-        Back
-      </GestureButton>
+        <GestureButton className="gs-game-btn" onClick={togglePanelFullscreen}>
+          <span aria-hidden="true">{isExpanded ? '⤡' : '⛶'}</span>
+          {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+        </GestureButton>
+      </div>
+
     </div>
   );
 };

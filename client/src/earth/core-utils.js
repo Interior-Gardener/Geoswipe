@@ -70,7 +70,7 @@ export const runApp = (app, scene, renderer, camera, enableAnimation = false, un
 
     // Define your app
     if (app.updateScene === undefined) {
-        app.updateScene = (delta, elapsed) => { }
+        app.updateScene = (_delta, _elapsed) => { }
     }
     Object.assign(app, { ...app, container })
 
@@ -121,7 +121,7 @@ export const runApp = (app, scene, renderer, camera, enableAnimation = false, un
  * @param {function} configureRenderer custom function for consumer to tune the renderer, takes renderer as the only parameter
  * @returns created renderer
  */
-export const createRenderer = (rendererProps = {}, configureRenderer = (renderer) => { }) => {
+export const createRenderer = (rendererProps = {}, configureRenderer = () => { }) => {
     const renderer = new THREE.WebGLRenderer(rendererProps)
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(window.innerWidth, window.innerHeight)
@@ -132,25 +132,6 @@ export const createRenderer = (rendererProps = {}, configureRenderer = (renderer
     return renderer
 }
 
-/**
- * This function creates the EffectComposer object for post processing
- * @param {object} renderer The threejs renderer
- * @param {object} scene The threejs scene
- * @param {object} camera The threejs camera
- * @param {function} extraPasses custom function that takes takes composer as the only parameter, for the consumer to add custom passes
- * @returns The created composer object used for post processing
- */
-export const createComposer = (renderer, scene, camera, extraPasses) => {
-    const renderScene = new RenderPass(scene, camera)
-
-    let composer = new EffectComposer(renderer)
-    composer.addPass(renderScene)
-
-    // custom passes that the consumer wants to add
-    extraPasses(composer)
-
-    return composer
-}
 
 /**
  * This function creates the three.js camera

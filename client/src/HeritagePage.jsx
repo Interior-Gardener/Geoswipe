@@ -5,6 +5,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './assets/map-icon-outlines.css';
 import './styles/heritage-theme.css';
+import './styles/heritage-map.css';
+import './styles/heritage-panels.css';
 import HeritageQuiz from './HeritageQuiz';
 import HeritageChatbot from './components/HeritageChatbot';
 import TripPlannerModal from './components/tripPlanner/TripPlannerModal';
@@ -18,6 +20,12 @@ import {
   buildHeritageRouteState,
   normalizeMonumentSelection
 } from './utils/heritageNavigationState';
+import { API_BASE_URL } from './utils/apiConfig';
+
+// Map tiles are proxied by the server so the MapTiler key never reaches the
+// browser. See server/routes/mapProxy.js.
+const MAP_STYLE_BASE = `${API_BASE_URL}/api/maps/style`;
+const MAP_ASSET_BASE = `${API_BASE_URL}/api/maps/asset`;
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -68,7 +76,7 @@ const HeritagePage = () => {
         if (res.ok) {
           return true;
         }
-      } catch (_) {
+      } catch (_e) {
         // continue checking next path
       }
     }
@@ -104,6 +112,19 @@ const HeritagePage = () => {
   const [newsTab, setNewsTab] = useState('monument'); // 'monument' or 'location'
   
   // Search functionality state
+  // --- Map chrome ---------------------------------------------------
+  // The map controls used to be seven separate always-on panels pinned to
+  // every corner. They are now driven from one dock: the search panel
+  // collapses, and info/legend are mutually exclusive popovers.
+  const [searchOpen, setSearchOpen] = useState(() =>
+    typeof window === 'undefined' ? true : window.innerWidth > 820
+  );
+  const [openPanel, setOpenPanel] = useState(null); // 'info' | 'legend' | null
+
+  const togglePanel = useCallback((panel) => {
+    setOpenPanel((current) => (current === panel ? null : panel));
+  }, []);
+
   const [searchMode, setSearchMode] = useState('places');
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -123,6 +144,37 @@ const HeritagePage = () => {
   const { theme } = useTheme();
   const { isExpanded: sidebarExpanded, togglePanelFullscreen: toggleSidebarFullscreen } =
     usePanelFullscreen(sidebarPanelRef);
+
+  // Any open dialog should own the screen. HeritagePage renders inside a
+  // position:fixed root, which always creates a stacking context in Blink, so
+  // its modals can never out-stack the global nav by z-index alone. Flag the
+  // state on <body> instead and let CSS take the nav out of the way.
+  const anyOverlayOpen =
+    streetViewModalOpen ||
+    infoModalOpen ||
+    directionsModalOpen ||
+    quizModalOpen ||
+    tripPlannerModalOpen ||
+    weatherModalOpen ||
+    newsModalOpen;
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    document.body.classList.toggle('gs-overlay-open', Boolean(anyOverlayOpen));
+    return () => document.body.classList.remove('gs-overlay-open');
+  }, [anyOverlayOpen]);
+
+  // Signal sidebar state to the document so the global nav and map dock can
+  // move clear of the right-hand panel instead of being covered by it.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const { classList } = document.body;
+    classList.toggle('h-sidebar-open', Boolean(sidebarOpen && sidebarData));
+    classList.toggle('h-sidebar-expanded', Boolean(sidebarExpanded));
+    return () => {
+      classList.remove('h-sidebar-open', 'h-sidebar-expanded');
+    };
+  }, [sidebarOpen, sidebarData, sidebarExpanded]);
   const { isExpanded: weatherExpanded, togglePanelFullscreen: toggleWeatherFullscreen } =
     usePanelFullscreen(weatherModalCardRef);
   const { isExpanded: newsExpanded, togglePanelFullscreen: toggleNewsFullscreen } =
@@ -183,13 +235,15 @@ const HeritagePage = () => {
     let styleLoadCompleted = false;
     
     try {
-      const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
+      // SECURITY: style URLs used to embed VITE_MAPTILER_API_KEY, exposing the
+      // key to every visitor. They now point at the server, which attaches the
+      // key and rewrites the tile/sprite/glyph URLs inside the style document.
       const styleUrls = {
-        satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${apiKey}`,
-        hybrid: `https://api.maptiler.com/maps/hybrid/style.json?key=${apiKey}`,
-        topo: `https://api.maptiler.com/maps/topo-v2/style.json?key=${apiKey}`,
-        streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${apiKey}`,
-        historical: `https://api.maptiler.com/maps/backdrop/style.json?key=${apiKey}`
+        satellite: `${MAP_STYLE_BASE}/satellite`,
+        hybrid: `${MAP_STYLE_BASE}/hybrid`,
+        topo: `${MAP_STYLE_BASE}/topo`,
+        streets: `${MAP_STYLE_BASE}/streets`,
+        historical: `${MAP_STYLE_BASE}/historical`
       };
       
       if (!styleUrls[styleName]) {
@@ -218,7 +272,7 @@ const HeritagePage = () => {
               if (!map.current.getSource('maptiler-terrain')) {
                 map.current.addSource('maptiler-terrain', {
                   type: 'raster-dem',
-                  url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${apiKey}`,
+                  url: `${MAP_ASSET_BASE}/tiles/terrain-rgb-v2/tiles.json`,
                   tileSize: 256
                 });
                 map.current.setTerrain({ source: 'maptiler-terrain', exaggeration: 1.5 });
@@ -1017,24 +1071,20 @@ const HeritagePage = () => {
       console.log('Map already initialized, skipping...');
       return;
     }
-    console.log('Initializing map...');
-    const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
-    
-    // Color mapping for different categories
-    const categoryColors = {
-      'UNESCO World Heritage': '#ff6b6b',
-      'Historic Fort': '#4ecdc4',
-      'Rock-cut Cave': '#45b7d1',
-      'Temple': '#f9ca24',
-      'Monument': '#6c5ce7',
-      'Palace': '#a29bfe',
-      'Museum': '#a29bfe',
-      'Historic Building': '#fd79a8'
-    };
 
-    function getCategoryColor(category) {
-      return categoryColors[category] || '#74b9ff';
+    // The container only exists once the map view is rendered - while the
+    // loading or error shell is showing, this ref is null. Attempting to
+    // construct the map then threw "Invalid type: 'container'..." and left
+    // map.current null, which the code below then dereferenced.
+    if (!mapContainer.current) {
+      return;
     }
+
+    console.log('Initializing map...');
+    
+
+
+
 
     // Update site counts
     function updateSiteCounts() {
@@ -1060,7 +1110,7 @@ const HeritagePage = () => {
         
         map.current = new maplibregl.Map({
           container: mapContainer.current,
-          style: `https://api.maptiler.com/maps/hybrid/style.json?key=${apiKey}`,
+          style: `${MAP_STYLE_BASE}/hybrid`,
           center: [75.5, 19.0],
           zoom: 6.5,
           pitch: 60,
@@ -1094,7 +1144,7 @@ const HeritagePage = () => {
           }
         });
         
-        map.current.on('sourcedataabort', (e) => {
+        map.current.on('sourcedataabort', () => {
           // Silently handle source data abort
         });
         
@@ -1116,6 +1166,13 @@ const HeritagePage = () => {
         console.error('Error initializing map:', error);
       }
 
+      // Construction can fail (bad style response, missing container). Without
+      // this guard the next line threw "Cannot read properties of null".
+      if (!map.current) {
+        setError('The map could not be initialized. Please reload the page.');
+        return;
+      }
+
       map.current.on('load', () => {
         console.log('Map loaded successfully');
         mapReadyRef.current = true;
@@ -1128,7 +1185,7 @@ const HeritagePage = () => {
             if (!map.current.getSource('maptiler-terrain')) {
               map.current.addSource('maptiler-terrain', { 
                 type: 'raster-dem', 
-                url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${apiKey}`, 
+                url: `${MAP_ASSET_BASE}/tiles/terrain-rgb-v2/tiles.json`, 
                 tileSize: 256 
               });
               map.current.setTerrain({ source: 'maptiler-terrain', exaggeration: 1.5 });
@@ -1213,7 +1270,7 @@ const HeritagePage = () => {
             };
 
             // Load each icon image with resizing
-            const loadIconPromises = iconCategories.map(({ category, file, id }) => {
+            iconCategories.map(({ category, file, id }) => {
               return new Promise((resolve) => {
                 const iconUrl = `/assets/${file}`;
                 
@@ -1492,7 +1549,7 @@ const HeritagePage = () => {
             };
 
             // Enhanced hover effects for both icons and circles
-            const handleMouseEnter = (e) => {
+            const handleMouseEnter = () => {
               map.current.getCanvas().style.cursor = 'pointer';
             };
 
@@ -1672,7 +1729,10 @@ const HeritagePage = () => {
     <div
       className="heritage-page-root heritage-theme-scope"
       data-heritage-theme={theme}
-      style={{ margin: 0, padding: 0, overflow: 'hidden', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}
+      // NOTE: no z-index here on purpose. `position: fixed` + `z-index` would
+      // create a stacking context that trapped every modal inside this subtree
+      // below the global nav, however high their own z-index was.
+      style={{ margin: 0, padding: 0, overflow: 'hidden', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
     >
       <div className="heritage-ambient-bg" aria-hidden="true">
         <span className="heritage-orb heritage-orb-one" />
@@ -1743,45 +1803,59 @@ const HeritagePage = () => {
         ))}
       </div>
 
-      {/* Home Navigation Button */}
-      <button
-        onClick={() => navigate('/')}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          right: '50px',
-          background: 'transparent',
-          border: 'none',
-          borderRadius: '50px',
-          padding: '12px 20px',
-          color: 'white',
-          fontSize: '16px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          zIndex: 10,
-          boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
-          backdropFilter: 'blur(10px)',
-          transition: 'all 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
-        }}
-      >
-        🏠 Home
-      </button>
+      {/* Unified map control dock - replaces the previously scattered
+          home button, info panel and legend, which were pinned to three
+          different corners and always visible. */}
+      {/* Map-specific controls. Home / theme / help live in the global nav
+          (components/AppNav.jsx) so they are consistent across the product. */}
+      <div className="heritage-dock" role="toolbar" aria-label="Map controls">
+        <button
+          type="button"
+          className={`heritage-dock__btn gs-tip gs-tip--below${searchOpen ? ' is-active' : ''}`}
+          data-tip={searchOpen ? 'Hide search' : 'Search places'}
+          onClick={() => setSearchOpen((open) => !open)}
+          aria-pressed={searchOpen}
+          aria-label="Toggle search panel"
+        >
+          <span aria-hidden="true">🔍</span>
+        </button>
 
-      {/* Fly-to Box */}
-      <div className="fly-to-box" style={{ position: 'absolute', top: '10px', left: '10px', backgroundColor: 'rgba(255, 255, 255, 0.95)', padding: '15px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: 10, fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', minWidth: '280px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
-          <strong>🛫 Fly to Location</strong>
+        <button
+          type="button"
+          className={`heritage-dock__btn gs-tip gs-tip--below${openPanel === 'info' ? ' is-active' : ''}`}
+          data-tip="About this map"
+          onClick={() => togglePanel('info')}
+          aria-pressed={openPanel === 'info'}
+          aria-label="Toggle map information"
+        >
+          <span aria-hidden="true">ℹ️</span>
+        </button>
+
+        <button
+          type="button"
+          className={`heritage-dock__btn gs-tip gs-tip--below${openPanel === 'legend' ? ' is-active' : ''}`}
+          data-tip="Legend"
+          onClick={() => togglePanel('legend')}
+          aria-pressed={openPanel === 'legend'}
+          aria-label="Toggle category legend"
+        >
+          <span aria-hidden="true">🗂️</span>
+        </button>
+      </div>
+
+      {/* Search / fly-to panel */}
+      {searchOpen && (
+      <div className="fly-to-box heritage-panel heritage-panel--search gs-animate-scale">
+        <div className="heritage-panel__header">
+          <span className="heritage-panel__title"><span aria-hidden="true">🛫</span> Fly to location</span>
+          <button
+            type="button"
+            className="heritage-panel__close"
+            onClick={() => setSearchOpen(false)}
+            aria-label="Close search panel"
+          >
+            ×
+          </button>
         </div>
         
         {/* Mode Toggle */}
@@ -1936,24 +2010,56 @@ const HeritagePage = () => {
           {searchMode === 'coordinates' ? '🛫 Fly to Coordinates' : '🛫 Fly to Place'}
         </button>
       </div>
+      )}
 
-      {/* Info Panel */}
-      <div className="info-panel" style={{ position: 'absolute', top: '100px', right: '10px', backgroundColor: 'rgba(255, 255, 255, 0.95)', padding: '15px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: 10, fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', maxWidth: '300px', fontSize: '14px' }}>
-        <strong>🏛️ Indian Heritage Sites</strong><br />
-        <small>Click on any site marker to explore. Sites with 360° views will open in panoramic mode.</small><br />
-        <br />
-        <strong>Total Sites:</strong> <span id="site-count">0</span><br />
-        <strong>UNESCO Sites:</strong> <span id="unesco-count">0</span>
-        {error && (
-          <div style={{ color: '#d32f2f', fontSize: '12px', marginTop: '10px' }}>
-            {error}
+      {/* Info panel (dock-toggled) */}
+      {openPanel === 'info' && (
+        <div className="info-panel heritage-panel heritage-panel--info gs-animate-scale">
+          <div className="heritage-panel__header">
+            <span className="heritage-panel__title"><span aria-hidden="true">🏛️</span> Indian Heritage Sites</span>
+            <button
+              type="button"
+              className="heritage-panel__close"
+              onClick={() => setOpenPanel(null)}
+              aria-label="Close information panel"
+            >
+              ×
+            </button>
           </div>
-        )}
-      </div>
 
-      {/* Legend */}
-      <div className="legend" style={{ position: 'absolute', bottom: '30px', left: '10px', backgroundColor: 'rgba(255, 255, 255, 0.95)', padding: '15px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: 10, fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', maxWidth: '220px' }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>Site Categories</h4>
+          <p className="heritage-panel__text">
+            Click any site marker to explore. Sites with 360° views open in panoramic mode.
+          </p>
+
+          <div className="heritage-stat-row">
+            <div className="heritage-stat">
+              <span className="heritage-stat__value" id="site-count">0</span>
+              <span className="heritage-stat__label">Total sites</span>
+            </div>
+            <div className="heritage-stat">
+              <span className="heritage-stat__value" id="unesco-count">0</span>
+              <span className="heritage-stat__label">UNESCO</span>
+            </div>
+          </div>
+
+          {error && <div className="heritage-panel__error" role="alert">{error}</div>}
+        </div>
+      )}
+
+      {/* Legend (dock-toggled) */}
+      {openPanel === 'legend' && (
+      <div className="legend heritage-panel heritage-panel--legend gs-animate-scale">
+        <div className="heritage-panel__header">
+          <span className="heritage-panel__title"><span aria-hidden="true">🗂️</span> Site categories</span>
+          <button
+            type="button"
+            className="heritage-panel__close"
+            onClick={() => setOpenPanel(null)}
+            aria-label="Close legend"
+          >
+            ×
+          </button>
+        </div>
         
         <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
           <img 
@@ -2060,107 +2166,36 @@ const HeritagePage = () => {
           <span>Historic Buildings</span>
         </div>
       </div>
+      )}
 
       {/* Sidebar for heritage site details */}
       {sidebarOpen && sidebarData && (
         <div
           ref={sidebarPanelRef}
-          className="heritage-sidebar-panel heritage-animated-panel"
-          style={{ 
-          position: 'absolute', 
-          top: 0, 
-          right: 0, 
-          width: sidebarExpanded ? '100vw' : '380px', 
-          height: '100%', 
-          background: 'var(--heritage-panel-bg)', 
-          zIndex: 2000, 
-          boxShadow: '-8px 0 32px rgba(0,0,0,0.4)', 
-          padding: 0, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-          backdropFilter: 'blur(10px)'
-          }}
+          className={`heritage-sidebar-panel${sidebarExpanded ? ' is-expanded' : ''}`}
         >
           {/* Header */}
-          <div style={{ 
-            padding: '24px', 
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))',
-            backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255,255,255,0.2)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-          }}>
-            <div>
-              <div style={{ 
-                fontWeight: 'bold', 
-                fontSize: '22px', 
-                color: '#fff',
-                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                marginBottom: '6px'
-              }}>{sidebarData.name}</div>
-              <div style={{ 
-                color: 'rgba(255,255,255,0.85)', 
-                fontSize: '14px',
-                fontWeight: '500',
-                background: 'rgba(255,255,255,0.2)',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                display: 'inline-block',
-                backdropFilter: 'blur(10px)'
-              }}>{sidebarData.category} • {sidebarData.year}</div>
+          <div className="h-sidebar__header">
+            <div className="h-sidebar__heading">
+              <h2 className="h-sidebar__title">{sidebarData.name}</h2>
+              <span className="h-sidebar__meta">
+                {sidebarData.category} &middot; {sidebarData.year}
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="h-sidebar__actions">
               <button
                 onClick={toggleSidebarFullscreen}
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  fontSize: '16px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  lineHeight: '1',
-                  minWidth: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.3s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
+                className="h-modal__btn"
                 title={sidebarExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
               >
                 {sidebarExpanded ? '🡼' : '⛶'}
               </button>
               <button
+                type="button"
                 onClick={() => setSidebarOpen(false)}
-                style={{ 
-                  background: 'rgba(255,255,255,0.2)', 
-                  border: 'none', 
-                  fontSize: '28px', 
-                  color: '#fff', 
-                  cursor: 'pointer', 
-                  lineHeight: '1',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.3s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(255,255,255,0.3)';
-                  e.target.style.transform = 'rotate(90deg)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(255,255,255,0.2)';
-                  e.target.style.transform = 'rotate(0deg)';
-                }}
+                className="h-modal__btn h-modal__btn--close"
+                aria-label="Close monument details"
+                title="Close"
               >
                 &times;
               </button>
@@ -2168,7 +2203,7 @@ const HeritagePage = () => {
           </div>
 
           {/* Scrollable Content Area */}
-          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 0, scrollbarWidth: 'thin', scrollbarColor: '#ccc #f0f0f0' }} className="sidebar-scroll">
+          <div className="h-sidebar__body gs-scroll">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${sidebarData.name}-${sidebarData.monumentImage?.imageUrl || sidebarData.media?.panorama_url || 'no-image'}`}
@@ -3294,640 +3329,323 @@ const HeritagePage = () => {
 
       {/* Weather Modal */}
       {weatherModalOpen && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'var(--heritage-overlay-bg)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-          }}
-          onClick={() => setWeatherModalOpen(false)}
-        >
-          <div 
+        <div className="h-overlay" onClick={() => setWeatherModalOpen(false)}>
+          <div
             ref={weatherModalCardRef}
-            className="heritage-modal-card heritage-animated-panel"
-            style={{
-              background: 'var(--heritage-panel-bg)',
-              borderRadius: weatherExpanded ? '0px' : '20px',
-              maxWidth: weatherExpanded ? '100vw' : '700px',
-              width: weatherExpanded ? '100vw' : '100%',
-              maxHeight: weatherExpanded ? '100vh' : '80vh',
-              height: weatherExpanded ? '100vh' : 'auto',
-              overflowY: 'auto',
-              padding: '40px',
-              color: 'white',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
-              position: 'relative'
-            }}
+            className={`h-modal${weatherExpanded ? ' is-expanded' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Weather"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={toggleWeatherFullscreen}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '68px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                color: 'white',
-                fontSize: '17px',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s ease',
-                lineHeight: '1'
-              }}
-              title={weatherExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
-            >
-              {weatherExpanded ? '🡼' : '⛶'}
-            </button>
-            {/* Close button */}
-            <button
-              onClick={() => setWeatherModalOpen(false)}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                color: 'white',
-                fontSize: '28px',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s ease',
-                lineHeight: '1'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                e.target.style.transform = 'rotate(90deg)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                e.target.style.transform = 'rotate(0deg)';
-              }}
-              title="Close (ESC)"
-            >
-              ×
-            </button>
-
-            {/* Header */}
-            <div style={{ marginBottom: '30px', paddingRight: '40px' }}>
-              <h2 style={{ 
-                fontSize: '28px', 
-                fontWeight: '700', 
-                margin: '0 0 8px 0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                🌤️ Weather at {sidebarData?.name}
-              </h2>
-              {weatherData?.location && (
-                <div style={{ 
-                  fontSize: '16px', 
-                  opacity: 0.9,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap'
-                }}>
-                  <span>{weatherData.location.name}, {weatherData.location.country}</span>
-                  <span>•</span>
-                  <span style={{ fontSize: '14px', opacity: 0.8 }}>
-                    Updated {new Date(weatherData.fetchedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+            <header className="h-modal__header">
+              <div className="h-modal__heading">
+                <span className="h-modal__icon" aria-hidden="true">&#127780;&#65039;</span>
+                <div>
+                  <h2 className="h-modal__title">Weather</h2>
+                  <p className="h-modal__subtitle">
+                    {weatherData?.location
+                      ? `${weatherData.location.name}, ${weatherData.location.country}`
+                      : sidebarData?.name}
+                    {weatherData?.fetchedAt && (
+                      <>
+                        {' · updated '}
+                        {new Date(weatherData.fetchedAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </>
+                    )}
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {weatherError ? (
-              /* Error State */
-              <div style={{
-                background: 'rgba(255, 87, 87, 0.2)',
-                border: '2px solid rgba(255, 87, 87, 0.5)',
-                borderRadius: '12px',
-                padding: '30px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
-                <div style={{ fontSize: '18px', marginBottom: '20px', fontWeight: '500' }}>
-                  {weatherError}
-                </div>
-                <button 
-                  onClick={retryWeather}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    borderRadius: '12px',
-                    padding: '12px 24px',
-                    color: 'white',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                    e.target.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                    e.target.style.transform = 'scale(1)';
-                  }}
+              <div className="h-modal__actions">
+                <button
+                  type="button"
+                  className="h-modal__btn gs-hide-mobile"
+                  onClick={toggleWeatherFullscreen}
+                  aria-label={weatherExpanded ? 'Exit fullscreen' : 'Expand to fullscreen'}
+                  title={weatherExpanded ? 'Exit fullscreen' : 'Fullscreen'}
                 >
-                  🔄 Retry
+                  {weatherExpanded ? '⤡' : '⛶'}
+                </button>
+                <button
+                  type="button"
+                  className="h-modal__btn h-modal__btn--close"
+                  onClick={() => setWeatherModalOpen(false)}
+                  aria-label="Close weather"
+                  title="Close (ESC)"
+                >
+                  &times;
                 </button>
               </div>
-            ) : weatherData ? (
-              /* Weather Content */
-              <>
-                {/* Current Weather */}
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: '16px',
-                  padding: '30px',
-                  backdropFilter: 'blur(10px)',
-                  marginBottom: '24px'
-                }}>
-                  <h3 style={{ 
-                    fontSize: '18px', 
-                    fontWeight: '600', 
-                    marginTop: 0, 
-                    marginBottom: '20px',
-                    opacity: 0.9
-                  }}>
-                    CURRENT CONDITIONS
-                  </h3>
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '20px', 
-                    marginBottom: '24px' 
-                  }}>
-                    <img 
-                      src={getWeatherIconUrl(weatherData.current.icon)} 
-                      alt={weatherData.current.description}
-                      style={{ width: '80px', height: '80px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '48px', fontWeight: '700', lineHeight: '1' }}>
-                        {weatherData.current.temp}°C
-                      </div>
-                      <div style={{ fontSize: '18px', marginTop: '8px', textTransform: 'capitalize' }}>
-                        {weatherData.current.description}
-                      </div>
-                      <div style={{ fontSize: '14px', marginTop: '4px', opacity: 0.8 }}>
-                        Feels like {weatherData.current.feelsLike}°C
-                      </div>
-                    </div>
-                  </div>
+            </header>
 
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-                    gap: '16px' 
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>💧 Humidity</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.humidity}%</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>💨 Wind</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600' }}>
-                        {weatherData.current.wind.speed} m/s {weatherData.current.wind.direction}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>🌡️ Pressure</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.pressure} mb</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>☁️ Cloud Cover</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.clouds}%</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>👁️ Visibility</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600' }}>{weatherData.current.visibility} km</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>🌡️ High/Low</div>
-                      <div style={{ fontSize: '18px', fontWeight: '600' }}>
-                        {weatherData.current.tempMax}° / {weatherData.current.tempMin}°
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5-Day Forecast */}
-                {weatherData.forecast && weatherData.forecast.length > 0 && (
-                  <div style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    backdropFilter: 'blur(10px)'
-                  }}>
-                    <h3 style={{ 
-                      fontSize: '18px', 
-                      fontWeight: '600', 
-                      marginTop: 0, 
-                      marginBottom: '20px',
-                      opacity: 0.9
-                    }}>
-                      5-DAY FORECAST
-                    </h3>
-                    
-                    {weatherData.forecast.map((day, index) => (
-                      <div 
-                        key={index}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 0',
-                          borderBottom: index < weatherData.forecast.length - 1 ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'
-                        }}
-                      >
-                        <div style={{ flex: '1', fontSize: '16px', fontWeight: '500' }}>
-                          {formatWeatherDate(day.date)}
-                        </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '16px',
-                          flex: '2',
-                          justifyContent: 'flex-end'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <img 
-                              src={getWeatherIconUrl(day.icon)} 
-                              alt={day.condition}
-                              style={{ width: '40px', height: '40px' }}
-                            />
-                            <span style={{ fontSize: '14px', minWidth: '80px' }}>{day.condition}</span>
-                          </div>
-                          <div style={{ 
-                            fontSize: '18px', 
-                            fontWeight: '600',
-                            minWidth: '100px',
-                            textAlign: 'right'
-                          }}>
-                            {day.tempMax}° / {day.tempMin}°
-                          </div>
-                        </div>
-                      </div>
+            <div className="h-modal__body gs-scroll">
+              {weatherLoading && !weatherData ? (
+                <>
+                  <div className="gs-skeleton" style={{ height: '120px' }} />
+                  <div className="h-weather-stats">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div className="gs-skeleton" style={{ height: '64px' }} key={i} />
                     ))}
                   </div>
-                )}
-
-                {/* Footer */}
-                <div style={{ 
-                  marginTop: '24px', 
-                  textAlign: 'center', 
-                  fontSize: '12px', 
-                  opacity: 0.7 
-                }}>
-                  Powered by OpenWeatherMap
+                </>
+              ) : weatherError ? (
+                <div className="gs-state gs-state--error">
+                  <div className="gs-state__icon" aria-hidden="true">&#9888;&#65039;</div>
+                  <h3 className="gs-state__title">Weather unavailable</h3>
+                  <p className="gs-state__text">{weatherError}</p>
+                  <button type="button" className="gs-btn gs-btn--secondary" onClick={retryWeather}>
+                    Try again
+                  </button>
                 </div>
-              </>
-            ) : null}
+              ) : weatherData ? (
+                <>
+                  <section className="h-section">
+                    <h3 className="h-section__title">Current conditions</h3>
+                    <div className="h-weather-now">
+                      <img
+                        className="h-weather-now__icon"
+                        src={getWeatherIconUrl(weatherData.current.icon)}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <div className="h-weather-now__temp">{weatherData.current.temp}&deg;C</div>
+                        <div className="h-weather-now__condition">{weatherData.current.description}</div>
+                        <div className="h-weather-now__meta">
+                          Feels like {weatherData.current.feelsLike}&deg;C &middot; High{' '}
+                          {weatherData.current.tempMax}&deg; / Low {weatherData.current.tempMin}&deg;
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="h-weather-stats">
+                      <div className="h-stat">
+                        <span className="h-stat__label">Humidity</span>
+                        <span className="h-stat__value">{weatherData.current.humidity}%</span>
+                      </div>
+                      <div className="h-stat">
+                        <span className="h-stat__label">Wind</span>
+                        <span className="h-stat__value">
+                          {weatherData.current.wind.speed} m/s {weatherData.current.wind.direction}
+                        </span>
+                      </div>
+                      <div className="h-stat">
+                        <span className="h-stat__label">Pressure</span>
+                        <span className="h-stat__value">{weatherData.current.pressure} mb</span>
+                      </div>
+                      <div className="h-stat">
+                        <span className="h-stat__label">Cloud cover</span>
+                        <span className="h-stat__value">{weatherData.current.clouds}%</span>
+                      </div>
+                      <div className="h-stat">
+                        <span className="h-stat__label">Visibility</span>
+                        <span className="h-stat__value">{weatherData.current.visibility} km</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  {Array.isArray(weatherData.forecast) && weatherData.forecast.length > 0 && (
+                    <section className="h-section">
+                      <h3 className="h-section__title">5-day forecast</h3>
+                      <div className="h-forecast">
+                        {weatherData.forecast.map((day, index) => (
+                          <div className="h-forecast__day" key={index}>
+                            <span className="h-forecast__label">{formatWeatherDate(day.date)}</span>
+                            <img
+                              className="h-forecast__icon"
+                              src={getWeatherIconUrl(day.icon)}
+                              alt=""
+                              aria-hidden="true"
+                            />
+                            <span className="h-forecast__temps">
+                              <span className="h-forecast__max">{day.tempMax}&deg;</span>
+                              <span className="h-forecast__min">{day.tempMin}&deg;</span>
+                            </span>
+                            <span className="h-forecast__cond">{day.condition}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  <p className="gs-caption" style={{ textAlign: 'center' }}>
+                    Powered by OpenWeatherMap
+                  </p>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
 
       {/* News Modal */}
       {newsModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'var(--heritage-overlay-bg)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-          }}
-          onClick={() => setNewsModalOpen(false)}
-        >
-          <div 
+        <div className="h-overlay" onClick={() => setNewsModalOpen(false)}>
+          <div
             ref={newsModalCardRef}
-            className="heritage-modal-card heritage-animated-panel"
-            style={{
-              background: 'var(--heritage-panel-bg)',
-              borderRadius: newsExpanded ? '0px' : '20px',
-              padding: '40px',
-              maxWidth: newsExpanded ? '100vw' : '800px',
-              width: newsExpanded ? '100vw' : '100%',
-              maxHeight: newsExpanded ? '100vh' : '90vh',
-              height: newsExpanded ? '100vh' : 'auto',
-              overflowY: 'auto',
-              color: 'white',
-              position: 'relative',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}
+            className={`h-modal h-modal--wide${newsExpanded ? ' is-expanded' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Heritage news"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={toggleNewsFullscreen}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '68px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                color: 'white',
-                fontSize: '17px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 0.2s'
-              }}
-              title={newsExpanded ? 'Exit fullscreen panel' : 'Fullscreen panel'}
-            >
-              {newsExpanded ? '🡼' : '⛶'}
-            </button>
-            {/* Close button */}
-            <button
-              onClick={() => setNewsModalOpen(false)}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                color: 'white',
-                fontSize: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
-              onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
-            >
-              ×
-            </button>
-
-            {/* Header */}
-            <div style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>
-                📰 Latest News
-              </h2>
-              <p style={{ opacity: 0.8, margin: 0, fontSize: '14px' }}>
-                {sidebarData?.name || 'Heritage Site'}
-              </p>
-            </div>
-
-            {/* Loading State */}
-            {newsLoading && (
-              <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📰</div>
-                <p style={{ opacity: 0.8 }}>Loading latest news...</p>
+            <header className="h-modal__header">
+              <div className="h-modal__heading">
+                <span className="h-modal__icon" aria-hidden="true">&#128240;</span>
+                <div>
+                  <h2 className="h-modal__title">Latest news</h2>
+                  <p className="h-modal__subtitle">{sidebarData?.name}</p>
+                </div>
               </div>
-            )}
 
-            {/* Error State */}
-            {newsError && !newsLoading && (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '40px',
-                background: 'rgba(255, 87, 87, 0.2)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 87, 87, 0.4)'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-                <p style={{ marginBottom: '16px' }}>{newsError}</p>
+              <div className="h-modal__actions">
                 <button
-                  onClick={retryNews}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '12px 24px',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
+                  type="button"
+                  className="h-modal__btn gs-hide-mobile"
+                  onClick={toggleNewsFullscreen}
+                  aria-label={newsExpanded ? 'Exit fullscreen' : 'Expand to fullscreen'}
+                  title={newsExpanded ? 'Exit fullscreen' : 'Fullscreen'}
                 >
-                  🔄 Retry
+                  {newsExpanded ? '⤡' : '⛶'}
+                </button>
+                <button
+                  type="button"
+                  className="h-modal__btn h-modal__btn--close"
+                  onClick={() => setNewsModalOpen(false)}
+                  aria-label="Close news"
+                  title="Close (ESC)"
+                >
+                  &times;
                 </button>
               </div>
-            )}
+            </header>
 
-            {/* News Content */}
-            {!newsLoading && !newsError && newsData && (
-              <>
-                {/* Tab Selector */}
-                <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  marginBottom: '16px',
-                  background: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '12px',
-                  padding: '6px'
-                }}>
-                  <button
-                    onClick={() => setNewsTab('monument')}
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      transition: 'all 0.2s',
-                      background: newsTab === 'monument' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-                      color: 'white'
-                    }}
-                  >
-                    🏛️ {newsData.monument.name} ({newsData.monument.articles.length})
-                  </button>
-                  <button
-                    onClick={() => setNewsTab('location')}
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      transition: 'all 0.2s',
-                      background: newsTab === 'location' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-                      color: 'white'
-                    }}
-                  >
-                    📍 {newsData.location.city} ({newsData.location.articles.length})
-                  </button>
-                </div>
-
-                {/* Fallback Indicator */}
-                {((newsTab === 'monument' && newsData.monument.fallbackLabel) || 
-                  (newsTab === 'location' && newsData.location.fallbackLabel)) && (
-                  <div style={{
-                    background: 'rgba(255, 193, 7, 0.2)',
-                    border: '1px solid rgba(255, 193, 7, 0.4)',
-                    borderRadius: '8px',
-                    padding: '10px 16px',
-                    marginBottom: '16px',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <span>💡</span>
-                    <span style={{ opacity: 0.9 }}>
-                      {newsTab === 'monument' ? newsData.monument.fallbackLabel : newsData.location.fallbackLabel}
-                    </span>
-                  </div>
-                )}
-
-                {/* Articles List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {(newsTab === 'monument' ? newsData.monument.articles : newsData.location.articles).length === 0 ? (
-                    <div style={{ 
-                      textAlign: 'center', 
-                      padding: '40px',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '12px'
-                    }}>
-                      <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
-                      <p style={{ opacity: 0.8, margin: 0 }}>
-                        No recent news found for {newsTab === 'monument' ? newsData.monument.name : newsData.location.city}.
-                      </p>
+            <div className="h-modal__body gs-scroll">
+              {newsLoading && (
+                <div className="h-news-list">
+                  {[0, 1, 2].map((i) => (
+                    <div className="h-news-item" key={i}>
+                      <div className="gs-skeleton h-news-item__thumb" />
+                      <div className="h-news-item__body" style={{ flex: 1 }}>
+                        <div className="gs-skeleton gs-skeleton--title" />
+                        <div className="gs-skeleton gs-skeleton--text" />
+                        <div className="gs-skeleton gs-skeleton--text" style={{ width: '70%' }} />
+                      </div>
                     </div>
-                  ) : (
-                    (newsTab === 'monument' ? newsData.monument.articles : newsData.location.articles).map((article, index) => (
-                      <a
-                        key={index}
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          textDecoration: 'none',
-                          color: 'inherit',
-                          display: 'block'
-                        }}
-                      >
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          borderRadius: '12px',
-                          padding: '20px',
-                          transition: 'all 0.2s',
-                          cursor: 'pointer',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                        >
-                          {/* Article Title */}
-                          <h3 style={{ 
-                            fontSize: '16px', 
-                            fontWeight: '600', 
-                            margin: 0, 
-                            marginBottom: '8px',
-                            lineHeight: 1.4
-                          }}>
-                            {article.title}
-                          </h3>
-                          
-                          {/* Source and Time */}
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '12px',
-                            marginBottom: '10px',
-                            fontSize: '12px',
-                            opacity: 0.7
-                          }}>
-                            <span style={{ 
-                              background: 'rgba(255, 255, 255, 0.15)',
-                              padding: '4px 8px',
-                              borderRadius: '4px'
-                            }}>
-                              {article.source}
-                            </span>
-                            <span>⏰ {article.timeAgo}</span>
-                          </div>
-                          
-                          {/* Description */}
-                          <p style={{ 
-                            fontSize: '14px', 
-                            opacity: 0.9, 
-                            margin: 0,
-                            lineHeight: 1.5,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {article.description}
-                          </p>
+                  ))}
+                </div>
+              )}
 
-                          {/* Read More Link */}
-                          <div style={{ 
-                            marginTop: '12px', 
-                            fontSize: '13px', 
-                            fontWeight: '500',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            Read Full Article 
-                            <span style={{ fontSize: '16px' }}>↗</span>
-                          </div>
-                        </div>
-                      </a>
-                    ))
+              {newsError && !newsLoading && (
+                <div className="gs-state gs-state--error">
+                  <div className="gs-state__icon" aria-hidden="true">&#9888;&#65039;</div>
+                  <h3 className="gs-state__title">Could not load news</h3>
+                  <p className="gs-state__text">{newsError}</p>
+                  <button type="button" className="gs-btn gs-btn--secondary" onClick={retryNews}>
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {!newsLoading && !newsError && newsData && (
+                <>
+                  <div className="h-tabs" role="tablist" aria-label="News source">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={newsTab === 'monument'}
+                      className={`h-tab${newsTab === 'monument' ? ' is-active' : ''}`}
+                      onClick={() => setNewsTab('monument')}
+                    >
+                      {newsData.monument.name} ({newsData.monument.articles.length})
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={newsTab === 'location'}
+                      className={`h-tab${newsTab === 'location' ? ' is-active' : ''}`}
+                      onClick={() => setNewsTab('location')}
+                    >
+                      {newsData.location.city} ({newsData.location.articles.length})
+                    </button>
+                  </div>
+
+                  {(newsTab === 'monument'
+                    ? newsData.monument.fallbackLabel
+                    : newsData.location.fallbackLabel) && (
+                    <div className="h-notice">
+                      <span aria-hidden="true">&#8505;&#65039;</span>
+                      {newsTab === 'monument'
+                        ? newsData.monument.fallbackLabel
+                        : newsData.location.fallbackLabel}
+                    </div>
                   )}
-                </div>
 
-                {/* Footer */}
-                <div style={{ 
-                  marginTop: '24px', 
-                  textAlign: 'center', 
-                  fontSize: '12px', 
-                  opacity: 0.6 
-                }}>
-                  Powered by NewsAPI • Updated: {new Date(newsData.fetchedAt).toLocaleTimeString()}
-                </div>
-              </>
-            )}
+                  {(() => {
+                    const articles =
+                      newsTab === 'monument'
+                        ? newsData.monument.articles
+                        : newsData.location.articles;
+
+                    if (!articles || articles.length === 0) {
+                      return (
+                        <div className="gs-state">
+                          <div className="gs-state__icon" aria-hidden="true">&#128240;</div>
+                          <h3 className="gs-state__title">No recent stories</h3>
+                          <p className="gs-state__text">
+                            Nothing published recently for this topic. Try the other tab, or check
+                            back later.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="h-news-list gs-stagger">
+                        {articles.map((article, index) => (
+                          <a
+                            className="h-news-item"
+                            key={index}
+                            href={article.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {article.image && (
+                              <img
+                                className="h-news-item__thumb"
+                                src={article.image}
+                                alt=""
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div className="h-news-item__body">
+                              <h4 className="h-news-item__title">{article.title}</h4>
+                              <p className="h-news-item__desc gs-clamp-2">{article.description}</p>
+                              <div className="h-news-item__meta">
+                                <span className="h-news-item__source">{article.source}</span>
+                                <span aria-hidden="true">&middot;</span>
+                                <span>{article.timeAgo}</span>
+                              </div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  <p className="gs-caption" style={{ textAlign: 'center' }}>
+                    Powered by NewsAPI
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -3949,90 +3667,28 @@ function SidebarSkeleton() {
   );
 }
 
+// A clickable row in the monument sidebar. This used to be a <div onClick>,
+// which keyboard and screen-reader users could not reach.
 function SidebarBlock({ icon, title, summary, onClick, isActive = false, isLoading = false }) {
   return (
-    <div
-      className="sidebar-block"
-      style={{
-        padding: '16px 20px',
-        margin: '8px 12px',
-        borderRadius: '12px',
-        cursor: isLoading ? 'wait' : 'pointer',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '14px',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        background: isActive 
-          ? 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.2))' 
-          : 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)',
-        border: isActive ? '2px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.15)',
-        boxShadow: isActive 
-          ? '0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)' 
-          : '0 2px 8px rgba(0,0,0,0.1)',
-        opacity: isLoading ? 0.7 : 1,
-        color: '#fff',
-        transform: isActive ? 'translateX(-4px) scale(1.02)' : 'translateX(0) scale(1)'
-      }}
-      onClick={!isLoading ? onClick : undefined}
-      onMouseEnter={(e) => {
-        if (!isLoading && !isActive) {
-          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.15))';
-          e.currentTarget.style.transform = 'translateX(-4px) scale(1.01)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isLoading && !isActive) {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-          e.currentTarget.style.transform = 'translateX(0) scale(1)';
-          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-        }
-      }}
+    <button
+      type="button"
+      className={`h-sidebar-block${isActive ? ' is-active' : ''}${isLoading ? ' is-loading' : ''}`}
+      onClick={isLoading ? undefined : onClick}
+      aria-busy={isLoading || undefined}
+      aria-pressed={isActive || undefined}
     >
-      <span style={{ 
-        fontSize: '32px', 
-        lineHeight: '1',
-        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-      }}>{icon}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ 
-          fontWeight: '700', 
-          fontSize: '16px', 
-          marginBottom: '6px', 
-          color: '#fff',
-          textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
+      <span className="h-sidebar-block__icon" aria-hidden="true">{icon}</span>
+      <span className="h-sidebar-block__text">
+        <span className="h-sidebar-block__title">
           {title}
-          {isActive && (
-            <span style={{ 
-              fontSize: '14px', 
-              background: 'rgba(255,255,255,0.3)',
-              padding: '2px 8px',
-              borderRadius: '8px',
-              fontWeight: '600'
-            }}>✓</span>
-          )}
-          {isLoading && (
-            <span style={{ 
-              fontSize: '14px',
-              animation: 'pulse 1.5s ease-in-out infinite'
-            }}>⏳</span>
-          )}
-        </div>
-        <div style={{ 
-          color: 'rgba(255,255,255,0.85)', 
-          fontSize: '13px',
-          lineHeight: '1.5',
-          textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-        }}>{summary}</div>
-      </div>
-    </div>
+          {isActive && <span className="h-sidebar-block__badge">Active</span>}
+          {isLoading && <span className="gs-spinner gs-spinner--sm" />}
+        </span>
+        <span className="h-sidebar-block__summary">{summary}</span>
+      </span>
+      <span className="h-sidebar-block__chevron" aria-hidden="true">›</span>
+    </button>
   );
 }
 

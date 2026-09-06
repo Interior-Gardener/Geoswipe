@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import GlobalGestureCursor from "./GlobalGestureCursor";
 import CameraCapture from "./components/CameraCapture";
+import AppNav from "./components/AppNav";
 import HeritageStoryBook from "./HeritageStoryBook";
 import StoryBookDemo from "./StoryBookDemo";
 import { useTheme } from "./context/ThemeContext";
@@ -25,19 +26,15 @@ const MultiplayerQuizPage = lazy(() => import("./MultiplayerQuizPage"));
 const HeritageQuiz = lazy(() => import("./HeritageQuiz"));
 const HeritageMultiplayerQuiz = lazy(() => import("./HeritageMultiplayerQuiz"));
 
-// Loading component
+// Branded route-transition loader. Replaces a bare "Loading..." string with a
+// determinate-feeling progress affordance so waits read as intentional.
 const LoadingSpinner = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    background: 'linear-gradient(135deg, #000000, #001122)',
-    color: '#00d4ff',
-    fontSize: '24px',
-    fontFamily: 'Orbitron, sans-serif'
-  }}>
-    Loading...
+  <div className="gs-page-loader" role="status" aria-live="polite">
+    <div className="gs-page-loader__inner">
+      <div className="gs-page-loader__mark">GEOSWIPE</div>
+      <div className="gs-page-loader__bar" />
+      <div className="gs-page-loader__hint">Preparing your journey</div>
+    </div>
   </div>
 );
 
@@ -60,7 +57,7 @@ function isHeritageEcosystemPath(pathname = "") {
 function AppShell() {
   const [showCameraPreview, setShowCameraPreview] = useState(false);
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const isCameraVisibleRoute = useMemo(
     () => location.pathname === "/" || location.pathname === "/explore",
@@ -72,30 +69,24 @@ function AppShell() {
     [location.pathname]
   );
 
-  const isHeritageMainRoute = useMemo(
-    () => location.pathname === "/heritage",
-    [location.pathname]
-  );
-
+  // Theme is applied to the ROOT element for every route, not just the
+  // heritage ecosystem, so light/dark works across the whole product.
+  // `data-heritage-theme` is kept on <body> for the legacy heritage rules.
   useEffect(() => {
     if (typeof document === "undefined") {
       return undefined;
     }
 
+    document.documentElement.setAttribute("data-gs-theme", theme);
+    document.body.setAttribute("data-heritage-theme", theme);
+
     if (isHeritageRoute) {
       document.body.classList.add("heritage-theme-active");
-      document.body.setAttribute("data-heritage-theme", theme);
     } else {
       document.body.classList.remove("heritage-theme-active");
-      document.body.removeAttribute("data-heritage-theme");
     }
 
-    return () => {
-      if (!isHeritageRoute) {
-        document.body.classList.remove("heritage-theme-active");
-        document.body.removeAttribute("data-heritage-theme");
-      }
-    };
+    return undefined;
   }, [isHeritageRoute, theme]);
 
   return (
@@ -123,16 +114,10 @@ function AppShell() {
         </Routes>
       </Suspense>
 
-      {isHeritageMainRoute && (
-        <button
-          className="heritage-theme-toggle"
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to day mode" : "Switch to night mode"}
-          title={theme === "dark" ? "Switch to day mode" : "Switch to night mode"}
-        >
-          {theme === "dark" ? "☀️" : "🌙"}
-        </button>
-      )}
+      {/* Global navigation: home/section switcher, theme toggle and the
+          "how it works" guide. Replaces the per-page back/home buttons and the
+          heritage-only theme toggle. */}
+      <AppNav />
 
       {/* Global gesture cursor - appears on all pages */}
       <GlobalGestureCursor />
@@ -147,47 +132,16 @@ function AppShell() {
             width={640}
             height={480}
           />
-          {/* Camera preview toggle button */}
+          {/* Camera preview toggle */}
           <button
+            type="button"
             onClick={() => setShowCameraPreview(!showCameraPreview)}
-            style={{
-              position: 'fixed',
-              bottom: 20,
-              left: 20,
-              zIndex: 1001,
-              background: showCameraPreview ? '#00d4ff' : 'rgba(0, 0, 0, 0.8)',
-              color: showCameraPreview ? '#000' : '#00d4ff',
-              border: '2px solid #00d4ff',
-              borderRadius: '50%',
-              width: '60px',
-              height: '60px',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              fontFamily: 'Orbitron, sans-serif',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
-              padding: '0'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.1)';
-              e.target.style.boxShadow = '0 6px 20px rgba(0, 212, 255, 0.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-              e.target.style.boxShadow = '0 4px 15px rgba(0, 212, 255, 0.3)';
-            }}
-            title={showCameraPreview ? "Hide Camera Preview" : "Show Camera Preview"}
+            className={`gs-fab gs-fab--lg gs-camera-toggle${showCameraPreview ? ' gs-fab--active' : ''}`}
+            aria-pressed={showCameraPreview}
+            aria-label={showCameraPreview ? 'Hide camera preview' : 'Show camera preview'}
+            title={showCameraPreview ? 'Hide camera preview' : 'Show camera preview'}
           >
-            <div style={{ lineHeight: '1' }}>
-              {showCameraPreview ? '👁️' : '📷'}
-            </div>
-            <div style={{ fontSize: '8px', marginTop: '2px', fontWeight: 'bold' }}>
-              {showCameraPreview ? 'HIDE' : 'SHOW'}
-            </div>
+            <span aria-hidden="true">{showCameraPreview ? '👁️' : '📷'}</span>
           </button>
         </>
       )}

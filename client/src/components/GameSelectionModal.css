@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Game selection modal (Explore mode)
+   ========================================================================== */
+
+.game-overlay { z-index: 2000; }
+
+.game-modal__header { align-items: flex-start; }
+
+.game-modal__eyebrow { color: var(--gs-accent); margin-bottom: var(--gs-space-1); }
+
+.game-modal__title {
+  margin: 0;
+  font-size: var(--gs-text-2xl);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-tight);
+  color: var(--gs-text);
+}
+
+.game-modal__hint {
+  margin: var(--gs-space-2) 0 0;
+  font-size: var(--gs-text-sm);
+  color: var(--gs-text-subtle);
+}
+.game-modal__hint strong { color: var(--gs-text-muted); font-weight: 650; }
+
+.game-modal__body { display: flex; flex-direction: column; gap: var(--gs-space-6); }
+
+/* ------------------------------------------------------------------ */
+/* Groups                                                              */
+/* ------------------------------------------------------------------ */
+
+.game-group__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 var(--gs-space-3);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+.game-group__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: var(--gs-space-3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Game cards                                                          */
+/* ------------------------------------------------------------------ */
+
+.game-option {
+  --_accent: var(--gs-accent);
+  --_accent-soft: var(--gs-accent-soft);
+  --_accent-border: var(--gs-accent-border);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gs-space-1);
+  padding: var(--gs-space-5);
+  border-radius: var(--gs-radius-lg);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-surface-1);
+  color: var(--gs-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform var(--gs-dur-base) var(--gs-ease-out),
+    border-color var(--gs-dur-base) var(--gs-ease),
+    box-shadow var(--gs-dur-base) var(--gs-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Accent wash revealed on hover. */
+.game-option::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(140deg, var(--_accent-soft), transparent 62%);
+  opacity: 0;
+  transition: opacity var(--gs-dur-base) var(--gs-ease);
+  pointer-events: none;
+}
+
+.game-option:hover {
+  transform: translateY(-4px);
+  border-color: var(--_accent-border);
+  box-shadow: var(--gs-shadow-lg);
+}
+.game-option:hover::after { opacity: 1; }
+.game-option:active { transform: translateY(-1px); }
+
+.game-option__icon {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: var(--gs-space-2);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.32));
+  transition: transform var(--gs-dur-base) var(--gs-ease-spring);
+}
+.game-option:hover .game-option__icon { transform: scale(1.14) rotate(-6deg); }
+
+.game-option__title {
+  font-size: var(--gs-text-lg);
+  font-weight: 660;
+  letter-spacing: var(--gs-tracking-tight);
+  line-height: 1.25;
+}
+
+.game-option__desc {
+  font-size: var(--gs-text-sm);
+  color: var(--gs-text-subtle);
+  line-height: var(--gs-leading-normal);
+}
+
+.game-option__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--gs-space-3);
+  font-size: var(--gs-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-wide);
+  color: var(--_accent);
+  opacity: 0.75;
+  transition: opacity var(--gs-dur-fast) var(--gs-ease), gap var(--gs-dur-fast) var(--gs-ease);
+}
+.game-option:hover .game-option__cta { opacity: 1; gap: 10px; }
+
+/* Accent variants */
+.game-option--cyan { --_accent: var(--gs-accent); --_accent-soft: var(--gs-accent-soft); --_accent-border: var(--gs-accent-border); }
+.game-option--violet { --_accent: var(--gs-violet); --_accent-soft: var(--gs-violet-soft); --_accent-border: rgba(167, 139, 250, 0.4); }
+.game-option--gold { --_accent: var(--gs-gold); --_accent-soft: var(--gs-gold-soft); --_accent-border: rgba(245, 179, 66, 0.4); }
+.game-option--rose { --_accent: var(--gs-danger); --_accent-soft: var(--gs-danger-soft); --_accent-border: rgba(248, 113, 113, 0.4); }
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .game-modal__title { font-size: var(--gs-text-xl); }
+  .game-option { padding: var(--gs-space-4); }
+  .game-option__icon { font-size: 28px; }
+  .game-group__grid { grid-template-columns: 1fr; }
+}

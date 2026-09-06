@@ -26,8 +26,8 @@ const HeritageStoryBook = () => {
   // Audio + narration state
   const audioRef = useRef(null);
   const [displayedText, setDisplayedText] = useState('');
-  const [activeCaptionIndex, setActiveCaptionIndex] = useState(-1);
-  const [typingTick, setTypingTick] = useState(0); // forces re-render during typewriter
+  const [, setActiveCaptionIndex] = useState(-1);
+  const [, setTypingTick] = useState(0); // forces re-render during typewriter
   const [audioOverlayVisible, setAudioOverlayVisible] = useState(false);
 
   // Ken Burns state for left image
@@ -56,7 +56,7 @@ const HeritageStoryBook = () => {
         const data = await response.json();
         setSite(data);
         setLoading(false);
-      } catch (err) {
+      } catch (_err) {
         setError('Could not load site information.');
         setLoading(false);
       }
@@ -123,7 +123,7 @@ const HeritageStoryBook = () => {
             if (!cancelled) setStoryChapters(Array.isArray(json) ? json : json?.chapters || null);
             break;
           }
-        } catch (_) {
+        } catch (_e) {
           // continue
         }
       }
@@ -199,7 +199,7 @@ const HeritageStoryBook = () => {
     return [];
   }, [storyChapters, site]);  const stopAudio = () => {
     if (audioRef.current) {
-      try { audioRef.current.pause(); } catch (_) {}
+      try { audioRef.current.pause(); } catch (_e) {}
       audioRef.current.src = '';
       audioRef.current.load?.();
     }
@@ -227,7 +227,7 @@ const HeritageStoryBook = () => {
       try {
         pageTurnAudioRef.current.currentTime = 0;
         pageTurnAudioRef.current.play();
-      } catch (e) {}
+      } catch { /* non-critical */ }
     }
     setIsFlipping(true);
     setTimeout(() => {
@@ -274,7 +274,7 @@ const HeritageStoryBook = () => {
     const endScale = (kb?.enabled && kb?.zoomEnd) ? kb.zoomEnd : beginScale;
     setKenBurnsScale(beginScale);
     setKenBurnsTranslate({ x: 0, y: 0 });
-    const kbTimer = setTimeout(() => {
+    setTimeout(() => {
       setKenBurnsScale(endScale);
       // Optional pan support in future via translate
     }, 50);
@@ -329,7 +329,7 @@ const HeritageStoryBook = () => {
       return () => {
         audio.removeEventListener('timeupdate', onTimeUpdate);
         audio.removeEventListener('ended', onEnded);
-        try { audio.pause(); } catch (_) {}
+        try { audio.pause(); } catch (_e) {}
       };
     } else {
       // No audio: typewriter using interval

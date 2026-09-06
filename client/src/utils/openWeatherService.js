@@ -1,8 +1,13 @@
 // OpenWeatherMap API Service
 // Handles weather data fetching with caching for Heritage Mode
 
-const OPENWEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5';
-const API_KEY = import.meta.env.VITE_OPENWEATHERMAP_API_KEY;
+// SECURITY: this used to call api.openweathermap.org directly with
+// VITE_OPENWEATHERMAP_API_KEY, which compiled the key into the browser bundle.
+// Requests now go through the server, which holds the key.
+import { API_BASE_URL } from './apiConfig';
+import { reportApiFailure, reportNetworkFailure } from './apiError';
+
+const WEATHER_PROXY_BASE = `${API_BASE_URL}/api/weather`;
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 // Simple cache implementation
@@ -42,21 +47,19 @@ function getCacheKey(lat, lon) {
  * Fetch current weather data
  */
 async function fetchCurrentWeather(lat, lon) {
-  const url = `${OPENWEATHER_API_BASE}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Invalid API key configuration');
-    } else if (response.status === 429) {
-      throw new Error('Weather service temporarily unavailable. Please try again later.');
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to fetch weather data');
-    }
+  const url = `${WEATHER_PROXY_BASE}/current?lat=${lat}&lon=${lon}`;
+
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (networkError) {
+    throw reportNetworkFailure(networkError, 'Weather (current)', url);
   }
   
+  if (!response.ok) {
+    throw await reportApiFailure(response, 'Weather (current)', url);
+  }
+
   return await response.json();
 }
 
@@ -64,21 +67,19 @@ async function fetchCurrentWeather(lat, lon) {
  * Fetch 5-day forecast data (3-hour intervals)
  */
 async function fetchForecast(lat, lon) {
-  const url = `${OPENWEATHER_API_BASE}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Invalid API key configuration');
-    } else if (response.status === 429) {
-      throw new Error('Weather service temporarily unavailable. Please try again later.');
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to fetch forecast data');
-    }
+  const url = `${WEATHER_PROXY_BASE}/forecast?lat=${lat}&lon=${lon}`;
+
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (networkError) {
+    throw reportNetworkFailure(networkError, 'Weather (forecast)', url);
   }
-  
+
+  if (!response.ok) {
+    throw await reportApiFailure(response, 'Weather (forecast)', url);
+  }
+
   return await response.json();
 }
 
@@ -193,11 +194,9 @@ export async function fetchWeatherData(lat, lon) {
     throw new Error('Coordinates out of valid range');
   }
   
-  // Validate API key
-  if (!API_KEY) {
-    throw new Error('OpenWeatherMap API key not configured');
-  }
-  
+  // The API key is no longer a client-side concern; if the server has no key
+  // configured it answers 503 and the fetch helpers surface that.
+
   // Check cache
   const cacheKey = getCacheKey(lat, lon);
   const cachedData = weatherCache.get(cacheKey);

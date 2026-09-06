@@ -1,0 +1,213 @@
+/* ==========================================================================
+   Trip Planner - page shell
+   ========================================================================== */
+
+.tp-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(var(--gs-space-3), 2vw, var(--gs-space-6));
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(1000px 520px at 92% 8%, rgba(34, 211, 238, 0.16), transparent 62%),
+    linear-gradient(155deg, #0a1024 0%, #131a3a 45%, #1b1740 100%);
+  color: var(--gs-text);
+  overflow-x: hidden;
+}
+
+.tp-page[data-theme='light'] {
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(1000px 520px at 92% 8%, rgba(8, 145, 178, 0.1), transparent 62%),
+    linear-gradient(155deg, #eef4ff 0%, #e6eeff 45%, #f4f7ff 100%);
+}
+
+.tp-page.is-expanded { height: 100vh; height: 100dvh; overflow-y: auto; }
+
+/* Ambient glows -------------------------------------------------- */
+.tp-page__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+.tp-page__glow--top {
+  width: 460px; height: 460px;
+  top: -180px; left: -140px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.28), transparent 70%);
+}
+.tp-page__glow--bottom {
+  width: 520px; height: 520px;
+  bottom: -220px; right: -160px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.24), transparent 70%);
+}
+
+.tp-page__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--gs-container);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-4);
+}
+
+/* ------------------------------------------------------------------ */
+/* Top bar                                                             */
+/* ------------------------------------------------------------------ */
+
+.tp-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-2);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border);
+  position: sticky;
+  top: var(--gs-space-2);
+  z-index: var(--gs-z-sticky);
+}
+
+/* ------------------------------------------------------------------ */
+/* Hero                                                                */
+/* ------------------------------------------------------------------ */
+
+.tp-hero {
+  position: relative;
+  border-radius: var(--gs-radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+  min-height: 190px;
+  display: flex;
+  align-items: flex-end;
+  isolation: isolate;
+}
+
+.tp-hero__visual {
+  position: absolute;
+  inset: 0;
+  background-color: #16234a;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.04);
+  transition: transform var(--gs-dur-slower) var(--gs-ease-out);
+  z-index: -2;
+}
+.tp-hero:hover .tp-hero__visual { transform: scale(1.08); }
+
+.tp-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(7, 15, 35, 0.92) 8%, rgba(15, 23, 55, 0.72) 55%, rgba(24, 20, 60, 0.6) 100%);
+  z-index: -1;
+}
+
+.tp-hero__content { padding: clamp(var(--gs-space-5), 3vw, var(--gs-space-8)); width: 100%; }
+
+.tp-hero__eyebrow { color: var(--gs-accent); margin-bottom: var(--gs-space-2); }
+
+.tp-hero__title {
+  margin: 0;
+  font-family: var(--gs-font-display);
+  font-size: var(--gs-text-3xl);
+  font-weight: 720;
+  line-height: var(--gs-leading-tight);
+  letter-spacing: var(--gs-tracking-tight);
+  color: #fff;
+}
+
+.tp-hero__subtitle {
+  margin: var(--gs-space-2) 0 0;
+  font-size: var(--gs-text-base);
+  color: rgba(238, 244, 255, 0.82);
+  max-width: 62ch;
+  line-height: var(--gs-leading-normal);
+}
+
+.tp-hero__credit {
+  display: inline-block;
+  margin-top: var(--gs-space-3);
+  font-size: var(--gs-text-2xs);
+  color: rgba(238, 244, 255, 0.5);
+  letter-spacing: var(--gs-tracking-wide);
+}
+
+/* ------------------------------------------------------------------ */
+/* Layout                                                              */
+/* ------------------------------------------------------------------ */
+
+.tp-layout {
+  display: grid;
+  grid-template-columns: minmax(310px, 380px) 1fr;
+  gap: var(--gs-space-4);
+  align-items: start;
+}
+
+.tp-layout__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-3);
+  position: sticky;
+  top: calc(var(--gs-space-2) + 62px);
+  max-height: calc(100vh - 96px);
+  min-height: 0;
+}
+
+.tp-layout__main { min-width: 0; }
+
+/* ------------------------------------------------------------------ */
+/* Site selector                                                       */
+/* ------------------------------------------------------------------ */
+
+.tp-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-4);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-sm);
+  flex-shrink: 0;
+}
+
+.tp-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  font-size: var(--gs-text-xs);
+  line-height: 1.4;
+  padding: var(--gs-space-2) var(--gs-space-3);
+  border-radius: var(--gs-radius-sm);
+}
+.tp-inline--info { color: var(--gs-text-subtle); background: var(--gs-surface-2); }
+.tp-inline--error {
+  color: var(--gs-danger);
+  background: var(--gs-danger-soft);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 980px) {
+  .tp-layout { grid-template-columns: 1fr; }
+  .tp-layout__side { position: static; max-height: none; }
+}
+
+@media (max-width: 640px) {
+  .tp-page { padding: var(--gs-space-2); }
+  .tp-topbar { top: 0; border-radius: var(--gs-radius-md); }
+  .tp-hero { min-height: 150px; border-radius: var(--gs-radius-lg); }
+  .tp-hero__content { padding: var(--gs-space-4); }
+  .tp-topbar .gs-btn { flex: 0 0 auto; }
+}

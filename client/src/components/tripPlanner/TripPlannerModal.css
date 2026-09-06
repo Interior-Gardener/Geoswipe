@@ -1,0 +1,105 @@
+/* ==========================================================================
+   Trip Planner - in-context modal (opened from the monument sidebar)
+   ========================================================================== */
+
+.tpm-overlay { z-index: 12000; }
+
+.tpm-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1220px, 96vw);
+  max-height: 92vh;
+  border-radius: var(--gs-radius-xl);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-xl);
+  color: var(--gs-text);
+  overflow: hidden;
+}
+
+.tpm-modal.is-expanded {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  border: 0;
+}
+
+.tpm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gs-space-4);
+  padding: var(--gs-space-4) var(--gs-space-5);
+  border-bottom: 1px solid var(--gs-border-faint);
+  background: var(--gs-surface-2);
+  flex-shrink: 0;
+}
+
+.tpm-heading { display: flex; align-items: center; gap: var(--gs-space-3); min-width: 0; }
+
+.tpm-heading__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--gs-radius-md);
+  font-size: 20px;
+  background: var(--gs-accent-soft);
+  border: 1px solid var(--gs-accent-border);
+}
+
+.tpm-title {
+  margin: 0;
+  font-size: var(--gs-text-lg);
+  font-weight: 680;
+  letter-spacing: var(--gs-tracking-tight);
+  color: var(--gs-text);
+}
+
+.tpm-subtitle {
+  margin: 2px 0 0;
+  font-size: var(--gs-text-sm);
+  color: var(--gs-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpm-actions { display: flex; align-items: center; gap: var(--gs-space-2); flex-shrink: 0; }
+
+.tpm-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) 1fr;
+  gap: var(--gs-space-4);
+  padding: var(--gs-space-4);
+  overflow: hidden;
+}
+
+.tpm-body__form { min-height: 0; display: flex; }
+.tpm-body__form > * { flex: 1; min-height: 0; }
+
+.tpm-body__result { min-width: 0; overflow-y: auto; padding-right: var(--gs-space-1); }
+
+@media (max-width: 980px) {
+  .tpm-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .tpm-body__form { min-height: auto; }
+  .tpm-body__result { overflow: visible; }
+}
+
+@media (max-width: 640px) {
+  .tpm-modal { width: 100%; max-height: 94vh; border-radius: var(--gs-radius-xl) var(--gs-radius-xl) 0 0; }
+  .tpm-overlay { padding: 0; align-items: flex-end; }
+  .tpm-header { padding: var(--gs-space-3) var(--gs-space-4); }
+  .tpm-body { padding: var(--gs-space-3); gap: var(--gs-space-3); }
+  .tpm-title { font-size: var(--gs-text-base); }
+}

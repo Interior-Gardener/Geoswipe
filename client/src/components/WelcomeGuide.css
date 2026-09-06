@@ -1,0 +1,143 @@
+/* ==========================================================================
+   Welcome / "How GeoSwipe works" guide
+   ========================================================================== */
+
+.guide-overlay { z-index: var(--gs-z-toast); }
+
+.guide-modal__header { align-items: flex-start; }
+.guide-modal__eyebrow { color: var(--gs-text-faint); margin-bottom: var(--gs-space-1); }
+
+.guide-modal__title {
+  margin: 0;
+  font-family: var(--gs-font-display);
+  font-size: var(--gs-text-3xl);
+  font-weight: 750;
+  letter-spacing: var(--gs-tracking-tight);
+  line-height: 1.05;
+  color: var(--gs-text);
+}
+.guide-modal__title-accent {
+  background: linear-gradient(120deg, var(--gs-accent), var(--gs-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.guide-modal__lede {
+  margin: var(--gs-space-3) 0 0;
+  max-width: 64ch;
+  font-size: var(--gs-text-base);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-subtle);
+}
+
+.guide-modal__body { display: flex; flex-direction: column; gap: var(--gs-space-6); }
+
+.guide-section-title {
+  margin: 0 0 var(--gs-space-3);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+/* ------------------------------------------------------------------ */
+/* Feature cards                                                       */
+/* ------------------------------------------------------------------ */
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  gap: var(--gs-space-3);
+}
+
+.guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-4);
+  border-radius: var(--gs-radius-lg);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-surface-1);
+  transition: transform var(--gs-dur-base) var(--gs-ease-out),
+              border-color var(--gs-dur-base) var(--gs-ease),
+              box-shadow var(--gs-dur-base) var(--gs-ease);
+}
+.guide-card.is-clickable { cursor: pointer; }
+.guide-card.is-clickable:hover {
+  transform: translateY(-3px);
+  border-color: var(--gs-accent-border);
+  box-shadow: var(--gs-shadow-md);
+}
+
+.guide-card__icon { font-size: 26px; line-height: 1; }
+.guide-card__title { margin: 0; font-size: var(--gs-text-base); font-weight: 660; color: var(--gs-text); }
+.guide-card__body { margin: 0; font-size: var(--gs-text-sm); line-height: var(--gs-leading-normal); color: var(--gs-text-subtle); }
+
+.guide-card__cta {
+  margin-top: auto;
+  padding-top: var(--gs-space-2);
+  font-size: var(--gs-text-xs);
+  font-weight: 700;
+  color: var(--gs-accent);
+  opacity: 0.8;
+  transition: opacity var(--gs-dur-fast) var(--gs-ease);
+}
+.guide-card.is-clickable:hover .guide-card__cta { opacity: 1; }
+
+/* ------------------------------------------------------------------ */
+/* Steps                                                               */
+/* ------------------------------------------------------------------ */
+
+.guide-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gs-space-3); }
+
+.guide-step { display: flex; align-items: flex-start; gap: var(--gs-space-3); }
+
+.guide-step__num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--gs-accent-soft);
+  border: 1px solid var(--gs-accent-border);
+  color: var(--gs-accent);
+  font-size: var(--gs-text-xs);
+  font-weight: 750;
+}
+
+.guide-step__text {
+  font-size: var(--gs-text-sm);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-muted);
+  padding-top: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Note                                                                */
+/* ------------------------------------------------------------------ */
+
+.guide-note {
+  display: flex;
+  gap: var(--gs-space-2);
+  margin: 0;
+  padding: var(--gs-space-3) var(--gs-space-4);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-info-soft);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  font-size: var(--gs-text-xs);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-muted);
+}
+
+.guide-modal__footer { justify-content: space-between; }
+
+@media (max-width: 640px) {
+  .guide-modal__title { font-size: var(--gs-text-2xl); }
+  .guide-modal__lede { font-size: var(--gs-text-sm); }
+  .guide-grid { grid-template-columns: 1fr; }
+  .guide-modal__footer { flex-direction: column-reverse; }
+  .guide-modal__footer .gs-btn { width: 100%; }
+}

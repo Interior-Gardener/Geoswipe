@@ -42,7 +42,11 @@ export default defineConfig({
   // Development server optimization
   server: {
     port: 5173,
-    host: true,
+    // SECURITY: `host: true` binds the dev server to every network interface,
+    // exposing it (and anything it serves) to the whole local network. Vite's
+    // dev server has had several arbitrary-file-read advisories, so it stays on
+    // loopback unless explicitly opted into with `vite --host`.
+    host: 'localhost',
     open: true,
     // Enable HMR for better development experience
     hmr: {
@@ -53,7 +57,7 @@ export default defineConfig({
   // Preview server configuration
   preview: {
     port: 4173,
-    host: true
+    host: 'localhost'
   },
   
   // Asset optimization

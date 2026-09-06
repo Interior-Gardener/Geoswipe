@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import { API_BASE_URL, getGestureSessionId } from './utils/apiConfig';
 
 // Reuse the same socket connection pattern from EarthThreeJS
 const getSocket = (() => {
   let socket = null;
   return () => {
     if (!socket) {
-      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+      socket = io(API_BASE_URL, {
+        // Tags every socket from this tab so gesture frames/results stay private to it.
+        auth: { gestureSession: getGestureSessionId() },
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: 5,
@@ -29,7 +32,7 @@ const GestureButton = ({
 }) => {
   const buttonRef = useRef(null);
   const [isGestureHovered, setIsGestureHovered] = useState(false);
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [, setCursorPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!gestureEnabled) return;

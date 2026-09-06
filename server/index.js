@@ -1,13 +1,43 @@
 // server/index.js
-require('dotenv').config();
+const { isProduction, secrets, allowedOrigins, reportConfiguration } = require('./config/env');
+const { securityHeaders, safeError, errorHandler } = require('./middleware/security');
+const { exactMatchRegex, containsRegex, sanitizeText } = require('./middleware/validation');
+
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
+
+// Shared origin check for both HTTP and WebSocket transports.
+// SECURITY: this replaces a blanket `origin: "*"`. In production only the
+// configured ALLOWED_ORIGINS may connect; in development the localhost dev
+// servers are allowed. Requests with no Origin header (curl, server-to-server,
+// the Python gesture client) are permitted - they are not browser requests and
+// carry no ambient credentials to protect.
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  return allowedOrigins.includes(origin);
+}
+
+function corsOriginCallback(origin, callback) {
+  // Signal allow/deny rather than raising: a disallowed origin simply gets no
+  // Access-Control-Allow-Origin header, which is what actually stops the
+  // browser. Throwing here would turn every such request into a 500 and bury
+  // genuine server errors in the noise.
+  return callback(null, isOriginAllowed(origin));
+}
+
 const io = require('socket.io')(http, {
-  cors: { origin: "*" },
+  cors: {
+    origin: corsOriginCallback,
+    // No cookies/authorization are used on the socket channel, so credentials
+    // stay off - that also keeps a wildcard from ever becoming exploitable.
+    credentials: false
+  },
   pingTimeout: 60000,
   pingInterval: 25000,
-  maxHttpBufferSize: 5e6,  // 5MB to handle video frames from browser
+  // Video frames are capped far below this in the handler; keep the transport
+  // ceiling modest so a single socket cannot buffer huge payloads.
+  maxHttpBufferSize: 1e6,
   transports: ['websocket', 'polling']
 });
 const cors = require("cors");
@@ -17,14 +47,28 @@ const Country = require("./models/Country");
 const HeritageSite = require("./models/HeritageSite");
 const QuizQuestion = require("./models/QuizQuestion");
 const { getFlagCountriesWithCache } = require('./services/flagImageService');
+const STATIC_COUNTRIES = require('./data/countries');
 const { resolveMonumentImageWithFallback } = require('./services/monumentImageService');
 
-// Middleware for parsing JSON and enabling CORS
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Trust the first proxy hop so rate limiting keys on the real client IP rather
+// than the proxy's, when deployed behind one.
+app.set('trust proxy', 1);
+// Don't advertise the framework version to attackers.
+app.disable('x-powered-by');
+
+// Security headers on every response.
+app.use(securityHeaders);
+
+// Body limits: no endpoint here accepts a large upload, and the previous 10mb
+// ceiling let an anonymous caller tie up memory cheaply.
+app.use(express.json({ limit: '128kb' }));
+app.use(express.urlencoded({ extended: true, limit: '128kb' }));
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? ['https://your-domain.com'] : '*',
-  credentials: true
+  origin: corsOriginCallback,
+  // No cookie or Authorization-based sessions exist, so credentialed
+  // cross-origin requests are never needed.
+  credentials: false
 }));
 
 // Add compression middleware for better performance
@@ -33,17 +77,34 @@ app.use(compression());
 
 // Rate limiting middleware
 const rateLimit = require('express-rate-limit');
+// Global safety net only. The frontend is chatty by design - opening Heritage
+// Mode alone fetches the site list, GeoJSON and per-monument imagery - so a
+// tight global cap locked real users out with 429s. The endpoints that
+// actually cost money or third-party quota (/api/ai, /api/weather, /api/maps)
+// carry their own much stricter limiters.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  max: 1200, // per-IP ceiling across the whole API surface
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP, please try again later.' },
+  // Never rate-limit the diagnostics/health probes.
+  skip: (req) => req.path === '/diagnostics' || req.path === '/health'
 });
 app.use('/api/', limiter);
+
+// Routes that spend money or third-party quota on our credentials.
+app.use('/api/ai', require('./routes/aiProxy'));
+app.use('/api/weather', require('./routes/weatherProxy'));
+app.use('/api/maps', require('./routes/mapProxy'));
+// Reports the live health of every external integration, with the provider's
+// own error text and a concrete fix hint for anything failing.
+app.use('/api/diagnostics', require('./routes/diagnostics'));
 
 // ===== OPTIMIZED MONGO CONNECTION =====
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/geoswipedb", {
+    const conn = await mongoose.connect(secrets.mongodbUri || "mongodb://127.0.0.1:27017/geoswipedb", {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       maxPoolSize: 10, // Maintain up to 10 socket connections
@@ -92,43 +153,36 @@ let countryCache = null;
 let cacheExpiry = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
-//Optimized Country Population (One Time)
+//Country population from the bundled static dataset (One Time)
+//
+// This previously fetched https://restcountries.com/v3.1/all. That API is now
+// deprecated: it 301-redirects and returns {success:false,...} instead of an
+// array, so `data.filter` threw, the Country collection stayed empty, and
+// /api/country-question answered 503 - breaking the quiz game. Country names
+// are static reference data and are now bundled with the server.
 async function populateCountries() {
   try {
     const count = await Country.countDocuments();
-    if (count === 0) {
-      console.log("🌍 Fetching countries from API...");
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const res = await fetch("https://restcountries.com/v3.1/all?fields=name", {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'GeoSwipe/1.0'
-        }
-      });
-      clearTimeout(timeoutId);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const data = await res.json();
-      const countryDocs = data
-        .filter(c => c.name?.common)
-        .map(c => ({ name: c.name.common.toLowerCase().trim() }));
-      
-      if (countryDocs.length > 0) {
-        await Country.insertMany(countryDocs);
-        console.log(`✅ Inserted ${countryDocs.length} countries into DB`);
-        
-        // Update cache
-        countryCache = countryDocs.map(c => c.name);
-        cacheExpiry = Date.now() + CACHE_DURATION;
-      }
+    if (count > 0) {
+      return;
     }
+
+    const countryDocs = STATIC_COUNTRIES
+      .filter((c) => c.name)
+      .map((c) => ({ name: c.name.toLowerCase().trim() }));
+
+    if (countryDocs.length === 0) {
+      console.error('[countries] Static country dataset is empty - server/data/countries.js may be corrupt.');
+      return;
+    }
+
+    await Country.insertMany(countryDocs, { ordered: false });
+    console.log(`✅ Seeded ${countryDocs.length} countries from the bundled dataset`);
+
+    countryCache = countryDocs.map((c) => c.name);
+    cacheExpiry = Date.now() + CACHE_DURATION;
   } catch (error) {
-    console.error('Error populating countries:', error.message);
+    console.error('[countries] Failed to seed country list:', error.message || error);
     // Don't crash the server, just log the error
   }
 }
@@ -151,8 +205,38 @@ async function getCountryListFromDB() {
   }
 }
 
-// Initialize countries on startup
+// Seeds the heritage quiz question bank if it is empty.
+//
+// The heritage quiz answered "No quiz questions available" (404) purely because
+// the quiz_questions collection was never populated - the seed data shipped in
+// heritage_quiz_data.js but had to be run by hand against a hardcoded local
+// MongoDB. Seeding here makes the quiz work against whatever MONGODB_URI is
+// configured, without a manual step.
+async function populateQuizQuestions() {
+  try {
+    const count = await QuizQuestion.countDocuments();
+    if (count > 0) {
+      return;
+    }
+
+    const { quizQuestions } = require('./heritage_quiz_data');
+
+    if (!Array.isArray(quizQuestions) || quizQuestions.length === 0) {
+      console.error('[quiz] heritage_quiz_data.js exported no questions - heritage quiz will be unavailable.');
+      return;
+    }
+
+    await QuizQuestion.insertMany(quizQuestions, { ordered: false });
+    console.log(`✅ Seeded ${quizQuestions.length} heritage quiz questions`);
+  } catch (error) {
+    console.error('[quiz] Failed to seed heritage quiz questions:', error.message || error);
+    console.error('[quiz] The heritage quiz will return "No quiz questions available" until this is resolved.');
+  }
+}
+
+// Initialize reference data on startup
 populateCountries();
+populateQuizQuestions();
 
 //Optimized Country questions api with timeout and error handling
 app.get("/api/country-question", async (req, res) => {
@@ -172,20 +256,28 @@ app.get("/api/country-question", async (req, res) => {
 
     let question = null;
     let attempts = 0;
-    const maxAttempts = 10; // Limit attempts to avoid infinite loops
+    let candidatesSeen = 0;
+    let lastFailure = null;
+    const maxAttempts = 3;
+    // Only ~60% of "geography" questions have a COUNTRY as the answer (the rest
+    // are cities, regions, rivers...), and this endpoint must return a country
+    // so the globe can highlight it. Fetching a BATCH and picking a match makes
+    // a miss vanishingly unlikely; the previous code requested a single
+    // question per attempt and 503'd - silently - when ten in a row missed.
+    const BATCH_SIZE = 20;
 
     while (!question && attempts < maxAttempts) {
       attempts++;
-      
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-        
         // Build API URL with optional difficulty parameter
         const apiUrl = difficultyParam
-          ? `https://the-trivia-api.com/v2/questions?categories=geography&difficulties=${difficultyParam}&limit=1`
-          : "https://the-trivia-api.com/v2/questions?categories=geography&limit=1";
-        
+          ? `https://the-trivia-api.com/v2/questions?categories=geography&difficulties=${difficultyParam}&limit=${BATCH_SIZE}`
+          : `https://the-trivia-api.com/v2/questions?categories=geography&limit=${BATCH_SIZE}`;
+
         const triviaRes = await fetch(
           apiUrl,
           {
@@ -196,49 +288,73 @@ app.get("/api/country-question", async (req, res) => {
             }
           }
         );
-        clearTimeout(timeoutId);
 
         if (!triviaRes.ok) {
-          throw new Error(`API responded with status: ${triviaRes.status}`);
+          throw new Error(`the-trivia-api responded with status ${triviaRes.status}`);
         }
 
         const triviaData = await triviaRes.json();
-        if (!triviaData || !Array.isArray(triviaData) || triviaData.length === 0) {
-          throw new Error('Invalid response format from trivia API');
+        if (!Array.isArray(triviaData) || triviaData.length === 0) {
+          throw new Error('the-trivia-api returned an unexpected response shape (expected a non-empty array)');
         }
 
-        const q = triviaData[0];
-        if (q?.correctAnswer && countries.includes(q.correctAnswer.toLowerCase().trim())) {
+        candidatesSeen += triviaData.length;
+
+        // Take the first question whose answer is a country we know about.
+        const match = triviaData.find(
+          (q) => q?.correctAnswer && countries.includes(q.correctAnswer.toLowerCase().trim())
+        );
+
+        if (match) {
           question = {
-            question: q.question?.text || q.question,
-            correctAnswer: q.correctAnswer,
-            options: [...(q.incorrectAnswers || []), q.correctAnswer]
+            question: match.question?.text || match.question,
+            correctAnswer: match.correctAnswer,
+            options: [...(match.incorrectAnswers || []), match.correctAnswer]
               .sort(() => Math.random() - 0.5)
           };
+        } else {
+          console.warn(
+            `[country-question] Attempt ${attempts}: none of ${triviaData.length} geography ` +
+            `questions had a country answer (difficulty=${difficultyParam || 'any'}). Retrying.`
+          );
         }
       } catch (fetchError) {
-        console.warn(`Trivia API attempt ${attempts} failed:`, fetchError.message);
-        if (attempts === maxAttempts) {
-          throw fetchError;
+        lastFailure = fetchError.message || String(fetchError);
+        console.warn(
+          `[country-question] Attempt ${attempts}/${maxAttempts} failed: ` +
+          (fetchError.name === 'AbortError' ? 'upstream timed out after 8000ms' : lastFailure)
+        );
+        if (attempts < maxAttempts) {
+          // Brief backoff before retrying
+          await new Promise((resolve) => setTimeout(resolve, 750));
         }
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
     if (!question) {
-      return res.status(503).json({ 
-        error: "Unable to fetch geography question at this time",
-        retry: true 
+      console.error(
+        `[country-question] Giving up after ${attempts} attempt(s), ${candidatesSeen} candidate question(s) examined. ` +
+        `Last upstream failure: ${lastFailure || 'none (no country-answer question found)'}. ` +
+        `Upstream: https://the-trivia-api.com/v2/questions`
+      );
+      return res.status(503).json({
+        error: "Unable to fetch a geography question at this time",
+        detail: lastFailure
+          ? `Upstream trivia API error: ${lastFailure}`
+          : `No country-answer question found among ${candidatesSeen} candidates`,
+        hint: 'the-trivia-api.com is a free public API with no key; this is usually transient. Retry.',
+        retry: true
       });
     }
 
     res.json(question);
   } catch (err) {
-    console.error('Error in country-question endpoint:', err);
-    res.status(500).json({ 
+    console.error('[country-question] Unexpected failure:', err.message || err);
+    res.status(500).json({
       error: "Failed to fetch question",
-      retry: true 
+      retry: true
     });
   }
 });
@@ -317,7 +433,7 @@ app.get("/api/heritage-sites/:name/details", async (req, res) => {
   try {
     const siteName = decodeURIComponent(req.params.name);
     const site = await HeritageSite.findOne({ 
-      name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+      name: { $regex: exactMatchRegex(siteName) } 
     });
     
     if (!site) {
@@ -371,7 +487,7 @@ app.get("/api/heritage-sites/:name/image", async (req, res) => {
   try {
     const siteName = decodeURIComponent(req.params.name);
     const site = await HeritageSite.findOne({
-      name: { $regex: new RegExp(`^${siteName}$`, 'i') }
+      name: { $regex: exactMatchRegex(siteName) }
     });
 
     if (!site) {
@@ -392,10 +508,10 @@ app.get("/api/heritage-sites/:name/image", async (req, res) => {
 
 // ===== NEWS API INTEGRATION WITH FALLBACK SYSTEM =====
 const NEWSAPI_BASE_URL = 'https://newsapi.org/v2/everything';
-const NEWSAPI_KEY =
-  process.env.VITE_NEWSAPI_API_KEY ||
-  process.env.NEWSAPI_API_KEY ||
-  'd1f3be2815b944bd86b61714de465ab1';
+// SECURITY: this key was previously hardcoded here as a literal fallback and is
+// therefore permanently in git history - it must be rotated. It now resolves
+// only from server-side configuration, with no fallback and no VITE_* name.
+const NEWSAPI_KEY = secrets.newsApiKey;
 const NEWS_ARTICLE_LIMIT = 5; // Limit results for clean UI
 
 /**
@@ -403,10 +519,23 @@ const NEWS_ARTICLE_LIMIT = 5; // Limit results for clean UI
  * @param {string} query - Search query
  * @returns {Promise<Array>} - Array of articles or empty array
  */
+// Remembered so the same misconfiguration isn't logged on every single query.
+let newsApiFailureLogged = false;
+
 async function fetchNewsWithQuery(query) {
+  // Without a configured key, degrade to "no articles" rather than firing an
+  // unauthenticated request at NewsAPI.
+  if (!NEWSAPI_KEY) {
+    if (!newsApiFailureLogged) {
+      console.error('[news] NEWSAPI_KEY is not set in server/.env - news features will return no articles.');
+      newsApiFailureLogged = true;
+    }
+    return [];
+  }
+
   try {
     console.log(`📰 Trying query: ${query}`);
-    
+
     const response = await fetch(`${NEWSAPI_BASE_URL}?${new URLSearchParams({
       q: query,
       language: 'en',
@@ -418,19 +547,47 @@ async function fetchNewsWithQuery(query) {
     });
 
     if (!response.ok) {
-      console.warn(`⚠️ NewsAPI returned ${response.status}`);
+      // Report WHY, not just the status code - a bare "401" left the actual
+      // cause (a wrong key in the NEWSAPI_KEY slot) invisible.
+      const body = await response.text().catch(() => '');
+      let detail = body.slice(0, 300);
+      try {
+        const parsed = JSON.parse(body);
+        detail = `${parsed.code || ''} ${parsed.message || ''}`.trim() || detail;
+      } catch { /* keep raw body */ }
+
+      console.error(`[news] NewsAPI ${response.status} for query "${query}": ${detail}`);
+
+      if ((response.status === 401 || response.status === 403) && !newsApiFailureLogged) {
+        console.error(
+          '[news] NewsAPI rejected the credential. Check NEWSAPI_KEY in server/.env - ' +
+          'it must be a NewsAPI key (get one at https://newsapi.org/account), ' +
+          'not a key belonging to another provider.'
+        );
+        newsApiFailureLogged = true;
+      }
+      if (response.status === 429 && !newsApiFailureLogged) {
+        console.error('[news] NewsAPI rate limit / quota exhausted for this key.');
+        newsApiFailureLogged = true;
+      }
       return [];
     }
 
     const data = await response.json();
-    
+
+    if (data.status === 'error') {
+      console.error(`[news] NewsAPI error response: ${data.code || ''} ${data.message || ''}`);
+      return [];
+    }
+
     if (data.status === 'ok' && data.articles && data.articles.length > 0) {
       return data.articles;
     }
-    
+
+    console.log(`[news] NewsAPI returned 0 articles for query "${query}"`);
     return [];
   } catch (err) {
-    console.warn(`⚠️ News fetch failed: ${err.message}`);
+    console.error(`[news] Request to NewsAPI failed for query "${query}": ${err.message || err}`);
     return [];
   }
 }
@@ -534,6 +691,9 @@ function formatNewsArticles(articles) {
       description: article.description || 'No description available',
       url: article.url,
       source: article.source?.name || 'Unknown Source',
+      // Passed through so the client can show a thumbnail; NewsAPI supplies it
+      // but it was previously dropped.
+      image: article.urlToImage || null,
       publishedAt: article.publishedAt,
       author: article.author || null,
       timeAgo: timeAgo
@@ -554,7 +714,7 @@ app.get("/api/news/:siteName", async (req, res) => {
     
     // Find the heritage site to get location details
     const site = await HeritageSite.findOne({ 
-      name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+      name: { $regex: exactMatchRegex(siteName) } 
     });
     
     if (!site) {
@@ -633,10 +793,9 @@ app.get("/api/news/:siteName", async (req, res) => {
 });
 
 // ===== SAFETY + EMERGENCY + NAVIGATION APIs =====
-const MAPTILER_API_KEY =
-  process.env.VITE_MAPTILER_API_KEY ||
-  process.env.MAPTILER_API_KEY ||
-  '';
+// Server-side only. Never sent to the browser - the client reaches MapTiler
+// through /api/maps/* instead.
+const MAPTILER_API_KEY = secrets.maptilerApiKey || '';
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 const SAFETY_DEFAULT_RADIUS = 3000;
 
@@ -1039,6 +1198,9 @@ app.get('/api/safety/alerts', async (req, res) => {
 
 //Optimized Socket.IO logic with NO rate limiting for gesture controls
 const socketConnections = new Set(); // Track connections for cleanup only
+// Ceiling on concurrently tracked rooms; each room holds question state, so
+// unbounded creation was a cheap memory-exhaustion vector.
+const MAX_ACTIVE_ROOMS = 500;
 let frameCount = 0; // Track frames received
 let lastFrameLogTime = Date.now();
 
@@ -1047,17 +1209,36 @@ const TOTAL_ROUNDS = 10;
 const multiplayerRooms = new Map(); // roomId -> { players, gameMode, currentQuestion, answers, scores, currentRound }
 
 // Generate a heritage quiz question
+const VALID_DIFFICULTIES = ['easy', 'medium', 'hard'];
+
 async function generateHeritageQuizQuestion(difficulty = 'easy', mode = 'all-india', monumentName = null) {
   try {
-    let query = { difficulty };
-    
-    if (mode === 'monument' && monumentName) {
-      query.site = { $regex: new RegExp(`^${monumentName}$`, 'i') };
+    const query = {};
+
+    // A default parameter only applies when the argument is `undefined`. The
+    // multiplayer room stores `data.difficulty || null`, so an unspecified
+    // difficulty arrived here as an explicit `null`, producing the query
+    // { difficulty: null } - which matches nothing and made every heritage
+    // multiplayer game fail with "Failed to generate question".
+    // Treat any unrecognised value as "no difficulty filter".
+    if (VALID_DIFFICULTIES.includes(difficulty)) {
+      query.difficulty = difficulty;
     }
-    
+
+    if (mode === 'monument' && monumentName) {
+      query.site = { $regex: exactMatchRegex(monumentName) };
+    }
+
     const count = await QuizQuestion.countDocuments(query);
-    if (count === 0) return null;
-    
+    if (count === 0) {
+      console.error(
+        `[quiz] No heritage questions matched (mode=${mode}, ` +
+        `difficulty=${JSON.stringify(difficulty)}, monument=${JSON.stringify(monumentName)}). ` +
+        `Total questions in collection: ${await QuizQuestion.estimatedDocumentCount()}.`
+      );
+      return null;
+    }
+
     const random = Math.floor(Math.random() * count);
     const question = await QuizQuestion.findOne(query).skip(random);
     
@@ -1101,47 +1282,74 @@ async function generateQuizQuestion(difficulty = null) {
 
   let question = null;
   let attempts = 0;
-  const maxAttempts = 5;
+  let candidatesSeen = 0;
+  let lastFailure = null;
+  const maxAttempts = 3;
+  // Batch the request for the same reason as /api/country-question: only ~60%
+  // of geography questions have a country as the answer. Requesting one at a
+  // time meant a run of misses ended the multiplayer round with
+  // "Failed to generate question".
+  const BATCH_SIZE = 20;
+
+  // Only pass a difficulty the upstream understands.
+  const difficultyParam = VALID_DIFFICULTIES.includes(difficulty) ? difficulty : null;
 
   while (!question && attempts < maxAttempts) {
     attempts++;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      const apiUrl = difficulty
-        ? `https://the-trivia-api.com/v2/questions?categories=geography&difficulties=${difficulty}&limit=1`
-        : "https://the-trivia-api.com/v2/questions?categories=geography&limit=1";
-      
+      const apiUrl = difficultyParam
+        ? `https://the-trivia-api.com/v2/questions?categories=geography&difficulties=${difficultyParam}&limit=${BATCH_SIZE}`
+        : `https://the-trivia-api.com/v2/questions?categories=geography&limit=${BATCH_SIZE}`;
+
       const triviaRes = await fetch(apiUrl, {
         signal: controller.signal,
         headers: { 'User-Agent': 'GeoSwipe/1.0', 'Accept': 'application/json' }
       });
-      clearTimeout(timeoutId);
 
-      if (!triviaRes.ok) throw new Error(`API responded with status: ${triviaRes.status}`);
+      if (!triviaRes.ok) throw new Error(`the-trivia-api responded with status ${triviaRes.status}`);
 
       const triviaData = await triviaRes.json();
-      if (!triviaData || !Array.isArray(triviaData) || triviaData.length === 0) {
-        throw new Error('Invalid response format');
+      if (!Array.isArray(triviaData) || triviaData.length === 0) {
+        throw new Error('the-trivia-api returned an unexpected response shape');
       }
 
-      const q = triviaData[0];
-      if (q?.correctAnswer && countries.includes(q.correctAnswer.toLowerCase().trim())) {
+      candidatesSeen += triviaData.length;
+
+      const match = triviaData.find(
+        (q) => q?.correctAnswer && countries.includes(q.correctAnswer.toLowerCase().trim())
+      );
+
+      if (match) {
         question = {
           type: 'quiz',
-          question: q.question?.text || q.question,
-          correctAnswer: q.correctAnswer,
-          options: [...(q.incorrectAnswers || []), q.correctAnswer].sort(() => Math.random() - 0.5)
+          question: match.question?.text || match.question,
+          correctAnswer: match.correctAnswer,
+          options: [...(match.incorrectAnswers || []), match.correctAnswer].sort(() => Math.random() - 0.5)
         };
       }
     } catch (fetchError) {
-      console.warn(`Multiplayer trivia attempt ${attempts} failed:`, fetchError.message);
+      lastFailure = fetchError.name === 'AbortError'
+        ? 'upstream timed out after 8000ms'
+        : (fetchError.message || String(fetchError));
+      console.warn(`[multiplayer-quiz] Attempt ${attempts}/${maxAttempts} failed: ${lastFailure}`);
       if (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
+
+  if (!question) {
+    console.error(
+      `[multiplayer-quiz] Could not build a question after ${attempts} attempt(s), ` +
+      `${candidatesSeen} candidate(s) examined. Last failure: ${lastFailure || 'no country-answer question found'}.`
+    );
+  }
+
   return question;
 }
 
@@ -1157,23 +1365,121 @@ setInterval(() => {
   }
 }, 60000); // Check every minute
 
+// ===== GESTURE PIPELINE =====
+//
+// SECURITY: this pipeline previously used `socket.broadcast.emit`, which sent
+// every browser's webcam frame to EVERY other connected socket - any client
+// that connected could passively watch all users' cameras. Frames now travel
+// only to registered gesture workers, and detection results travel only back to
+// the originating browser tab.
+//
+// Tabs are identified by a per-tab session id supplied in the socket handshake.
+// A tab opens several sockets (one per gesture-aware component), so results are
+// addressed to the tab's room rather than to a single socket.
+const GESTURE_WORKER_ROOM = 'gesture-workers';
+const GESTURE_WORKER_TOKEN = (process.env.GESTURE_WORKER_TOKEN || '').trim();
+// Opt-in for CAMERA_MODE=local single-user setups only. See forwardDetection.
+const GESTURE_ALLOW_BROADCAST =
+  String(process.env.GESTURE_ALLOW_BROADCAST || 'false').toLowerCase() === 'true';
+
+function gestureSessionRoom(sessionId) {
+  return `gs:${sessionId}`;
+}
+
+// Lightweight per-socket token bucket for high-frequency socket events.
+function createRateLimiter(maxEvents, windowMs) {
+  const buckets = new Map();
+  return function allow(socketId) {
+    const now = Date.now();
+    const bucket = buckets.get(socketId);
+    if (!bucket || now - bucket.start > windowMs) {
+      buckets.set(socketId, { start: now, count: 1 });
+      return true;
+    }
+    bucket.count += 1;
+    return bucket.count <= maxEvents;
+  };
+}
+
+// ~60fps of frames, plus headroom, per socket.
+const allowFrame = createRateLimiter(120, 1000);
+const allowGestureResult = createRateLimiter(240, 1000);
+const allowRoomAction = createRateLimiter(30, 10000);
+
 io.on('connection', (socket) => {
   console.log(`🤝 Client connected: ${socket.id}`);
 
   // Add to connection tracking
   socketConnections.add(socket.id);
 
+  // A browser tab declares its session id at handshake time; every socket from
+  // that tab shares it, so gesture results reach all of the tab's components.
+  const handshakeSession = sanitizeText(socket.handshake?.auth?.gestureSession, 64);
+  const sessionId = handshakeSession && /^[A-Za-z0-9_-]{8,64}$/.test(handshakeSession)
+    ? handshakeSession
+    : null;
+
+  if (sessionId) {
+    socket.join(gestureSessionRoom(sessionId));
+  }
+
+  // The Python detector registers itself as a worker. When
+  // GESTURE_WORKER_TOKEN is configured, registration requires it - that stops
+  // an arbitrary client from registering as a worker to receive camera frames.
+  socket.on('register-gesture-worker', (data, ack) => {
+    const providedToken = typeof data?.token === 'string' ? data.token.trim() : '';
+
+    if (GESTURE_WORKER_TOKEN && providedToken !== GESTURE_WORKER_TOKEN) {
+      console.warn(`⛔ Rejected gesture-worker registration from ${socket.id}: bad token`);
+      if (typeof ack === 'function') ack({ ok: false, error: 'unauthorized' });
+      return;
+    }
+
+    if (!GESTURE_WORKER_TOKEN && isProduction) {
+      console.warn('⛔ Refusing gesture-worker registration: GESTURE_WORKER_TOKEN is required in production.');
+      if (typeof ack === 'function') ack({ ok: false, error: 'worker registration disabled' });
+      return;
+    }
+
+    socket.data.isGestureWorker = true;
+    socket.join(GESTURE_WORKER_ROOM);
+    console.log(`🧠 Gesture worker registered: ${socket.id}`);
+    if (typeof ack === 'function') ack({ ok: true });
+  });
+
+  // Detection results. Only a registered worker may produce these, and they are
+  // delivered solely to the tab whose frame was analysed.
+  const forwardDetection = (eventName, data) => {
+    if (!socket.data.isGestureWorker) {
+      return;
+    }
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+    if (!allowGestureResult(socket.id)) {
+      return;
+    }
+
+    const { session, ...payload } = data;
+    const target = sanitizeText(session, 64);
+
+    if (target && /^[A-Za-z0-9_-]{8,64}$/.test(target)) {
+      io.to(gestureSessionRoom(target)).emit(eventName, payload);
+      return;
+    }
+
+    // No addressable session. This happens only in CAMERA_MODE=local, where the
+    // detector uses its own webcam and there is no originating tab. Broadcasting
+    // hand-position data is opt-in and off by default; webcam FRAMES are never
+    // broadcast under any setting.
+    if (GESTURE_ALLOW_BROADCAST) {
+      socket.broadcast.emit(eventName, payload);
+    }
+  };
+
   socket.on('gesture', (data) => {
     try {
-      // NO RATE LIMITING - Allow unlimited gesture controls for full website accessibility
-      if (!data || typeof data !== 'object') {
-        console.warn('⚠️ Invalid gesture data received');
-        return;
-      }
-
-      console.log("👋 Gesture from Python:", data.gesture || data);
-      // Broadcast to all other clients for full gesture accessibility
-      socket.broadcast.emit('gesture', data);
+      forwardDetection('gesture', data);
     } catch (error) {
       console.error('❌ Error handling gesture:', error);
     }
@@ -1181,41 +1487,42 @@ io.on('connection', (socket) => {
 
   socket.on('cursor', (data) => {
     try {
-      // NO RATE LIMITING - Allow unlimited cursor updates for smooth gesture navigation
-      if (!data || typeof data !== 'object') {
-        return; // Silently ignore invalid cursor data (high frequency event)
-      }
-
-      // Forward cursor position to all clients for gesture-controlled navigation
-      socket.broadcast.emit('cursor', data);
+      forwardDetection('cursor', data);
     } catch (error) {
       console.error('❌ Error handling cursor:', error);
     }
   });
 
-  // NEW: Handle video frames from browser for gesture detection
+  // Video frames from the browser, destined for gesture detection.
   socket.on('video_frame', (data) => {
     try {
       // Validate payload structure
       if (!data || typeof data !== 'object') {
-        console.warn('⚠️ Invalid video_frame: not an object');
         return;
       }
 
       if (!data.frame || typeof data.frame !== 'string') {
-        console.warn('⚠️ Invalid video_frame: missing or invalid frame');
         return;
       }
 
       // Validate base64 format (data URL)
       if (!data.frame.startsWith('data:image/')) {
-        console.warn('⚠️ Invalid video_frame: not a data URL');
         return;
       }
 
       // Size check to prevent DoS (max ~500 KB)
       if (data.frame.length > 500000) {
-        console.warn('⚠️ Frame too large, rejecting');
+        return;
+      }
+
+      // Per-socket flood protection.
+      if (!allowFrame(socket.id)) {
+        return;
+      }
+
+      // A frame with no session cannot have its result routed back, and must
+      // not be broadcast - drop it.
+      if (!sessionId) {
         return;
       }
 
@@ -1224,7 +1531,7 @@ io.on('connection', (socket) => {
       if (frameCount === 1) {
         console.log('📸 First video frame received from browser');
         console.log(`   - Frame size: ${(data.frame.length / 1024).toFixed(1)} KB`);
-        console.log('   - Forwarding to Python gesture detection...');
+        console.log('   - Forwarding to gesture worker...');
       }
 
       if (frameCount % 50 === 0) {
@@ -1234,10 +1541,12 @@ io.on('connection', (socket) => {
         lastFrameLogTime = Date.now();
       }
 
-      // Forward frame to Python client for processing
-      socket.broadcast.emit('process_frame', {
+      // Deliver ONLY to registered gesture workers, tagged with the session so
+      // the worker can address its answer back to this tab.
+      io.to(GESTURE_WORKER_ROOM).emit('process_frame', {
         frame: data.frame,
-        timestamp: data.timestamp || Date.now()
+        timestamp: data.timestamp || Date.now(),
+        session: sessionId
       });
     } catch (error) {
       console.error('❌ Error handling video frame:', error);
@@ -1250,16 +1559,38 @@ io.on('connection', (socket) => {
   // Join a multiplayer room
   socket.on('join-room', async (data) => {
     try {
-      const { roomId, playerName, gameMode } = data;
-      
+      // Per-socket flood protection: room creation allocates server memory.
+      if (!allowRoomAction(socket.id)) {
+        socket.emit('room-error', { message: 'Too many room actions. Please slow down.' });
+        return;
+      }
+
+      const { roomId: rawRoomId, playerName: rawPlayerName, gameMode } = data || {};
+
+      // Bound and sanitise identifiers before they become Map keys or are
+      // echoed to the other player.
+      const roomId = sanitizeText(rawRoomId, 64);
+      const playerName = sanitizeText(rawPlayerName, 32);
+
       if (!roomId || !playerName || !gameMode) {
         socket.emit('room-error', { message: 'Missing roomId, playerName, or gameMode' });
+        return;
+      }
+
+      if (!/^[A-Za-z0-9_-]{4,64}$/.test(roomId)) {
+        socket.emit('room-error', { message: 'Room code must be 4-64 letters, digits, dashes or underscores.' });
         return;
       }
 
       // Validate game mode
       if (!['flag', 'quiz', 'heritage-quiz', 'heritage-monument'].includes(gameMode)) {
         socket.emit('room-error', { message: 'Invalid game mode. Use "flag", "quiz", "heritage-quiz", or "heritage-monument"' });
+        return;
+      }
+
+      // Global ceiling so room creation cannot exhaust server memory.
+      if (!multiplayerRooms.has(roomId) && multiplayerRooms.size >= MAX_ACTIVE_ROOMS) {
+        socket.emit('room-error', { message: 'Server is at capacity. Please try again shortly.' });
         return;
       }
 
@@ -1651,8 +1982,8 @@ app.get("/api/heritage/:name", async (req, res) => {
   try {
     let siteName = decodeURIComponent(req.params.name).replace(/-/g, ' ').toLowerCase();
     const site = await HeritageSite.findOne({ 
-       name: { $regex: new RegExp(siteName, 'i') } 
-      //name: { $regex: new RegExp(`^${siteName}$`, 'i') } 
+       name: { $regex: containsRegex(siteName) } 
+      //name: { $regex: exactMatchRegex(siteName) } 
     });
     
     if (!site) {
@@ -1688,7 +2019,7 @@ app.get("/api/quiz/monument/:name", async (req, res) => {
     
     // Check if questions exist
     const count = await QuizQuestion.countDocuments({ 
-      site: { $regex: new RegExp(`^${siteName}$`, 'i') },
+      site: { $regex: exactMatchRegex(siteName) },
       difficulty 
     });
     
@@ -1702,7 +2033,7 @@ app.get("/api/quiz/monument/:name", async (req, res) => {
     // Get random question
     const random = Math.floor(Math.random() * count);
     const question = await QuizQuestion.findOne({
-      site: { $regex: new RegExp(`^${siteName}$`, 'i') },
+      site: { $regex: exactMatchRegex(siteName) },
       difficulty
     }).skip(random);
     
@@ -1718,7 +2049,7 @@ app.get("/api/quiz/monument/:name", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching monument quiz:", error);
-    res.status(500).json({ error: error.message });
+    return safeError(res, 500, "Request failed.", error);
   }
 });
 
@@ -1746,7 +2077,7 @@ app.get("/api/quiz/all-india", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching all-India quiz:", error);
-    res.status(500).json({ error: error.message });
+    return safeError(res, 500, "Request failed.", error);
   }
 });
 
@@ -1757,7 +2088,7 @@ app.get("/api/quiz/available-monuments", async (req, res) => {
     res.json(monuments.sort());
   } catch (error) {
     console.error("Error fetching available monuments:", error);
-    res.status(500).json({ error: error.message });
+    return safeError(res, 500, "Request failed.", error);
   }
 });
 
@@ -1772,7 +2103,7 @@ app.get("/api/quiz/session/:mode", async (req, res) => {
     let query = { difficulty };
     
     if (mode === 'monument' && monumentName) {
-      query.site = { $regex: new RegExp(`^${monumentName}$`, 'i') };
+      query.site = { $regex: exactMatchRegex(monumentName) };
     }
     
     // Get random sample of questions
@@ -1798,7 +2129,7 @@ app.get("/api/quiz/session/:mode", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching quiz session:", error);
-    res.status(500).json({ error: error.message });
+    return safeError(res, 500, "Request failed.", error);
   }
 });
 
@@ -1843,24 +2174,29 @@ process.on('SIGINT', gracefulShutdown);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  const healthcheck = {
-    uptime: process.uptime(),
-    message: 'OK',
-    timestamp: Date.now(),
-    env: process.env.NODE_ENV || 'development'
-  };
-  res.json(healthcheck);
+  // Deliberately minimal: uptime and environment name are useful to an attacker
+  // profiling the deployment and are not needed by a liveness probe.
+  res.json({ status: 'ok', timestamp: Date.now() });
 });
+
+// Terminal error handler. Registered last so it sees errors from every route
+// above, and returns a generic message instead of a stack trace.
+app.use(errorHandler);
 
 //start server with error handling
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';  // Bind to all interfaces (was 'localhost')
+// Bind to loopback by default. Binding to every interface exposes the API (and
+// the gesture socket) to the whole local network; opt in explicitly via HOST
+// when that is actually wanted, e.g. HOST=0.0.0.0 in a container.
+const HOST = process.env.HOST || '127.0.0.1';
 
 http.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🌐 Listening on: ${HOST}:${PORT} (all interfaces)`);
+  console.log(`🌐 Listening on: ${HOST}:${PORT}`);
+  console.log(`🛡️  Allowed browser origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : '(none configured)'}`);
+  reportConfiguration();
 }).on('error', (err) => {
   console.error('Failed to start server:', err);
   process.exit(1);

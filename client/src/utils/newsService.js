@@ -1,7 +1,8 @@
 // client/src/utils/newsService.js
 // Frontend service for fetching heritage site news from backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from './apiConfig';
+import { reportApiFailure, reportNetworkFailure } from './apiError';
 
 // Session-based cache for news data (fetches once per session per site)
 const newsSessionCache = new Map();
@@ -70,24 +71,27 @@ export async function fetchHeritageNews(siteName) {
     }
 
     // Fetch from backend
-    const response = await fetch(
-      `${API_BASE_URL}/api/news/${encodeURIComponent(siteName)}`,
-      {
+    const url = `${API_BASE_URL}/api/news/${encodeURIComponent(siteName)}`;
+
+    let response;
+    try {
+      response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (networkError) {
+      throw reportNetworkFailure(networkError, 'Heritage news', url);
+    }
 
     if (!response.ok) {
+      const reported = await reportApiFailure(response, 'Heritage news', url);
       if (response.status === 404) {
         throw new Error('Heritage site not found');
-      } else if (response.status === 429) {
-        throw new Error('Too many requests. Please try again later.');
-      } else {
-        throw new Error(`Failed to fetch news: ${response.status}`);
       }
+      if (response.status === 429) {
+        throw new Error('Too many requests. Please try again later.');
+      }
+      throw reported;
     }
 
     const data = await response.json();

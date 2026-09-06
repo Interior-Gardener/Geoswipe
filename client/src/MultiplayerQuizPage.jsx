@@ -82,16 +82,6 @@ const MultiplayerQuizPage = () => {
     joinRoom(normalizedRoomId, inputPlayerName.trim(), 'quiz', difficulty);
   }, [inputPlayerName, inputRoomId, difficulty]);
 
-  // Leave room
-  const handleLeaveRoom = useCallback(() => {
-    if (roomId) {
-      leaveRoom(roomId);
-    }
-    setInRoom(false);
-    setRoomId('');
-    setSelectedCountry(null);
-  }, [roomId]);
-
   const handleExitToPrevious = useCallback(() => {
     if (roomId) {
       leaveRoom(roomId);

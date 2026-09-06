@@ -1,35 +1,13 @@
-// Groq API Service for Heritage Chatbot
-// Handles AI chat interactions with context about Indian heritage sites
+// Heritage chatbot service.
+//
+// SECURITY: this used to call api.groq.com directly from the browser with
+// `Authorization: Bearer <VITE_GROQ_CHATBOT_API_KEY>`, which put a live Groq
+// key in the client bundle and in every user's DevTools network tab. All Groq
+// traffic now goes through the server, which holds the key. The system prompt
+// also lives server-side so it cannot be overridden by a caller.
 
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
-
-// System prompt for heritage specialist AI
-const BASE_SYSTEM_PROMPT = `You are a knowledgeable and enthusiastic AI assistant specializing in Indian heritage sites, monuments, temples, forts, palaces, and UNESCO World Heritage locations.
-
-Your expertise includes:
-- Historical background and significance of heritage sites
-- Architectural styles and features (Mughal, Dravidian, Indo-Islamic, etc.)
-- Cultural and religious importance
-- Construction dates, rulers, dynasties
-- Visiting information and travel tips
-- Conservation efforts and current status
-
-When answering:
-1. Be informative, engaging, and conversational
-2. Provide specific historical details (dates, names, events)
-3. Mention architectural elements and unique features
-4. Share interesting facts and lesser-known stories
-5. Suggest related sites when relevant
-6. Keep responses concise but comprehensive (2-4 paragraphs)
-7. Use emojis occasionally to make responses engaging 🏛️
-
-Language Support:
-- You can respond in multiple languages (English, Hindi, etc.)
-- If a user writes in Hindi or another Indian language, respond in that language
-- Always be respectful of cultural sensitivities
-
-If asked about non-Indian sites, politely acknowledge and then redirect to Indian heritage topics.`;
+import { API_BASE_URL } from './apiConfig';
+import { reportApiFailure, reportNetworkFailure } from './apiError';
 
 // Usage tracking
 let totalQueries = 0;
@@ -71,94 +49,58 @@ export async function fetchHeritageSitesContext() {
  * @returns {Promise<Object>} - API response with assistant's message
  */
 export async function sendChatMessage(userMessage, conversationHistory = []) {
-  const apiKey = import.meta.env.VITE_GROQ_CHATBOT_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('GROQ_CHATBOT_API_KEY is not configured');
-  }
-  
   // Track usage
   totalQueries++;
   lastQueryTime = new Date().toISOString();
   console.log(`📊 Chatbot Query #${totalQueries} at ${lastQueryTime}`);
-  
+
   try {
-    // Fetch heritage sites context (only on first message for efficiency)
-    let systemPrompt = BASE_SYSTEM_PROMPT;
-    if (conversationHistory.length === 0) {
-      const heritageContext = await fetchHeritageSitesContext();
-      systemPrompt += heritageContext;
-    }
-    
-    // Prepare messages array
+    // Only conversation turns are sent. The system prompt, model and sampling
+    // parameters are fixed server-side.
     const messages = [
-      {
-        role: 'system',
-        content: systemPrompt
-      },
-      // Keep only last 15 messages for context (to avoid token limits)
       ...conversationHistory.slice(-15),
-      {
-        role: 'user',
-        content: userMessage
-      }
+      { role: 'user', content: userMessage }
     ];
-    
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 800,
-        top_p: 0.9,
-        stream: false
-      })
-    });
-    
+
+    const url = `${API_BASE_URL}/api/ai/chat`;
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: 'heritage', messages })
+      });
+    } catch (networkError) {
+      throw reportNetworkFailure(networkError, 'Heritage chatbot', url);
+    }
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      
-      // Handle specific error cases
+      const reported = await reportApiFailure(response, 'Heritage chatbot', url);
       if (response.status === 429) {
         throw new Error('RATE_LIMIT');
-      } else if (response.status === 401) {
-        throw new Error('Invalid API key');
-      } else if (response.status === 400) {
-        throw new Error('Invalid request format');
-      } else {
-        throw new Error(errorData.error?.message || 'API request failed');
       }
+      throw reported;
     }
-    
-    const data = await response.json();
-    
-    // Extract assistant's response
-    if (data.choices && data.choices.length > 0) {
-      const assistantMessage = data.choices[0].message.content;
-      
-      console.log('✅ Chatbot response received:', {
-        tokens: data.usage?.total_tokens || 'N/A',
-        model: data.model
-      });
-      
-      return {
-        success: true,
-        message: assistantMessage,
-        usage: data.usage
-      };
-    } else {
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!data?.message) {
       throw new Error('No response from AI');
     }
-    
+
+    console.log('✅ Chatbot response received:', {
+      tokens: data.usage?.total_tokens || 'N/A'
+    });
+
+    return {
+      success: true,
+      message: data.message,
+      usage: data.usage
+    };
   } catch (error) {
-    console.error('❌ Groq API Error:', error);
-    
-    // Return structured error
+    console.error('❌ Chatbot error:', error.message);
+
     return {
       success: false,
       error: error.message,
@@ -166,6 +108,7 @@ export async function sendChatMessage(userMessage, conversationHistory = []) {
     };
   }
 }
+
 
 /**
  * Get chatbot usage statistics

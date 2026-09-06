@@ -2,13 +2,16 @@ import React, { useCallback, memo, useEffect, useRef } from 'react';
 import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { API_BASE_URL, getGestureSessionId } from './utils/apiConfig';
 
 // Memoize socket connection to prevent reconnections
 const getSocket = (() => {
   let socket = null;
   return () => {
     if (!socket) {
-      socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+      socket = io(API_BASE_URL, {
+        // Tags every socket from this tab so gesture frames/results stay private to it.
+        auth: { gestureSession: getGestureSessionId() },
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: 5,
@@ -36,17 +39,28 @@ const getSocket = (() => {
 const socket = getSocket();
 
 // Memoized feature component
-const Feature = memo(({ icon, title, description, onClick, clickable = false }) => (
-  <div 
-    className={`feature ${clickable ? 'clickable' : ''}`} 
-    onClick={onClick} 
-    style={{ cursor: clickable ? 'pointer' : 'default' }}
-  >
-    <div className="feature-icon">{icon}</div>
-    <h3>{title}</h3>
-    <p>{description}</p>
-  </div>
-));
+// A clickable card must be a real button: the previous <div onClick> could not
+// be reached by keyboard and was invisible to assistive technology.
+const Feature = memo(({ icon, title, description, onClick, clickable = false }) => {
+  const content = (
+    <>
+      <div className="feature-icon" aria-hidden="true">{icon}</div>
+      <h3>{title}</h3>
+      <p>{description}</p>
+      {clickable && <span className="feature-cta">Open <span aria-hidden="true">→</span></span>}
+    </>
+  );
+
+  if (!clickable) {
+    return <div className="feature">{content}</div>;
+  }
+
+  return (
+    <button type="button" className="feature clickable" onClick={onClick}>
+      {content}
+    </button>
+  );
+});
 
 Feature.displayName = 'Feature';
 

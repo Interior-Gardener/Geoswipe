@@ -42,6 +42,12 @@ export default defineConfig({
   // Development server optimization
   server: {
     port: 5173,
+    // The server's CORS allowlist is keyed to specific origins. Vite's default
+    // behaviour on a busy port is to silently move to 5174, which then fails
+    // every API call with an opaque CORS error instead of an obvious one - so
+    // fail loudly here instead. If this errors, something is already on 5173:
+    // run `npm run kill-ports` from the repo root.
+    strictPort: true,
     // SECURITY: `host: true` binds the dev server to every network interface,
     // exposing it (and anything it serves) to the whole local network. Vite's
     // dev server has had several arbitrary-file-read advisories, so it stays on
@@ -57,6 +63,7 @@ export default defineConfig({
   // Preview server configuration
   preview: {
     port: 4173,
+    strictPort: true,
     host: 'localhost'
   },
   

@@ -36,12 +36,19 @@ function parseAllowedOrigins() {
     return [];
   }
 
-  return [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:4173',
-    'http://127.0.0.1:4173'
-  ];
+  // Development fallback only - production above requires an explicit
+  // ALLOWED_ORIGINS allowlist and has no wildcard.
+  //
+  // 5173 (dev) and 4173 (preview) are the configured ports, but Vite moves to
+  // the next free port when one is busy, and a `--port` override is a normal
+  // thing to do. Covering the immediate fallbacks turns "everything fails with
+  // an unexplained CORS error" into "it just works", without ever opening this
+  // up to non-loopback origins.
+  const devPorts = [5173, 5174, 5175, 4173, 4174];
+  return devPorts.flatMap((port) => [
+    `http://localhost:${port}`,
+    `http://127.0.0.1:${port}`
+  ]);
 }
 
 const allowedOrigins = parseAllowedOrigins();

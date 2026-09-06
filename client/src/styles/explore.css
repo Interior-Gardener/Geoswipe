@@ -327,8 +327,12 @@
   height: 6px !important;
 }
 
-/* Numeric fields */
-.earth-gui .c input[type='text'] {
+/* Numeric fields.
+   Deliberately scoped away from `li.color`: dat.GUI shows the currently held
+   colour by writing `background`/`color` inline onto that row's text input, and
+   an !important background here would override it - which is exactly why the
+   "Bright Border Color" swatch used to sit permanently grey. */
+.earth-gui .cr:not(.color) .c input[type='text'] {
   background: var(--gs-surface-2) !important;
   border: 1px solid var(--gs-border) !important;
   border-radius: var(--gs-radius-xs) !important;
@@ -337,9 +341,88 @@
   font-size: var(--gs-text-2xs) !important;
   padding: 2px 5px !important;
 }
-.earth-gui .c input[type='text']:focus {
+.earth-gui .cr:not(.color) .c input[type='text']:focus {
   border-color: var(--gs-accent) !important;
   outline: none;
+}
+
+/* Colour control ------------------------------------------------------
+   dat.GUI renders the palette as an absolutely-positioned popup that only
+   appears while the cursor is over the value column. Inside this panel the
+   controls list is the scroll container, so that popup was clipped out of
+   existence and the row was left as a bare, unreadable text field.
+
+   The palette is put into the flow underneath the swatch instead: it cannot be
+   clipped, it scrolls with the panel, and it is always visible rather than
+   depending on a hover the user has to discover. The row goes full-width to
+   give it room. */
+.earth-gui li.cr.color {
+  overflow: visible !important;
+  padding: 9px 10px 11px !important;
+  /* dat.GUI writes the live colour into this border inline, so leave the width
+     and style here and let it supply the colour. */
+  border-left: 3px solid;
+}
+
+.earth-gui li.cr.color .property-name {
+  float: none !important;
+  display: block !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+  margin-bottom: 6px !important;
+}
+
+.earth-gui li.cr.color .c {
+  float: none !important;
+  width: 100% !important;
+}
+
+/* Only shape the swatch - its colours stay inline, from dat.GUI. */
+.earth-gui li.cr.color .c input[type='text'] {
+  float: none !important;
+  width: 100% !important;
+  margin-top: 0 !important;
+  padding: 5px !important;
+  border: 1px solid var(--gs-border) !important;
+  border-radius: var(--gs-radius-xs) !important;
+  font-family: var(--gs-font-mono) !important;
+  font-size: var(--gs-text-2xs) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-align: center !important;
+  cursor: pointer;
+}
+
+.earth-gui .selector {
+  display: block !important;
+  position: relative !important;
+  /* dat.GUI sizes the palette and positions the hue strip assuming the width it
+     set is content width, so the app-wide border-box reset has to be opted out
+     of here or the hue strip lands on top of the saturation square. */
+  box-sizing: content-box !important;
+  margin: 10px auto 0 !important;
+  padding: 4px !important;
+  background: var(--gs-surface-2) !important;
+  border: 1px solid var(--gs-border) !important;
+  border-radius: var(--gs-radius-sm) !important;
+  box-shadow: none !important;
+}
+
+.earth-gui .selector .saturation-field,
+.earth-gui .selector .hue-field {
+  box-sizing: content-box !important;
+  border-color: var(--gs-border-strong) !important;
+  border-radius: var(--gs-radius-xs);
+}
+
+/* A closed folder must still hide its contents. dat.GUI collapses rows by
+   zeroing their height, which the `height: auto` above outranks, so the padding
+   was leaving a stripe for every hidden control. */
+.earth-gui .closed li:not(.title) {
+  height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Checkboxes */

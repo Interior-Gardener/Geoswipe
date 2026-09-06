@@ -1,0 +1,289 @@
+/* ==========================================================================
+   How to Reach - travel information for a monument
+   --------------------------------------------------------------------------
+   Rebuilt from ~540 lines of inline styles that hardcoded white text, which
+   made the page unreadable in light mode.
+   ========================================================================== */
+
+.htr-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(var(--gs-space-3), 2vw, var(--gs-space-6));
+  background:
+    radial-gradient(1100px 560px at 10% -8%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 92% 8%, rgba(34, 211, 238, 0.14), transparent 62%),
+    linear-gradient(160deg, var(--gs-bg-deep) 0%, var(--gs-bg) 55%, var(--gs-bg-deep) 100%);
+  color: var(--gs-text);
+  overflow-x: hidden;
+}
+
+.htr-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+}
+.htr-glow--a {
+  width: 440px; height: 440px; top: -170px; left: -130px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.22), transparent 70%);
+}
+.htr-glow--b {
+  width: 500px; height: 500px; bottom: -210px; right: -150px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.18), transparent 70%);
+}
+
+.htr-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--gs-container-narrow);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-4);
+}
+
+/* ------------------------------------------------------------------ */
+/* Top bar                                                             */
+/* ------------------------------------------------------------------ */
+
+.htr-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  padding: var(--gs-space-2);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border);
+  position: sticky;
+  top: var(--gs-space-2);
+  z-index: var(--gs-z-sticky);
+
+  /* Keep the trailing controls clear of the fixed global nav. The reserve is
+     only as large as the actual overlap: the wider the viewport gets past the
+     container, the more the page's own gutter already covers. */
+  padding-right: clamp(
+    var(--gs-space-2),
+    calc(var(--gs-nav-reserve) - (100vw - var(--gs-container-narrow)) / 2),
+    var(--gs-nav-reserve)
+  );
+
+}
+
+/* ------------------------------------------------------------------ */
+/* Hero                                                                */
+/* ------------------------------------------------------------------ */
+
+.htr-hero {
+  padding: clamp(var(--gs-space-5), 3vw, var(--gs-space-8));
+  border-radius: var(--gs-radius-xl);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-lg);
+}
+
+.htr-hero__eyebrow { color: var(--gs-accent); margin-bottom: var(--gs-space-2); }
+
+.htr-hero__title {
+  margin: 0;
+  font-size: var(--gs-text-3xl);
+  font-weight: 720;
+  line-height: var(--gs-leading-tight);
+  letter-spacing: var(--gs-tracking-tight);
+  color: var(--gs-text);
+}
+
+.htr-hero__chips { display: flex; flex-wrap: wrap; gap: var(--gs-space-2); margin-top: var(--gs-space-3); }
+
+.htr-hero__place {
+  margin: var(--gs-space-3) 0 0;
+  font-size: var(--gs-text-base);
+  color: var(--gs-text-subtle);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sections                                                            */
+/* ------------------------------------------------------------------ */
+
+.htr-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  margin: 0 0 var(--gs-space-3);
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+.htr-overview {
+  padding: var(--gs-space-5);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-surface-1);
+  border: 1px solid var(--gs-border);
+}
+
+.htr-overview__text {
+  margin: 0;
+  font-size: var(--gs-text-md);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Travel mode cards                                                   */
+/* ------------------------------------------------------------------ */
+
+.htr-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: var(--gs-space-3);
+}
+
+.htr-mode {
+  --_accent: var(--gs-accent);
+  --_accent-soft: var(--gs-accent-soft);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-5);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-surface-1);
+  border: 1px solid var(--gs-border);
+  border-top: 3px solid var(--_accent);
+  transition: transform var(--gs-dur-base) var(--gs-ease-out), box-shadow var(--gs-dur-base) var(--gs-ease);
+}
+.htr-mode:hover { transform: translateY(-3px); box-shadow: var(--gs-shadow-md); }
+
+.htr-mode--air { --_accent: var(--gs-accent); --_accent-soft: var(--gs-accent-soft); }
+.htr-mode--rail { --_accent: var(--gs-violet); --_accent-soft: var(--gs-violet-soft); }
+.htr-mode--road { --_accent: var(--gs-gold); --_accent-soft: var(--gs-gold-soft); }
+
+.htr-mode__header { display: flex; align-items: center; gap: var(--gs-space-3); }
+
+.htr-mode__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: var(--gs-radius-md);
+  font-size: 21px;
+  background: var(--_accent-soft);
+  border: 1px solid var(--_accent);
+}
+
+.htr-mode__title {
+  margin: 0;
+  font-size: var(--gs-text-lg);
+  font-weight: 660;
+  letter-spacing: var(--gs-tracking-tight);
+  color: var(--gs-text);
+}
+
+.htr-mode__desc {
+  margin: 0;
+  font-size: var(--gs-text-sm);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-subtle);
+}
+
+/* Facts ------------------------------------------------------------- */
+.htr-facts { display: flex; flex-direction: column; gap: var(--gs-space-2); margin: 0; }
+
+.htr-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-2);
+  border: 1px solid var(--gs-border-faint);
+}
+
+.htr-fact__label {
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+.htr-fact__value {
+  margin: 0;
+  font-size: var(--gs-text-base);
+  font-weight: 600;
+  color: var(--gs-text);
+  line-height: 1.35;
+}
+
+.htr-sub {
+  margin: 0;
+  font-size: var(--gs-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--gs-tracking-caps);
+  text-transform: uppercase;
+  color: var(--gs-text-faint);
+}
+
+.htr-cities { display: flex; flex-wrap: wrap; gap: var(--gs-space-2); margin: 0; padding: 0; list-style: none; }
+
+.htr-city {
+  padding: 0.3125rem 0.75rem;
+  border-radius: var(--gs-radius-pill);
+  background: var(--_accent-soft);
+  border: 1px solid var(--_accent);
+  color: var(--_accent);
+  font-size: var(--gs-text-xs);
+  font-weight: 620;
+}
+
+/* ------------------------------------------------------------------ */
+/* Location                                                            */
+/* ------------------------------------------------------------------ */
+
+.htr-location {
+  padding: var(--gs-space-5);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-surface-1);
+  border: 1px solid var(--gs-border);
+}
+
+.htr-location__body { display: flex; flex-direction: column; gap: var(--gs-space-2); }
+.htr-location__place { margin: 0; font-size: var(--gs-text-md); font-weight: 600; color: var(--gs-text); }
+.htr-location__coords {
+  margin: 0;
+  font-family: var(--gs-font-mono);
+  font-size: var(--gs-text-sm);
+  color: var(--gs-text-subtle);
+}
+
+.htr-location__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gs-space-3);
+  margin-top: var(--gs-space-3);
+  padding-top: var(--gs-space-4);
+  border-top: 1px solid var(--gs-border-faint);
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .htr-page { padding: var(--gs-space-2); }
+  .htr-topbar { top: 0; }
+  .htr-hero { padding: var(--gs-space-4); border-radius: var(--gs-radius-lg); }
+  .htr-modes { grid-template-columns: 1fr; }
+  .htr-location__actions { flex-direction: column; }
+  .htr-location__actions .gs-btn { width: 100%; }
+}

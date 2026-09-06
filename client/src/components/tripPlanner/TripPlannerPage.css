@@ -71,6 +71,16 @@
   position: sticky;
   top: var(--gs-space-2);
   z-index: var(--gs-z-sticky);
+
+  /* Keep the trailing controls clear of the fixed global nav. The reserve is
+     only as large as the actual overlap: the wider the viewport gets past the
+     container, the more the page's own gutter already covers. */
+  padding-right: clamp(
+    var(--gs-space-2),
+    calc(var(--gs-nav-reserve) - (100vw - var(--gs-container)) / 2),
+    var(--gs-nav-reserve)
+  );
+
 }
 
 /* ------------------------------------------------------------------ */

@@ -328,17 +328,143 @@ curl http://127.0.0.1:3000/api/diagnostics   # health of all integrations
 
 ---
 
-## 10. Known issues / not done
+## 10. Session 2 - bug-fix pass (7 reported issues)
+
+All seven items reported after session 1, with the root cause found in each
+case rather than guessed at.
+
+### 1. Gesture died when a game started
+`App.jsx` gated `CameraCapture` on `isCameraVisibleRoute`, which listed only
+`/` and `/explore`. Starting a game unmounted the capture element and the frame
+stream stopped, so gestures died. The list now covers the landing page, the
+globe and all four games it launches (`/quiz`, `/flag-game`,
+`/multiplayer/quiz`, `/multiplayer/flag-game`). Heritage routes stay excluded -
+that mode is map-driven and the user asked for it to be left out.
+
+**Verified:** camera mounted on all 6 gesture routes, absent on all 3 heritage
+routes, and a client-side `/explore` -> `/quiz` navigation keeps the video
+track in `readyState: "live"` (the actual regression).
+
+### 2. Colour picker for the border colour was unusable
+Three separate causes:
+
+- `.earth-gui .c input[type='text']` set `background`/`color` with
+  `!important`. dat.GUI paints the current colour by writing those two
+  properties *inline* on that same input, so the swatch was permanently grey.
+  Scoping it to `li:not(.color)` was **not** enough - that still matches
+  through the enclosing `li.folder`. The rule is now anchored to the row class
+  itself: `.cr:not(.color)`.
+- The palette is an absolutely-positioned popup shown on hover, and the panel's
+  controls list is a scroll container, so it was clipped out of existence. It
+  is now in the flow beneath the swatch: never clipped, always visible, and it
+  scrolls with the panel. `box-sizing: content-box` is forced on `.selector`,
+  `.saturation-field` and `.hue-field`, or the app's border-box reset drops the
+  hue strip on top of the saturation square.
+- `brightModeBorderColor` was the number `0x00ffff`. dat.GUI writes
+  `li.style.borderLeftColor = colour.toString()`, and for a numeric colour that
+  yields `"0xffff"` - invalid CSS, silently dropped. It is now the string
+  `'#00ffff'`, and the two consumers use three's `Color.set()` (accepts numbers
+  *and* strings) instead of `setHex()`.
+
+A legacy `<style>` block injected from `EarthThreeJS.jsx` was also duplicating
+and fighting the panel theming in `explore.css`; only the spinner keyframes
+remain there.
+
+### 3. Only 3 storybooks showed
+`StoryBookDemo.jsx` held a hardcoded array of three sites. It now loads all
+sites from `/api/heritage-sites` (126) and reads an optional
+`public/chapters/index.json` manifest to badge the hand-authored ones.
+Regenerate the manifest with `npm run chapters:manifest`.
+
+### 4. Heritage site counts never updated
+`updateSiteCounts()` wrote into `document.getElementById('site-count')`, but
+those nodes only exist while the info panel is open - which it is not by
+default. The counts are now derived from state with `useMemo` and rendered as
+JSX. Reads 126 total / 36 UNESCO.
+
+> Caught during verification: the memo was first placed *above* the
+> `heritageSites` declaration, which threw
+> `Cannot access 'heritageSites' before initialization` and broke the whole
+> Heritage page. Moved below its dependency.
+
+### 5. Story book UI
+The **library** page was rebuilt (search, category filters, illustrated-first
+sort, skeleton/error/empty states). The **reader** was rewritten too - it had
+real bugs, not just dated styling:
+
+- chapter prose rendered at `40px` italic, centred, in a non-scrolling box, so
+  anything longer than a few sentences was silently cut off;
+- the library page promised arrow-key paging and Esc-to-close that the reader
+  never implemented;
+- generated chapters 2-5 illustrated themselves with unrelated stock photos;
+- joining `visitingTips` left the first tip without a bullet.
+
+Now: scrolling prose at a readable size, drop cap, progress rail, chapter dots,
+skip-typewriter, keyboard paging (Left/Right/Space/Esc), and a stacked layout
+under 900px. All data contracts are unchanged - chapter files, Ken Burns, audio
+captions and the narration-unlock overlay all still work.
+
+### 6. Light mode
+- `HowToReachPage` was ~540 lines of inline styles hardcoding `#fff`, so "Back"
+  and "Home" were white-on-white. Rewritten on the design system.
+- **The landing page was the worst offender** and had not been reported
+  directly: it hardcodes a night-sky background but takes its text colour from
+  `--gs-text`, which flips to dark ink in light mode. The logo, nav links, hero
+  paragraph and the whole gesture section rendered dark-on-dark. It now has a
+  daylight background variant (and the star field, which only reads against a
+  night sky, is hidden).
+- Empty travel-mode cards: records carry `byRoad: { fromMajorCities: [] }`,
+  truthy but empty, which rendered a card with a heading and nothing in it.
+  Modes are now gated on actual content.
+
+### 7. Trip Planner
+The page, form and result were already rebuilt in session 1. The remaining
+weakness was the largest area on screen sitting empty until a plan existed, so
+the empty state now previews what a generated plan contains.
+
+### Cross-cutting: sticky topbars ran under the global nav
+`.app-nav` is fixed at the top right. Any page whose container is wide enough
+to reach it had its trailing button hidden underneath - trip planner, story
+library and the landing header all did. Added `--gs-nav-reserve` and a
+self-adjusting reserve that is only as large as the actual overlap:
+
+```css
+padding-right: clamp(
+  var(--gs-space-2),
+  calc(var(--gs-nav-reserve) - (100vw - var(--gs-container)) / 2),
+  var(--gs-nav-reserve)
+);
+```
+
+### Verification (session 2)
+- `npx eslint src` - **0 errors** (8 pre-existing warnings, none in new files).
+- `npm run build` - clean.
+- 13 routes x light **and** dark: **0 low-contrast hits, 0 page errors.**
+  (The contrast scanner had to be taught that a `background-image` gradient
+  carries a colour `backgroundColor` never reports - without that it produced
+  ~18 false positives on gradient buttons and the trip-planner hero scrim.)
+- Storybook reader driven end-to-end: cover -> chapter -> keyboard paging both
+  directions -> mobile reflow to a single column, no horizontal overflow.
+- Earth panel: 1 panel (no StrictMode ghost), swatch and row edge both live
+  cyan, palette unclipped, hue strip clear of the saturation square, collapsed
+  folders measure 0px.
+
+---
+
+## 11. Known issues / not done
 
 1. **Rotate the credentials in §3.** The single most important outstanding item.
 2. **`vite preview` binds IPv6-only** — `localhost:4173` works,
    `127.0.0.1:4173` does not (from `host: 'localhost'` in `vite.config.js`).
    Browsers are fine; hardcoded-IPv4 tooling is not.
 3. **Not restyled** (still heavy inline styles): `MultiplayerFlagPage/Game`,
-   `MultiplayerQuizPage/Game`, `HeritageQuiz`, `HeritageMultiplayerQuiz`,
-   `HeritageStoryBook`, `HowToReachPage`, `StoryBookDemo`. The multiplayer
-   views need **two live players** to verify, which is why they were left
-   working rather than changed unverified.
+   `MultiplayerQuizPage/Game`, `HeritageQuiz`, `HeritageMultiplayerQuiz`.
+   The multiplayer views need **two live players** to verify, which is why
+   they were left working rather than changed unverified. `HeritageQuiz`'s
+   mode/difficulty modals are a deliberately dark glass panel in both themes;
+   they pass the contrast audit, they are simply not on the design system.
+   (`HeritageStoryBook`, `HowToReachPage` and `StoryBookDemo` were done in
+   session 2.)
 4. **Heritage modals not yet restyled**: info, directions, quiz, street-view
    (weather, news and trip-planner are done).
 5. **`handleLeaveRoom` removed** from both multiplayer pages — it was dead
@@ -348,11 +474,11 @@ curl http://127.0.0.1:3000/api/diagnostics   # health of all integrations
    markets for "Ajanta Caves"). Data-quality/query issue, not a display bug.
 7. **restcountries** is fully removed; `the-trivia-api`, `flagcdn`,
    `overpass-api.de` and Wikipedia remain external dependencies with no key.
-8. **Nothing has been committed.** All work is uncommitted in the working tree.
+8. **Session 1 is commit `090cd19`. Session 2 is uncommitted** in the working tree.
 
 ---
 
-## 11. File map of new/changed code
+## 12. File map of new/changed code
 
 **New — server**
 ```
@@ -378,6 +504,14 @@ client/src/components/WelcomeGuide.{jsx,css}
 client/src/components/GameSelectionModal.css
 client/src/components/tripPlanner/{TripPlannerPage,TripPlannerResult,TripPlannerModal}.css
 client/src/utils/{apiConfig.js,apiError.js,richText.jsx}
+
+# session 2
+client/src/styles/how-to-reach.css       HowToReachPage (rewritten off inline styles)
+client/src/styles/storybook-library.css  Story Library index
+client/src/styles/storybook-reader.css   Story Book reader (own warm palette,
+                                         deliberately theme-independent)
+client/public/chapters/index.json        manifest of hand-authored chapters
+client/scripts/chapters-manifest.mjs     regenerates it (npm run chapters:manifest)
 ```
 
 **Deleted (dead code):** `client/src/index.css`, `client/src/App.css`,
@@ -388,7 +522,7 @@ client/src/utils/{apiConfig.js,apiError.js,richText.jsx}
 
 ---
 
-## 12. Conventions to follow
+## 13. Conventions to follow
 
 - **Never** add a `VITE_`-prefixed secret. Add it to `server/.env` and proxy it.
 - Style with design-system tokens (`--gs-*`). Avoid new inline style objects.

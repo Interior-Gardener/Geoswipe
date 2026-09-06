@@ -166,6 +166,11 @@
   --gs-header-h: 64px;
   --gs-container: 1280px;
   --gs-container-narrow: 880px;
+  /* Horizontal space the fixed global nav (.app-nav) claims at the top right,
+     including its gutter. A sticky page topbar reserves this much of its right
+     edge, otherwise its trailing button ends up underneath the nav whenever the
+     page container is wide enough to reach it. Pair it with gs-nav-clear(). */
+  --gs-nav-reserve: 156px;
 
   color-scheme: dark;
 }

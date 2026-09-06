@@ -89,7 +89,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
     enableGlow: true,
     brightEarthMode: false,
     brightIntensity: 2.0,
-    brightModeBorderColor: 0x00ffff,
+    brightModeBorderColor: '#00ffff',
     brightModeBorderOpacity: 1.0,
     normalModeBorderColor: 0x40e0ff,
   });
@@ -282,7 +282,9 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
     loadingOverlay.appendChild(loadingProgress);
     container.appendChild(loadingOverlay);
 
-    // Add Enhanced CSS Styles for Loading and GUI (FIXED GUI TITLES)
+    // Loading spinner styles. The dat.GUI panel used to be themed from here too,
+    // but those rules are now in styles/explore.css - two sources of !important
+    // fighting each other is what left the colour swatch stuck on a flat blue.
     const style = document.createElement('style');
     style.type = 'text/css';
     cleanupRefs.current.style = style; // Store for cleanup
@@ -303,71 +305,6 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
         100% { transform: rotate(360deg); }
       }
 
-      /* Enhanced dat.GUI Styling */
-      .dg.main {
-        color: white !important;
-        font-family: 'Orbitron', sans-serif !important;
-        background: rgba(0, 20, 40, 0.9) !important;
-        border-radius: 8px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-      }
-
-      .dg .title {
-        color: #00d4ff !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-        text-shadow: 0 0 8px rgba(0, 212, 255, 0.8) !important;
-        background: rgba(0, 40, 80, 0.8) !important;
-        border-radius: 4px !important;
-        padding: 4px 8px !important;
-        margin-bottom: 4px !important;
-      }
-
-      .dg .folder-title {
-        color: #00d4ff !important;
-        font-weight: bold !important;
-        text-shadow: 0 0 5px rgba(0, 212, 255, 0.3) !important;
-      }
-
-      .dg li:not(.folder) > .property-name {
-        color: white !important;
-        text-shadow: 0 0 2px rgba(255, 255, 255, 0.3) !important;
-      }
-
-      .dg .c select {
-        color: white !important;
-        background: rgba(0, 40, 80, 0.8) !important;
-        border: 1px solid rgba(0, 212, 255, 0.3) !important;
-        border-radius: 4px !important;
-      }
-
-      .dg .c input[type=text] {
-        color: white !important;
-        background: rgba(0, 40, 80, 0.8) !important;
-        border: 1px solid rgba(0, 212, 255, 0.3) !important;
-        border-radius: 4px !important;
-      }
-
-      .dg .c .slider {
-        background: rgba(255, 255, 255, 0.2) !important;
-        border-radius: 4px !important;
-      }
-
-      .dg .c .slider-fg {
-        background: linear-gradient(90deg, #00d4ff, #0080ff) !important;
-        border-radius: 4px !important;
-      }
-
-      .dg li.folder {
-        border-left: 4px solid rgba(0, 212, 255, 0.5) !important;
-        background: rgba(0, 20, 40, 0.3) !important;
-        border-radius: 4px !important;
-        margin: 2px 0 !important;
-      }
-
-      .dg .c input[type=checkbox] {
-        margin-right: 8px !important;
-      }
     `;
     document.head.appendChild(style);
 
@@ -1281,7 +1218,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
 
       materialFolder.addColor(params, "brightModeBorderColor").onChange(v => {
         if (params.brightEarthMode) {
-          countryLines.forEach(line => line.material.color.setHex(v));
+          countryLines.forEach(line => line.material.color.set(v));
         }
       }).name("Bright Border Color");
 
@@ -1325,7 +1262,7 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
           clouds.material.opacity = 0.2;
           atmos.material.uniforms.atmOpacity.value = 0.3;
           countryLines.forEach(line => {
-            line.material.color.setHex(params.brightModeBorderColor);
+            line.material.color.set(params.brightModeBorderColor);
             line.material.opacity = params.brightModeBorderOpacity;
             line.material.linewidth = 2;
             line.renderOrder = 10;

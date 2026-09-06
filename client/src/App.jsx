@@ -59,10 +59,22 @@ function AppShell() {
   const location = useLocation();
   const { theme } = useTheme();
 
-  const isCameraVisibleRoute = useMemo(
-    () => location.pathname === "/" || location.pathname === "/explore",
-    [location.pathname]
-  );
+  // Gesture control must stay alive wherever the user steers with their hand:
+  // the landing page, the globe, and every game launched from it. Previously
+  // this was limited to "/" and "/explore", so CameraCapture unmounted the
+  // moment a game started and the frame stream (and therefore gestures) died.
+  // Heritage Mode is map-driven and deliberately excluded.
+  const isCameraVisibleRoute = useMemo(() => {
+    const gestureRoutes = [
+      "/",
+      "/explore",
+      "/quiz",
+      "/flag-game",
+      "/multiplayer/quiz",
+      "/multiplayer/flag-game"
+    ];
+    return gestureRoutes.includes(location.pathname);
+  }, [location.pathname]);
 
   const isHeritageRoute = useMemo(
     () => isHeritageEcosystemPath(location.pathname),

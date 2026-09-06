@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useHeritageSelection } from './context/HeritageSelectionContext';
 import {
@@ -7,12 +7,21 @@ import {
   normalizeMonumentSelection
 } from './utils/heritageNavigationState';
 import { fetchMonumentImage, primeMonumentImageCache } from './utils/heritageImageService';
+import './styles/storybook-reader.css';
+
+/** Used only when a site has no imagery of its own to illustrate a chapter. */
+const GENERIC_COVER =
+  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop';
+
+/** Characters per second for the narration typewriter. */
+const TYPE_CPS = 45;
 
 const HeritageStoryBook = () => {
   const { name } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { selectedMonument } = useHeritageSelection();
+
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,19 +31,19 @@ const HeritageStoryBook = () => {
 
   // Optional story chapters loaded from public/chapters
   const [storyChapters, setStoryChapters] = useState(null);
- 
+
   // Audio + narration state
   const audioRef = useRef(null);
+  const typingRef = useRef(null);
+  const skipRef = useRef(false);
   const [displayedText, setDisplayedText] = useState('');
-  const [, setActiveCaptionIndex] = useState(-1);
-  const [, setTypingTick] = useState(0); // forces re-render during typewriter
+  const [typingDone, setTypingDone] = useState(false);
   const [audioOverlayVisible, setAudioOverlayVisible] = useState(false);
 
-  // Ken Burns state for left image
+  // Ken Burns state for the illustration
   const [kenBurnsScale, setKenBurnsScale] = useState(1);
-  const [kenBurnsTranslate, setKenBurnsTranslate] = useState({ x: 0, y: 0 });
 
-  // Flip animation direction
+  // Page-turn direction, used to bias the turn animation.
   const [flipDirection, setFlipDirection] = useState('next');
 
   const currentSelection =
@@ -47,12 +56,14 @@ const HeritageStoryBook = () => {
     const fetchSiteData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/heritage/${encodeURIComponent(name)}`);
-        
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/heritage/${encodeURIComponent(name)}`
+        );
+
         if (!response.ok) {
           throw new Error('Site not found');
         }
-        
+
         const data = await response.json();
         setSite(data);
         setLoading(false);
@@ -132,86 +143,51 @@ const HeritageStoryBook = () => {
     return () => { cancelled = true; };
   }, [name]);
 
-  // Generate fallback story chapters from site data
-  const generateChapters = (siteData) => {
-    const chapters = [];
-    
-    // Chapter 1: Introduction
-    if (siteData.info?.full) {
-      chapters.push({
-        title: "Chapter 1: Introduction",
-        image:
-          dynamicImage?.imageUrl ||
-          siteData.media?.panorama_url ||
-          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
-        text: siteData.info.full,
-        type: 'introduction'
-      });
-    }
-
-    // Chapter 2: History
-    if (siteData.info?.history) {
-      chapters.push({
-        title: "Chapter 2: History",
-        image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop',
-        text: siteData.info.history,
-        type: 'history'
-      });
-    }
-
-    // Chapter 3: Architecture
-    if (siteData.info?.architecture) {
-      chapters.push({
-        title: "Chapter 3: Architecture",
-        image: 'https://images.unsplash.com/photo-1520637836862-4d197d17c50a?w=800&h=600&fit=crop',
-        text: siteData.info.architecture,
-        type: 'architecture'
-      });
-    }
-
-    // Chapter 4: Significance
-    if (siteData.info?.significance) {
-      chapters.push({
-        title: "Chapter 4: Significance",
-        image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&h=600&fit=crop',
-        text: siteData.info.significance,
-        type: 'significance'
-      });
-    }
-
-    // Chapter 5: Visiting Tips
-    if (siteData.info?.visitingTips && siteData.info.visitingTips.length > 0) {
-      chapters.push({
-        title: "Chapter 5: Visiting Tips",
-        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
-        text: siteData.info.visitingTips.join('\n\n• '),
-        type: 'tips'
-      });
-    }
-
-    return chapters;
-  };
-
-    // Final chapters: prefer storyChapters if present, else fallback
+  // Story assembled from the site's own record when there is no hand-authored
+  // chapter file. Every chapter is illustrated with the monument's own image -
+  // the previous build pulled unrelated stock photography for chapters 2-5.
   const chapters = useMemo(() => {
     if (storyChapters && storyChapters.length > 0) return storyChapters;
-    if (site) return generateChapters(site);
-    return [];
-  }, [storyChapters, site]);  const stopAudio = () => {
+    if (!site) return [];
+
+    const cover = dynamicImage?.imageUrl || site.media?.panorama_url || GENERIC_COVER;
+    const info = site.info || {};
+    const built = [];
+
+    const push = (title, text, type) => {
+      if (!text) return;
+      built.push({ title, text, type, image: cover });
+    };
+
+    push('Introduction', info.full, 'introduction');
+    push('History', info.history, 'history');
+    push('Architecture', info.architecture, 'architecture');
+    push('Significance', info.significance, 'significance');
+
+    if (Array.isArray(info.visitingTips) && info.visitingTips.length > 0) {
+      // Note the leading bullet: joining alone left the first tip unmarked.
+      push('Visiting Tips', `• ${info.visitingTips.join('\n\n• ')}`, 'tips');
+    }
+
+    return built;
+  }, [storyChapters, site, dynamicImage]);
+
+  const totalChapters = chapters.length;
+  const isCover = currentPage === 0;
+  const isLastPage = totalChapters > 0 && currentPage === totalChapters + 1;
+  const isChapter = currentPage > 0 && currentPage <= totalChapters;
+  const chapter = isChapter ? chapters[currentPage - 1] : null;
+
+  const stopAudio = useCallback(() => {
     if (audioRef.current) {
-      try { audioRef.current.pause(); } catch (_e) {}
+      try { audioRef.current.pause(); } catch (_e) { /* already detached */ }
       audioRef.current.src = '';
       audioRef.current.load?.();
+      audioRef.current = null;
     }
-  };
+  }, []);
 
-  const resetNarration = () => {
-    setDisplayedText('');
-    setActiveCaptionIndex(-1);
-    setTypingTick((t) => t + 1);
-  };
-
-  // Flip sound
+  // Page-turn sound
   const pageTurnAudioRef = useRef(null);
   useEffect(() => {
     if (!pageTurnAudioRef.current) {
@@ -219,69 +195,79 @@ const HeritageStoryBook = () => {
     }
   }, []);
 
-  const handlePageFlip = (direction) => {
+  const goToPage = useCallback((target, direction) => {
     if (isFlipping) return;
+    if (target < 0 || target > totalChapters + 1) return;
+
     setFlipDirection(direction);
-    // Play flip sound
+
     if (pageTurnAudioRef.current) {
       try {
         pageTurnAudioRef.current.currentTime = 0;
         pageTurnAudioRef.current.play();
       } catch { /* non-critical */ }
     }
-    setIsFlipping(true);
-    setTimeout(() => {
-      if (direction === 'next') {
-        if (currentPage <= chapters.length) {
-          setCurrentPage(prev => prev + 1);
-        }
-      } else if (direction === 'prev' && currentPage > 0) {
-        setCurrentPage(prev => prev - 1);
-      }
-      setIsFlipping(false);
-    }, 600); // slightly longer for visible animation
-  };
 
-  const handleClose = () => {
+    setIsFlipping(true);
+    setCurrentPage(target);
+    window.setTimeout(() => setIsFlipping(false), 460);
+  }, [isFlipping, totalChapters]);
+
+  const handlePageFlip = useCallback((direction) => {
+    goToPage(
+      direction === 'next' ? currentPage + 1 : currentPage - 1,
+      direction
+    );
+  }, [goToPage, currentPage]);
+
+  const handleClose = useCallback(() => {
     const state = buildHeritageRouteState(currentSelection);
     if (state) {
       navigate('/heritage', { state });
       return;
     }
     navigate('/heritage');
-  };
+  }, [currentSelection, navigate]);
 
-  const isLastPage = currentPage === chapters.length + 1;
-
-  // Setup audio + narration on page change
-  useEffect(() => {
-    // Cover page or closing page: stop audio and reset
-    if (currentPage === 0 || isLastPage) {
-      stopAudio();
-      resetNarration();
-      return;
+  /** Reveal the rest of the chapter immediately rather than waiting it out. */
+  const skipTyping = useCallback(() => {
+    skipRef.current = true;
+    if (typingRef.current) {
+      clearInterval(typingRef.current);
+      typingRef.current = null;
     }
-    
+    setDisplayedText(chapter?.text || '');
+    setTypingDone(true);
+  }, [chapter]);
 
+  // Narration for the current chapter: audio with captions when the chapter
+  // ships them, otherwise a plain typewriter over the chapter text.
+  useEffect(() => {
+    skipRef.current = false;
+    setTypingDone(false);
+    setDisplayedText('');
 
-    const chapter = chapters[currentPage - 1];
-    if (!chapter) return;
-    resetNarration();
+    if (typingRef.current) {
+      clearInterval(typingRef.current);
+      typingRef.current = null;
+    }
 
-    // Ken Burns animate
+    if (!isChapter || !chapter) {
+      stopAudio();
+      setAudioOverlayVisible(false);
+      return undefined;
+    }
+
+    // Ken Burns
     const kb = chapter?.image?.kenBurns;
     const beginScale = (kb?.enabled && kb?.zoomStart) ? kb.zoomStart : 1;
     const endScale = (kb?.enabled && kb?.zoomEnd) ? kb.zoomEnd : beginScale;
     setKenBurnsScale(beginScale);
-    setKenBurnsTranslate({ x: 0, y: 0 });
-    setTimeout(() => {
-      setKenBurnsScale(endScale);
-      // Optional pan support in future via translate
-    }, 50);
+    const kbTimer = window.setTimeout(() => setKenBurnsScale(endScale), 50);
 
-    // If audio provided
     const audioUrl = chapter?.audio?.url;
     const captions = chapter?.audio?.captions;
+    const body = chapter?.text || '';
 
     if (audioUrl) {
       const audio = new Audio(audioUrl);
@@ -289,617 +275,405 @@ const HeritageStoryBook = () => {
       setAudioOverlayVisible(false);
 
       const onTimeUpdate = () => {
+        if (skipRef.current) return;
         const tMs = audio.currentTime * 1000;
         if (Array.isArray(captions) && captions.length > 0) {
-          const idx = captions.findIndex(c => tMs >= c.startMs && tMs < c.endMs);
-          setActiveCaptionIndex(idx);
+          const idx = captions.findIndex((c) => tMs >= c.startMs && tMs < c.endMs);
           if (idx >= 0) {
             const c = captions[idx];
             const span = Math.max(1, c.endMs - c.startMs);
             const within = Math.max(0, Math.min(span, tMs - c.startMs));
-            const progress = within / span;
-            const chars = Math.max(0, Math.floor(c.text.length * progress));
+            const chars = Math.max(0, Math.floor(c.text.length * (within / span)));
             setDisplayedText(c.text.slice(0, chars));
           } else {
             setDisplayedText('');
           }
         } else {
-          // No captions: simple typewriter over full text at ~30 chars/sec
-          const body = chapter?.text || '';
-          const cps = 30;
-          const chars = Math.min(body.length, Math.floor((audio.currentTime) * cps));
+          const chars = Math.min(body.length, Math.floor(audio.currentTime * TYPE_CPS));
           setDisplayedText(body.slice(0, chars));
         }
       };
 
       const onEnded = () => {
-        // Ensure full last caption text when ended
         if (Array.isArray(captions) && captions.length > 0) {
           setDisplayedText(captions[captions.length - 1].text);
+        } else {
+          setDisplayedText(body);
         }
+        setTypingDone(true);
       };
 
       audio.addEventListener('timeupdate', onTimeUpdate);
       audio.addEventListener('ended', onEnded);
       audio.play().catch(() => {
-        // Autoplay blocked – show overlay to request user gesture
+        // Autoplay blocked - ask for a gesture rather than sitting silent.
         setAudioOverlayVisible(true);
       });
 
       return () => {
+        window.clearTimeout(kbTimer);
         audio.removeEventListener('timeupdate', onTimeUpdate);
         audio.removeEventListener('ended', onEnded);
-        try { audio.pause(); } catch (_e) {}
+        try { audio.pause(); } catch (_e) { /* already detached */ }
       };
-    } else {
-      // No audio: typewriter using interval
-      const body = chapter?.text || '';
-      setDisplayedText('');
-      let i = 0;
-      const cps = 30; // chars per second
-      const interval = setInterval(() => {
-        i = Math.min(body.length, i + 2);
-        setDisplayedText(body.slice(0, i));
-        if (i >= body.length) clearInterval(interval);
-      }, 1000 / cps);
-      return () => clearInterval(interval);
     }
-  }, [currentPage, isLastPage, chapters]);
 
-  // From here on, render based on state using conditional blocks inside one return
+    // No audio: typewriter.
+    let i = 0;
+    typingRef.current = window.setInterval(() => {
+      i = Math.min(body.length, i + 2);
+      setDisplayedText(body.slice(0, i));
+      if (i >= body.length) {
+        clearInterval(typingRef.current);
+        typingRef.current = null;
+        setTypingDone(true);
+      }
+    }, 2000 / TYPE_CPS);
+
+    return () => {
+      window.clearTimeout(kbTimer);
+      if (typingRef.current) {
+        clearInterval(typingRef.current);
+        typingRef.current = null;
+      }
+    };
+  }, [currentPage, isChapter, chapter, stopAudio]);
+
+  // Stop narration when the reader unmounts.
+  useEffect(() => () => {
+    stopAudio();
+    if (typingRef.current) clearInterval(typingRef.current);
+  }, [stopAudio]);
+
+  // Keyboard paging. The Story Library tells readers these keys work, so they
+  // have to actually work.
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.defaultPrevented) return;
+      const tag = event.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || event.target?.isContentEditable) return;
+
+      switch (event.key) {
+        case 'ArrowRight':
+        case 'PageDown':
+          event.preventDefault();
+          if (currentPage <= totalChapters) handlePageFlip('next');
+          break;
+        case 'ArrowLeft':
+        case 'PageUp':
+          event.preventDefault();
+          if (currentPage > 0) handlePageFlip('prev');
+          break;
+        case ' ':
+          event.preventDefault();
+          // Space finishes the narration first, then advances.
+          if (isChapter && !typingDone) skipTyping();
+          else if (currentPage <= totalChapters) handlePageFlip('next');
+          break;
+        case 'Escape':
+          event.preventDefault();
+          handleClose();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [currentPage, totalChapters, isChapter, typingDone, handlePageFlip, handleClose, skipTyping]);
+
+  const coverImage =
+    dynamicImage?.imageUrl || site?.media?.panorama_url || GENERIC_COVER;
+
+  const progress = useMemo(() => {
+    if (totalChapters === 0) return 0;
+    return Math.min(100, (currentPage / (totalChapters + 1)) * 100);
+  }, [currentPage, totalChapters]);
+
+  const slug = name ? name.replace(/\s+/g, '-').toLowerCase() : '';
+
+  // Chapter illustration: chapters may carry either a plain URL string or a
+  // full image object with focal point, fit and Ken Burns settings.
+  const image = chapter?.image;
+  const imageUrl = typeof image === 'string' ? image : image?.url || '';
+  const imagePosition = image?.focalPoint
+    ? `${image.focalPoint.x * 100}% ${image.focalPoint.y * 100}%`
+    : 'center';
+  const imageFit = image?.fit === 'contain' ? 'contain' : 'cover';
+  const kenBurnsEnabled = image?.kenBurns?.enabled;
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: '#2c1810',
-      fontFamily: "'Merriweather', serif",
-      overflow: 'hidden'
-    }}>
-      {/* Loading state */}
-      {loading && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#d4af37'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📖</div>
-            <div style={{ fontSize: '24px' }}>Opening the story...</div>
-          </div>
+    <div className="hsb">
+      {/* Reading progress */}
+      {totalChapters > 0 && !loading && (
+        <div
+          className="hsb-progress"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+          aria-label="Reading progress"
+        >
+          <div className="hsb-progress__fill" style={{ width: `${progress}%` }} />
         </div>
       )}
 
-      {/* Error state */}
+      {/* Chrome */}
+      <div className="hsb-topbar">
+        {isChapter && (
+          <span className="hsb-chip">
+            Chapter {currentPage} of {totalChapters}
+          </span>
+        )}
+        <span className="hsb-topbar__spacer" />
+        <button
+          type="button"
+          className="hsb-iconbtn"
+          onClick={handleClose}
+          aria-label="Close story and return to the heritage map"
+          title="Close (Esc)"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="hsb-fill" aria-busy="true">
+          <div className="hsb-fill__icon" aria-hidden="true">📖</div>
+          <h1 className="hsb-fill__title">Opening the story…</h1>
+        </div>
+      )}
+
+      {/* Error */}
       {!loading && (error || !site) && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#d4af37'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📚</div>
-            <div style={{ fontSize: '24px', marginBottom: '20px' }}>Story Not Found</div>
-            <button
-              onClick={handleClose}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#d4af37',
-                color: '#2c1810',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                cursor: 'pointer'
-              }}
-            >
-              Back to Map
+        <div className="hsb-fill">
+          <div className="hsb-fill__icon" aria-hidden="true">📚</div>
+          <h1 className="hsb-fill__title">Story not found</h1>
+          <p className="hsb-fill__text">
+            {error || 'We could not find a story for this monument.'}
+          </p>
+          <div className="hsb-plate__actions">
+            <button type="button" className="hsb-btn hsb-btn--ghost" onClick={() => navigate('/storybook-demo')}>
+              Browse all stories
+            </button>
+            <button type="button" className="hsb-btn" onClick={handleClose}>
+              Back to map
             </button>
           </div>
         </div>
       )}
 
-      {/* No chapters guard */}
-      {!loading && !error && site && (!chapters || chapters.length === 0) && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#f4e4bc'
-        }}>
-          <div style={{ textAlign: 'center', maxWidth: 720, padding: 24 }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📚</div>
-            <div style={{ fontSize: 22, marginBottom: 8 }}>No story chapters available</div>
-            <div style={{ fontSize: 14, opacity: 0.85 }}>
-              Ensure your chapters JSON exists at /chapters/{name}.json or /chapters/{name.replace(/\s+/g, '-').toLowerCase()}.json
-            </div>
+      {/* No chapters */}
+      {!loading && !error && site && totalChapters === 0 && (
+        <div className="hsb-fill">
+          <div className="hsb-fill__icon" aria-hidden="true">📚</div>
+          <h1 className="hsb-fill__title">No story chapters yet</h1>
+          <p className="hsb-fill__text">
+            This site has no written chapters and no history, architecture or significance
+            text to build one from. Add a chapter file at{' '}
+            <code>/chapters/{slug}.json</code> to give it a story.
+          </p>
+          <div className="hsb-plate__actions">
+            <button type="button" className="hsb-btn hsb-btn--ghost" onClick={() => navigate('/storybook-demo')}>
+              Browse all stories
+            </button>
+            <button type="button" className="hsb-btn" onClick={handleClose}>
+              Back to map
+            </button>
           </div>
         </div>
       )}
-      {/* Book Cover */}
-      {!loading && site && currentPage === 0 && (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          background: `linear-gradient(rgba(44, 24, 16, 0.7), rgba(44, 24, 16, 0.7)), url(${dynamicImage?.imageUrl || site?.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop'})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          position: 'relative'
-        }}>
-          {/* Decorative border */}
-          <div style={{
-            position: 'absolute',
-            top: '40px',
-            left: '40px',
-            right: '40px',
-            bottom: '40px',
-            border: '3px solid #d4af37',
-            borderRadius: '20px',
-            pointerEvents: 'none'
-          }} />
-          
-          {/* Book title */}
-          <div style={{
-            backgroundColor: 'rgba(44, 24, 16, 0.9)',
-            padding: '40px 60px',
-            borderRadius: '15px',
-            border: '2px solid #d4af37',
-            marginBottom: '40px',
-            maxWidth: '600px'
-          }}>
-            <h1 style={{
-              fontSize: '48px',
-              color: '#d4af37',
-              margin: '0 0 20px 0',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-              fontWeight: 'bold'
-            }}>
-              {site?.name || ''}
-            </h1>
-            <p style={{
-              fontSize: '24px',
-              color: '#f4e4bc',
-              margin: '0 0 10px 0',
-              fontStyle: 'italic'
-            }}>
-              {site?.category || ''}
-            </p>
-            <p style={{
-              fontSize: '18px',
-              color: '#d4af37',
-              margin: '0'
-            }}>
-              {site?.year || ''}
-            </p>
-          </div>
 
-          {/* Open book button */}
-          <button
-            onClick={() => handlePageFlip('next')}
-            style={{
-              padding: '20px 40px',
-              backgroundColor: '#d4af37',
-              color: '#2c1810',
-              border: 'none',
-              borderRadius: '50px',
-              fontSize: '24px',
-              cursor: 'pointer',
-              fontFamily: "'Merriweather', serif",
-              fontWeight: 'bold',
-              boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-3px)';
-              e.target.style.boxShadow = '0 12px 25px rgba(0,0,0,0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
-            }}
-          >
-            📖 Open Book
-          </button>
-        </div>
-      )}
+      {/* Cover */}
+      {!loading && site && totalChapters > 0 && isCover && (
+        <div className="hsb-scene" style={{ backgroundImage: `url(${coverImage})` }}>
+          <div className="hsb-scene__frame" aria-hidden="true" />
+          <div className="hsb-plate">
+            <p className="hsb-plate__eyebrow">A heritage story</p>
+            <h1 className="hsb-plate__title">{site.name}</h1>
 
-      {/* Chapter Pages */}
-      {currentPage > 0 && currentPage <= chapters.length && (
-        <div className={`book${isFlipping ? ' flip' : ''} ${flipDirection}`} style={{
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-          perspective: '2000px',
-          display: 'flex',
-        }}>
-          {/* Left Page - Image */}
-          {(() => {
-            const ch = chapters[currentPage - 1];
-            const img = ch?.image || {};
-            const bgPos = img?.focalPoint ? `${img.focalPoint.x * 100}% ${img.focalPoint.y * 100}%` : 'center';
-            const bgSize = img?.fit === 'contain' ? 'contain' : 'cover';
-            const kbEnabled = img?.kenBurns?.enabled;
-            return (
-              <div className="book-page left" style={{
-                width: '50%',
-                height: '100%',
-                position: 'relative',
-                borderRight: '2px solid #d4af37',
-                overflow: 'hidden',
-                transformStyle: 'preserve-3d',
-                background: 'none',
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundImage: `url(${img?.url || ch?.image || ''})`,
-                  backgroundSize: bgSize,
-                  backgroundPosition: bgPos,
-                  backgroundRepeat: 'no-repeat',
-                  transform: `scale(${kenBurnsScale}) translate(${kenBurnsTranslate.x}px, ${kenBurnsTranslate.y}px)`,
-                  transition: kbEnabled ? `transform ${(img?.kenBurns?.durationMs || 10000)}ms ease-in-out` : 'none'
-                }} />
-                {/* Image overlay */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'linear-gradient(45deg, rgba(44, 24, 16, 0.25), rgba(44, 24, 16, 0.1))'
-                }} />
-                {/* Caption */}
-                {img?.caption && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: 16,
-                    left: 16,
-                    right: 16,
-                    color: '#f4e4bc',
-                    fontSize: '14px',
-                    textShadow: '0 2px 6px rgba(0,0,0,0.6)'
-                  }}>
-                    {img.caption}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Right Page - Text */}
-          <div className="book-page right" style={{
-            width: '50%',
-            height: '100%',
-            backgroundColor: '#f4e4bc',
-            padding: '40px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            position: 'relative',
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"60\\" height=\\"60\\" viewBox=\\"0 0 60 60\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cg fill=\\"none\\" fill-rule=\\"evenodd\\"%3E%3Cg fill=\\"%23d4af37\\" fill-opacity=\\"0.05\\"%3E%3Ccircle cx=\\"30\\" cy=\\"30\\" r=\\"2\\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-            transformStyle: 'preserve-3d',
-          }}>
-            {/* Page number */}
-            <div style={{
-              position: 'absolute',
-              top: '20px',
-              right: '30px',
-              color: '#8b7355',
-              fontSize: '14px'
-            }}>
-              {currentPage} / {chapters.length + 1}
+            <div className="hsb-plate__meta">
+              {site.category && <span className="hsb-tag">{site.category}</span>}
+              {site.year && <span className="hsb-tag">{site.year}</span>}
+              <span className="hsb-tag">
+                {totalChapters} {totalChapters === 1 ? 'chapter' : 'chapters'}
+              </span>
             </div>
 
-            {/* Chapter title */}
-            <h2 style={{
-              fontSize: '36px',
-              color: '#2c1810',
-              margin: '0 0 30px 0',
-              fontWeight: 'bold',
-              borderBottom: '3px solid #d4af37',
-              paddingBottom: '15px'
-            }}>
-              {chapters[currentPage - 1].title}
-            </h2>
-
-            {/* Centered typewriter text area */}
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '10px'
-            }}>
-              <div style={{
-                maxWidth: 720,
-                width: '100%',
-                textAlign: 'center',
-                fontSize: '40px',
-                fontStyle: 'italic',
-                lineHeight: 1.8,
-                color: '#2c1810',
-                padding: '10px 6px',
-                position: 'relative'
-              }}>
-                <span>{displayedText}</span>
-                <span style={{
-                  display: 'inline-block',
-                  width: 10,
-                  marginLeft: 2,
-                  backgroundColor: 'transparent',
-                  borderLeft: '3px solid #d4af37',
-                  animation: 'blink 1s step-start 0s infinite'
-                }} />
-              </div>
-            </div>
-
-            {/* Inline keyframes for blinking caret */}
-            <style dangerouslySetInnerHTML={{ __html: `
-              @keyframes blink { 50% { opacity: 0; } }
-            `}} />
-          </div>
-          {/* Flip animation CSS */}
-          <style>{`
-            .book {
-              transition: transform 0.6s cubic-bezier(0.4,0.2,0.2,1);
-              transform-style: preserve-3d;
-            }
-            .book.flip.next {
-              transform: rotateY(-180deg);
-            }
-            .book.flip.prev {
-              transform: rotateY(180deg);
-            }
-            .book-page {
-              backface-visibility: hidden;
-            }
-            .book-page.left {
-              z-index: 2;
-            }
-            .book-page.right {
-              z-index: 1;
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* Closing Page */}
-      {!loading && site && isLastPage && (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          background: `linear-gradient(rgba(44, 24, 16, 0.8), rgba(44, 24, 16, 0.8)), url(${dynamicImage?.imageUrl || site?.media?.panorama_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop'})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          position: 'relative'
-        }}>
-          {/* Decorative border */}
-          <div style={{
-            position: 'absolute',
-            top: '40px',
-            left: '40px',
-            right: '40px',
-            bottom: '40px',
-            border: '3px solid #d4af37',
-            borderRadius: '20px',
-            pointerEvents: 'none'
-          }} />
-          
-          <div style={{
-            backgroundColor: 'rgba(44, 24, 16, 0.9)',
-            padding: '40px 60px',
-            borderRadius: '15px',
-            border: '2px solid #d4af37',
-            maxWidth: '600px'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📚</div>
-            <h2 style={{
-              fontSize: '36px',
-              color: '#d4af37',
-              margin: '0 0 20px 0',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
-            }}>
-              Journey Complete
-            </h2>
-            <p style={{
-              fontSize: '20px',
-              color: '#f4e4bc',
-              margin: '0 0 30px 0',
-              lineHeight: '1.6'
-            }}>
-              You've completed the journey through <strong>{site?.name || ''}</strong>. 
-              We hope this story has inspired you to visit and experience the rich heritage of this remarkable place.
-            </p>
-            
-            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+            <div className="hsb-plate__actions">
               <button
-                onClick={() => setCurrentPage(0)}
-                style={{
-                  padding: '15px 30px',
-                  backgroundColor: 'transparent',
-                  color: '#d4af37',
-                  border: '2px solid #d4af37',
-                  borderRadius: '25px',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  fontFamily: "'Merriweather', serif",
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#d4af37';
-                  e.target.style.color = '#2c1810';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.color = '#d4af37';
-                }}
+                type="button"
+                className="hsb-btn hsb-btn--lg"
+                onClick={() => handlePageFlip('next')}
               >
-                📖 Read Again
+                <span aria-hidden="true">📖</span> Open book
               </button>
-              
+            </div>
+
+            <p className="hsb-hint">
+              <kbd>←</kbd> <kbd>→</kbd> to turn pages · <kbd>Esc</kbd> to close
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Chapter spread */}
+      {isChapter && chapter && (
+        <div
+          className={
+            `hsb-spread${isFlipping ? ' is-turning' : ''}` +
+            `${isFlipping && flipDirection === 'prev' ? ' is-turning-prev' : ''}`
+          }
+        >
+          {/* Illustration */}
+          <div className="hsb-pane hsb-pane--image">
+            {imageUrl ? (
+              <>
+                <div
+                  className="hsb-pane__photo"
+                  style={{
+                    backgroundImage: `url(${imageUrl})`,
+                    backgroundSize: imageFit,
+                    backgroundPosition: imagePosition,
+                    transform: `scale(${kenBurnsScale})`,
+                    transition: kenBurnsEnabled
+                      ? `transform ${image?.kenBurns?.durationMs || 10000}ms ease-in-out`
+                      : 'none'
+                  }}
+                />
+                <div className="hsb-pane__veil" aria-hidden="true" />
+                {image?.caption && <p className="hsb-pane__caption">{image.caption}</p>}
+              </>
+            ) : (
+              <div className="hsb-pane__placeholder" aria-hidden="true">🏛️</div>
+            )}
+          </div>
+
+          {/* Page */}
+          <div className="hsb-pane hsb-pane--text">
+            <header className="hsb-page__head">
+              <div className="hsb-page__eyebrow">
+                <span>Chapter {currentPage}</span>
+                <span>{currentPage} / {totalChapters}</span>
+              </div>
+              <h2 className="hsb-page__title">{chapter.title}</h2>
+            </header>
+
+            <div className="hsb-page__body gs-scroll">
+              <p className="hsb-prose hsb-prose--lead">
+                {displayedText}
+                {!typingDone && <span className="hsb-caret" aria-hidden="true" />}
+              </p>
+            </div>
+
+            <footer className="hsb-page__foot">
+              {!typingDone && (
+                <button type="button" className="hsb-skip" onClick={skipTyping}>
+                  Show full text
+                </button>
+              )}
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Closing page */}
+      {!loading && site && totalChapters > 0 && isLastPage && (
+        <div className="hsb-scene" style={{ backgroundImage: `url(${coverImage})` }}>
+          <div className="hsb-scene__frame" aria-hidden="true" />
+          <div className="hsb-plate">
+            <div className="hsb-fill__icon" aria-hidden="true">📚</div>
+            <h2 className="hsb-plate__title">Journey complete</h2>
+            <p className="hsb-plate__text">
+              You have read the story of <strong>{site.name}</strong>. We hope it inspires
+              you to visit and experience this place for yourself.
+            </p>
+
+            <div className="hsb-plate__actions">
               <button
-                onClick={handleClose}
-                style={{
-                  padding: '15px 30px',
-                  backgroundColor: '#d4af37',
-                  color: '#2c1810',
-                  border: 'none',
-                  borderRadius: '25px',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  fontFamily: "'Merriweather', serif",
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
-                }}
+                type="button"
+                className="hsb-btn hsb-btn--ghost"
+                onClick={() => goToPage(0, 'prev')}
               >
-                📍 Back to Map
+                <span aria-hidden="true">📖</span> Read again
+              </button>
+              <button
+                type="button"
+                className="hsb-btn hsb-btn--ghost"
+                onClick={() => navigate('/storybook-demo')}
+              >
+                <span aria-hidden="true">📚</span> More stories
+              </button>
+              <button type="button" className="hsb-btn" onClick={handleClose}>
+                <span aria-hidden="true">📍</span> Back to map
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Audio gesture overlay */}
+      {/* Narration needs a gesture before it can start */}
       {audioOverlayVisible && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.4)', zIndex: 5
-        }}>
-          <div style={{
-            background: '#fff', padding: '18px 22px', borderRadius: 10,
-            boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: 16, color: '#333', marginBottom: 10 }}>Tap to enable narration</div>
-            <button onClick={() => {
-              setAudioOverlayVisible(false);
-              const a = audioRef.current;
-              if (a) a.play().catch(()=>{});
-            }}
-            style={{
-              padding: '10px 16px', background: '#d4af37', color: '#2c1810',
-              border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700
-            }}>▶ Play</button>
+        <div className="hsb-overlay">
+          <div className="hsb-overlay__card">
+            <h3 className="hsb-overlay__title">Narration is ready</h3>
+            <p className="hsb-overlay__text">
+              Your browser blocks audio until you interact with the page.
+            </p>
+            <button
+              type="button"
+              className="hsb-btn"
+              onClick={() => {
+                setAudioOverlayVisible(false);
+                audioRef.current?.play().catch(() => {});
+              }}
+            >
+              <span aria-hidden="true">▶</span> Play narration
+            </button>
           </div>
         </div>
       )}
 
-      {/* Navigation Controls */}
-      {currentPage > 0 && !isLastPage && (
-        <div style={{
-          position: 'absolute',
-          bottom: '30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: '20px',
-          alignItems: 'center'
-        }}>
+      {/* Paging dock */}
+      {totalChapters > 0 && !isCover && (
+        <nav className="hsb-dock" aria-label="Story pages">
           <button
+            type="button"
+            className="hsb-dock__btn"
             onClick={() => handlePageFlip('prev')}
-            disabled={currentPage === 1 || isFlipping}
-            style={{
-              padding: '12px 20px',
-              backgroundColor: currentPage === 1 ? '#666' : '#d4af37',
-              color: currentPage === 1 ? '#999' : '#2c1810',
-              border: 'none',
-              borderRadius: '25px',
-              fontSize: '16px',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              fontFamily: "'Merriweather', serif",
-              fontWeight: 'bold',
-              opacity: currentPage === 1 ? 0.5 : 1,
-              transition: 'all 0.3s ease'
-            }}
-          >
-            ◀ Previous
-          </button>
-          
-          <span style={{
-            color: '#d4af37',
-            fontSize: '16px',
-            fontWeight: 'bold'
-          }}>
-            {currentPage} / {chapters.length + 1}
-          </span>
-          
-          <button
-            onClick={() => handlePageFlip('next')}
             disabled={isFlipping}
-            style={{
-              padding: '12px 20px',
-              backgroundColor: '#d4af37',
-              color: '#2c1810',
-              border: 'none',
-              borderRadius: '25px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              fontFamily: "'Merriweather', serif",
-              fontWeight: 'bold',
-              transition: 'all 0.3s ease'
-            }}
           >
-            Next ▶
+            <span aria-hidden="true">◀</span> Prev
           </button>
-        </div>
-      )}
 
-      {/* Close button (X) */}
-      <button
-        onClick={handleClose}
-        style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          width: '50px',
-          height: '50px',
-          backgroundColor: 'rgba(44, 24, 16, 0.8)',
-          color: '#d4af37',
-          border: '2px solid #d4af37',
-          borderRadius: '50%',
-          fontSize: '24px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#d4af37';
-          e.target.style.color = '#2c1810';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.backgroundColor = 'rgba(44, 24, 16, 0.8)';
-          e.target.style.color = '#d4af37';
-        }}
-      >
-        ×
-      </button>
+          <div className="hsb-dots">
+            {chapters.map((item, index) => (
+              <button
+                key={item.title ? `${item.title}-${index}` : index}
+                type="button"
+                className={`hsb-dot${currentPage === index + 1 ? ' is-active' : ''}`}
+                onClick={() => goToPage(index + 1, index + 1 > currentPage ? 'next' : 'prev')}
+                aria-label={`Chapter ${index + 1}: ${item.title || 'Untitled'}`}
+                aria-current={currentPage === index + 1 ? 'page' : undefined}
+                title={item.title}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="hsb-dock__btn"
+            onClick={() => handlePageFlip('next')}
+            disabled={isFlipping || isLastPage}
+          >
+            Next <span aria-hidden="true">▶</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 };
 
 export default HeritageStoryBook;
- 

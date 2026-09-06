@@ -12,6 +12,54 @@
 
 .tpr-state { margin: var(--gs-space-2) 0; }
 
+/* "What you'll get" preview, shown in the empty state before a plan exists. */
+.tpr-preview {
+  display: grid;
+  gap: var(--gs-space-2);
+  width: 100%;
+  max-width: 520px;
+  margin: var(--gs-space-5) auto 0;
+  padding: var(--gs-space-4) 0 0;
+  border-top: 1px solid var(--gs-border-faint);
+  list-style: none;
+  text-align: left;
+}
+
+.tpr-preview__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gs-space-3);
+  padding: var(--gs-space-3);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-surface-2);
+  border: 1px solid var(--gs-border-faint);
+}
+
+.tpr-preview__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: var(--gs-radius-sm);
+  background: var(--gs-accent-soft);
+  font-size: 17px;
+}
+
+.tpr-preview__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.tpr-preview__title {
+  font-size: var(--gs-text-sm);
+  font-weight: 660;
+  color: var(--gs-text);
+}
+
+.tpr-preview__text {
+  font-size: var(--gs-text-xs);
+  line-height: var(--gs-leading-relaxed);
+  color: var(--gs-text-subtle);
+}
+
 .tpr-card {
   background: var(--gs-surface-1);
   border: 1px solid var(--gs-border);

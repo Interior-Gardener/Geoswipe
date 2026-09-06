@@ -4,6 +4,25 @@ import { downloadTripPlanPdf } from '../../utils/tripPlanPdf';
 import { renderRichText } from '../../utils/richText';
 import './TripPlannerResult.css';
 
+/** What a generated plan contains, shown while the reader has not made one. */
+const PREVIEW_ITEMS = [
+  {
+    icon: '🕘',
+    title: 'A day-by-day schedule',
+    text: 'Timed stops for each day, with what to see and how long to spend.'
+  },
+  {
+    icon: '💰',
+    title: 'A cost estimate',
+    text: 'Stay, food, transport and entry fees broken down against your budget.'
+  },
+  {
+    icon: '🎟️',
+    title: 'Booking links',
+    text: 'Direct links for tickets, stays and transport for the dates you pick.'
+  }
+];
+
 const COST_META = {
   stay: { label: 'Stay', icon: '🏨' },
   food: { label: 'Food', icon: '🍽️' },
@@ -176,9 +195,23 @@ function TripPlannerResult({ plan, error, isLoading, onRegenerate }) {
         <div className="gs-state__icon" aria-hidden="true">🗺️</div>
         <h3 className="gs-state__title">Your itinerary will appear here</h3>
         <p className="gs-state__text">
-          Set your days, budget and interests, then generate a plan to see a day-by-day
-          schedule, cost estimate and booking links.
+          Set your days, budget and interests on the left, then generate a plan.
         </p>
+
+        {/* The right column is the largest area on the page and used to sit
+            empty until a plan existed. Showing what a plan contains makes the
+            wait legible instead of blank. */}
+        <ul className="tpr-preview">
+          {PREVIEW_ITEMS.map((item) => (
+            <li className="tpr-preview__item" key={item.title}>
+              <span className="tpr-preview__icon" aria-hidden="true">{item.icon}</span>
+              <span className="tpr-preview__body">
+                <span className="tpr-preview__title">{item.title}</span>
+                <span className="tpr-preview__text">{item.text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     );
   }

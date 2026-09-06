@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import maplibregl from 'maplibre-gl';
@@ -136,6 +136,20 @@ const HeritagePage = () => {
   const [heritageSites, setHeritageSites] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Site counters shown in the info panel. Derived from state so they are
+  // correct whenever the panel is opened, rather than written into DOM nodes
+  // that only exist while the panel happens to be open.
+  const siteCounts = useMemo(() => {
+    const features = heritageSites?.features;
+    if (!Array.isArray(features)) return { total: 0, unesco: 0 };
+    return {
+      total: features.length,
+      unesco: features.filter(
+        (f) => f?.properties?.category === 'UNESCO World Heritage'
+      ).length
+    };
+  }, [heritageSites]);
   
   // Map style management
   const [currentMapStyle, setCurrentMapStyle] = useState('hybrid');
@@ -1087,20 +1101,6 @@ const HeritagePage = () => {
 
 
     // Update site counts
-    function updateSiteCounts() {
-      if (!heritageSites?.features) return;
-      
-      const totalSites = heritageSites.features.length;
-      const unescoSites = heritageSites.features.filter(site => 
-        site.properties.category === 'UNESCO World Heritage'
-      ).length;
-      
-      const siteCountElement = document.getElementById('site-count');
-      const unescoCountElement = document.getElementById('unesco-count');
-      
-      if (siteCountElement) siteCountElement.textContent = totalSites;
-      if (unescoCountElement) unescoCountElement.textContent = unescoSites;
-    }
 
     // Initialize the map with timeout
     setTimeout(() => {
@@ -1568,7 +1568,6 @@ const HeritagePage = () => {
             console.log('✅ Event handlers attached to both icon and circle layers');
 
             // Initialize site counts
-            updateSiteCounts();
 
           } catch (error) {
             console.error('Error adding heritage sites:', error);
@@ -2033,11 +2032,11 @@ const HeritagePage = () => {
 
           <div className="heritage-stat-row">
             <div className="heritage-stat">
-              <span className="heritage-stat__value" id="site-count">0</span>
+              <span className="heritage-stat__value">{siteCounts.total}</span>
               <span className="heritage-stat__label">Total sites</span>
             </div>
             <div className="heritage-stat">
-              <span className="heritage-stat__value" id="unesco-count">0</span>
+              <span className="heritage-stat__value">{siteCounts.unesco}</span>
               <span className="heritage-stat__label">UNESCO</span>
             </div>
           </div>

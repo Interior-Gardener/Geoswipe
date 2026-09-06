@@ -1,0 +1,11 @@
+{
+  "note": "Slugs of hand-authored storybook chapter files in this folder. Regenerate with: npm run chapters:manifest",
+  "slugs": [
+    "ajanta-caves",
+    "gateway-of-india",
+    "raigad-fort",
+    "shaniwar-wada",
+    "taj-mahal",
+    "trimbakeshwar-temple"
+  ]
+}

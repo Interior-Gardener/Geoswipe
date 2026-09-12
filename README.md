@@ -1,231 +1,288 @@
-# GeoSwipe 🌍 - Interactive Heritage & Geography Explorer
+<div align="center">
+
+# 🌍 GeoSwipe
+### Interactive Heritage & Geography Explorer
 
 A modern, interactive web application that combines 3D Earth visualization, cultural heritage exploration, geography learning, and gesture-controlled navigation. Discover UNESCO World Heritage sites, historic monuments, and geographical wonders through an immersive map experience.
 
-## 🎬 Demo Video
+---
 
-[![Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-GeoSwipe-blue?style=for-the-badge)](https://drive.google.com/file/d/13jWqWI3qgzt3HObZ80NEqZqjEjKYIqeV/view?usp=sharing)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-geoswipe.pages.dev-success?style=for-the-badge&logoColor=white)](https://geoswipe.pages.dev/)
+[![Watch Demo Video](https://img.shields.io/badge/▶%20Watch%20Demo-YouTube-red?style=for-the-badge)](https://drive.google.com/file/d/13jWqWI3qgzt3HObZ80NEqZqjEjKYIqeV/view?usp=sharing)
+[![License](https://img.shields.io/badge/License-ISC-blue?style=for-the-badge)](LICENSE)
 
-## ✨ Key Features
+</div>
 
-### 🗺️ **Interactive Heritage Map**
-- Explore **UNESCO World Heritage Sites**, historic forts, temples, palaces, and monuments
-- **Multiple map styles**: Satellite, Street, Terrain, and Dark modes
-- **Custom category icons** for different heritage site types
-- **Detailed information panels** with images, descriptions, and historical context
+---
 
-### 🌍 **3D Earth Globe**
-- **Three.js powered** interactive 3D Earth visualization
-- **Smooth country selection** with real-time highlighting
-- **Performance optimized** rendering with 60 FPS target
+## ✨ Features at a Glance
 
-### 🎮 **Advanced Gesture Control**
-- **Hand gesture navigation** using MediaPipe and OpenCV
-- **Real-time gesture recognition** for map interactions
-- **Gesture button system** for enhanced user experience
+<table>
+<tr>
+<td width="50%">
 
-### 📚 **Educational Features**
-- **Geography Quiz Mode** with country-based questions
-- **Heritage StoryBooks** with detailed historical narratives
-- **"How to Reach"** guides for heritage sites
-- **Explore Mode** for free-form discovery
+### 🗺️ Interactive Heritage Map
+- Explore **UNESCO World Heritage Sites**
+- 🎨 Multiple map styles: Satellite, Street, Terrain, Dark
+- 🏷️ Custom category icons for site types
+- 📋 Detailed information panels with images
 
-### 🛠️ **Technical Excellence**
-- **React 19** with modern hooks and performance optimizations
-- **MapLibre GL JS** for professional-grade mapping
-- **Socket.IO** for real-time communication
-- **MongoDB** for heritage site data management
-- **Vite** for lightning-fast development builds
+</td>
+<td width="50%">
+
+### 🌍 3D Earth Globe
+- 🎬 Three.js powered visualization
+- ✨ Smooth country selection & highlighting
+- ⚡ Performance optimized (60 FPS target)
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎮 Advanced Gesture Control
+- 👋 Hand gesture navigation
+- 🤖 MediaPipe & OpenCV powered
+- ⚙️ Real-time gesture recognition
+- 🎛️ Enhanced gesture button system
+
+</td>
+<td width="50%">
+
+### 📚 Educational Features
+- 🧠 Geography Quiz Mode
+- 📖 Heritage StoryBooks
+- 🗺️ "How to Reach" guides
+- 🔍 Explore Mode for discovery
+
+</td>
+</tr>
+</table>
+
+### 🛠️ Powered by Modern Tech
+
+<div align="center">
+
+| Frontend | Backend | Tools |
+|----------|---------|-------|
+| **React 19** | **Node.js + Express** | **Vite** |
+| **Three.js** | **MongoDB** | **ESLint** |
+| **MapLibre GL JS** | **Socket.IO** | **Git** |
+| **Socket.IO Client** | **REST API** | **Vite** |
+
+</div>
 
 ---
 
 ## 🚀 Quick Start for Developers
 
-### Prerequisites
-- **Node.js** ≥ 18.0.0
-- **Python** 3.8+ (for gesture control)
-- **MongoDB** (local or cloud instance)
-- **Git**
+### 📋 Prerequisites
 
-### 1️⃣ Clone & Navigate
+<table>
+<td>
+
+✅ **Node.js** ≥ 18.0.0  
+✅ **Python** 3.8+  
+✅ **MongoDB** (local or cloud)  
+✅ **Git**
+
+</td>
+</table>
+
+### Step 1️⃣ Clone & Navigate
 ```bash
 git clone <your-repository-url>
 cd Geoswipe
 ```
 
-### 2️⃣ Install Dependencies
+### Step 2️⃣ Install Dependencies
 ```bash
 # Install main project dependencies
 npm install
 
 # Install client dependencies
-cd client
-npm install
-cd ..
+cd client && npm install && cd ..
 
 # Install server dependencies
-cd server
-npm install
-cd ..
+cd server && npm install && cd ..
 ```
 
-> **No Python setup.** Gesture recognition runs in the browser via MediaPipe
-> Tasks-Vision. The WASM runtime and hand-landmark model are fetched
-> automatically by `client/scripts/setup-mediapipe.mjs` the first time you run
-> `npm run dev` or `npm run build` in `client/`.
+> **✨ No Python setup required.** Gesture recognition runs in the browser via MediaPipe Tasks-Vision. The WASM runtime and hand-landmark model are fetched automatically.
 
-### 3️⃣ Environment Setup
+### Step 3️⃣ Environment Setup
 ```bash
 cp server/.env.example server/.env
 cp client/.env.example client/.env.development
 ```
-Then fill in `server/.env`:
-- **MongoDB connection** (`MONGODB_URI`)
-- **API keys** — MapTiler, OpenWeather, NewsAPI, Unsplash, Groq
 
-Each key accepts either a single value (`OPENWEATHER_API_KEY`) or a
-comma-separated pool from several free accounts (`OPENWEATHER_API_KEYS`). The
-server rotates through a pool and steps past any key that hits its quota. See
-`server/.env.example` for the full list, and
-[ARCHITECTURE_CHANGES.md](mdfiles/ARCHITECTURE_CHANGES.md) for how caching keeps usage
-inside the free tiers.
+**Fill in `server/.env` with:**
+- 🔑 **MongoDB connection** (`MONGODB_URI`)
+- 🔑 **API Keys**: MapTiler, OpenWeather, NewsAPI, Unsplash, Groq
 
-**Never put a key in `client/.env.*`** — Vite compiles those into the browser
-bundle.
+> 💡 You can use single keys or comma-separated pools from multiple free accounts. The server rotates through pools.
 
-### 4️⃣ Launch the Application
+### Step 4️⃣ Launch the Application
 
-#### Option A: Run Everything at Once (Recommended)
+#### 🎯 Option A: Run Everything Together (Recommended)
 ```bash
 npm start
 ```
-This will start:
-- ✅ Client on `http://localhost:5173`
-- ✅ Server on `http://localhost:3000`
+Starts:
+- ✅ Client → `http://localhost:5173`
+- ✅ Server → `http://localhost:3000`
 
-#### Option B: Run Components Separately
+#### 🎯 Option B: Run Separately
 ```bash
-# Terminal 1: Start the server
-cd server
-npm run dev
+# Terminal 1
+cd server && npm run dev
 
-# Terminal 2: Start the client
-cd client
-npm run dev
+# Terminal 2
+cd client && npm run dev
 ```
 
-Gesture control needs no process of its own — it runs in the browser tab as
-soon as you allow camera access.
-
-### 5️⃣ Access the Application
-- **Main App**: http://localhost:5173
-- **Server API**: http://localhost:3000
-- **Integration health**: http://localhost:3000/api/diagnostics
-- **Gesture Control**: in-browser; allow camera access when prompted
+### Step 5️⃣ Access & Explore
+```
+🏠 Main App          → http://localhost:5173
+📡 Server API        → http://localhost:3000
+🔧 Health Check      → http://localhost:3000/api/diagnostics
+🎮 Gesture Control   → Enabled in-browser (allow camera)
+```
 
 ---
 
-## 🏗️ Project Structure
+## 📂 Project Structure
 
 ```
 Geoswipe/
-├── client/                 # React frontend application
+│
+├── 📁 client/                      # React frontend application
 │   ├── src/
-│   │   ├── LandingPage.jsx        # Home page
-│   │   ├── HeritagePage.jsx       # Main heritage map interface
-│   │   ├── ExplorePage.jsx        # 3D Earth exploration
-│   │   ├── QuizPage.jsx           # Geography quiz
-│   │   ├── HeritageStoryBook.jsx  # Historical narratives
-│   │   └── components/            # Reusable components
-│   ├── public/assets/             # Images, icons, audio files
-│   └── package.json
-├── server/                 # Node.js backend
-│   ├── index.js                   # Main server file
-│   ├── models/                    # MongoDB models
-│   └── package.json
-└── package.json           # Root project configuration
+│   │   ├── LandingPage.jsx         # 🏠 Home page
+│   │   ├── HeritagePage.jsx        # 🗺️  Main heritage map
+│   │   ├── ExplorePage.jsx         # 🌍 3D Earth exploration
+│   │   ├── QuizPage.jsx            # 🧠 Geography quiz
+│   │   ├── HeritageStoryBook.jsx   # 📖 Historical narratives
+│   │   └── components/             # 🧩 Reusable components
+│   └── public/assets/              # 🖼️  Images, icons, audio
+│
+├── 📁 server/                      # Node.js backend
+│   ├── index.js                    # 🚀 Server entry point
+│   ├── models/                     # 📊 MongoDB schemas
+│   ├── routes/                     # 🛣️  API endpoints
+│   └── services/                   # ⚙️  Business logic
+│
+├── 📁 mdfiles/                     # 📚 Documentation
+│
+└── 📄 package.json                 # 📦 Root dependencies
 ```
 
 ---
 
 ## 🛠️ Development Commands
 
-### Root Project
-```bash
-npm start              # Launch all services
-npm run start:client   # Start only React client
-npm run start:server   # Start only Node.js server
-npm run start:gesture  # Start only gesture control
-```
+### 🎯 Root Level
+| Command | Purpose |
+|---------|---------|
+| `npm start` | 🚀 Launch all services |
+| `npm run start:client` | ⚛️ React client only |
+| `npm run start:server` | 🖥️ Node.js server only |
+| `npm run start:gesture` | 👋 Gesture control only |
 
-### Client Development
+### ⚛️ Client Commands
 ```bash
 cd client
-npm run dev           # Development server with hot reload
-npm run build         # Production build
-npm run preview       # Preview production build
-npm run lint          # Code linting
-npm run lint:fix      # Auto-fix linting issues
+
+npm run dev           # 🔄 Dev server with hot reload
+npm run build         # 📦 Production build
+npm run preview       # 👁️  Preview built app
+npm run lint          # ✅ Check code quality
+npm run lint:fix      # 🔧 Auto-fix linting issues
 ```
 
-### Server Development
+### 🖥️ Server Commands
 ```bash
 cd server
-npm run dev           # Development with auto-restart
-npm start             # Production server
+
+npm run dev           # 🔄 Dev with auto-restart
+npm start             # 🚀 Production server
 ```
 
 ---
 
-## 🌟 Usage Guide
+## 📖 Usage Guide
 
-1. **🏠 Landing Page**: Navigate between different modes (Heritage, Explore, Quiz)
-2. **🗺️ Heritage Mode**: 
-   - Browse heritage sites on interactive map
-   - Filter by categories (UNESCO, Forts, Temples, etc.)
-   - Click sites for detailed information
-   - Use gesture controls for navigation
-3. **🌍 Explore Mode**: Interact with 3D Earth globe and learn about countries
-4. **❓ Quiz Mode**: Test your geography knowledge
-5. **📖 StoryBook**: Read detailed historical narratives
+| Page | Description |
+|------|-------------|
+| 🏠 **Landing Page** | Navigate between different exploration modes |
+| 🗺️ **Heritage Mode** | Browse UNESCO sites, filter by category, view details, gesture navigation |
+| 🌍 **Explore Mode** | Interact with 3D Earth globe and learn about countries |
+| ❓ **Quiz Mode** | Test your geography knowledge with interactive questions |
+| 📖 **StoryBook** | Read detailed historical narratives and heritage stories |
 
 ---
 
-## 🎯 Key Technologies
+## 🎯 Technology Stack
 
-- **Frontend**: React 19, Three.js, MapLibre GL JS, Socket.IO Client
-- **Backend**: Node.js, Express, MongoDB, Socket.IO
-- **Gesture Control**: Python, OpenCV, MediaPipe
-- **Build Tools**: Vite, ESLint
-- **Deployment**: Optimized for modern web hosting
+<div align="center">
+
+```
+🎨 Frontend             🖥️  Backend              ⚙️ Infrastructure
+├─ React 19            ├─ Node.js              ├─ Vite
+├─ Three.js            ├─ Express.js           ├─ ESLint
+├─ MapLibre GL JS      ├─ MongoDB              ├─ Socket.IO
+├─ Socket.IO Client    ├─ Socket.IO            └─ REST API
+└─ MediaPipe           └─ OpenCV (Python)
+```
+
+</div>
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+We love contributions! Here's how to help:
+
+1. 🍴 **Fork** the repository
+2. 🌿 **Create** a feature branch (`git checkout -b feature/AmazingFeature`)
+3. 💾 **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 **Push** to branch (`git push origin feature/AmazingFeature`)
+5. 🔄 **Open** a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the ISC License - see the LICENSE file for details.
+Licensed under the **ISC License** - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🚀 What's Next?
+## 🚀 Coming Soon
 
-- 🌐 PWA support for offline usage
-- 📱 Mobile-responsive gesture controls
-- 🎨 Additional map themes and customization
-- 🔍 Advanced search and filtering
-- 📊 Analytics and user engagement metrics
+- 🌐 Progressive Web App (PWA) support
+- 📱 Enhanced mobile gesture controls
+- 🎨 Additional map themes
+- 🔍 Advanced search & filtering
+- 📊 Analytics & engagement metrics
+
+---
+
+<div align="center">
+
+### 🌟 Show Your Support
+
+If you found this project helpful, please consider giving it a ⭐ on GitHub!
+
+### 🔗 Quick Links
+
+[![Website](https://img.shields.io/badge/🌐%20Website-geoswipe.pages.dev-blue?style=flat-square)](https://geoswipe.pages.dev/)
+[![GitHub](https://img.shields.io/badge/💻%20GitHub-Repository-black?style=flat-square)](https://github.com)
 
 ---
 
 **Built with ❤️ for heritage preservation and geographical education**
+
+</div>
 

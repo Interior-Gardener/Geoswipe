@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
+    "dat.gui": "^0.7.9",
     "framer-motion": "^12.38.0",
     "jspdf": "^4.2.1",
     "maplibre-gl": "^5.7.1",

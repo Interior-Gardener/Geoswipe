@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import GestureButton from "./GestureButton";
 
 const TOTAL_QUESTIONS = 25;
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { API_BASE_URL } from './utils/apiConfig';
 
 const CountryQuiz = ({ selectedCountry, clearSelection }) => {
   const [question, setQuestion] = useState(null);

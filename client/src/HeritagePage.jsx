@@ -26,7 +26,6 @@ import { API_BASE_URL } from './utils/apiConfig';
 // browser. See server/routes/mapProxy.js.
 const MAP_STYLE_BASE = `${API_BASE_URL}/api/maps/style`;
 const MAP_ASSET_BASE = `${API_BASE_URL}/api/maps/asset`;
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const HeritagePage = () => {
   const mapContainer = useRef(null);
@@ -36,7 +35,7 @@ const HeritagePage = () => {
   const sidebarPanelRef = useRef(null);
   const weatherModalCardRef = useRef(null);
   const newsModalCardRef = useRef(null);
-
+  
   // Add scrollbar styling
   useEffect(() => {
     const style = document.createElement('style');
@@ -57,12 +56,12 @@ const HeritagePage = () => {
       }
     `;
     document.head.appendChild(style);
-
+    
     return () => {
       document.head.removeChild(style);
     };
   }, []);
-
+  
   // Check if a storybook JSON exists for a site
   const checkStoryBookAvailable = async (siteName) => {
     const formattedName = siteName.toLowerCase().replace(/\s+/g, '-');
@@ -70,7 +69,7 @@ const HeritagePage = () => {
       `/chapters/${siteName}.json`,
       `/chapters/${formattedName}.json`
     ];
-
+    
     for (const path of tryPaths) {
       try {
         const res = await fetch(path);
@@ -83,35 +82,35 @@ const HeritagePage = () => {
     }
     return false;
   };
-
+  
   // Sidebar state
   const [sidebarData, setSidebarData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarLoading, setSidebarLoading] = useState(false);
-
+  
   // Street View Modal state
   const [streetViewModalOpen, setStreetViewModalOpen] = useState(false);
   const [streetViewData, setStreetViewData] = useState(null);
-
+  
   // Heritage Info Modal state
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [directionsModalOpen, setDirectionsModalOpen] = useState(false);
   const [quizModalOpen, setQuizModalOpen] = useState(false);
   const [tripPlannerModalOpen, setTripPlannerModalOpen] = useState(false);
-
+  
   // Weather Modal state
   const [weatherModalOpen, setWeatherModalOpen] = useState(false);
   const [weatherData, setWeatherData] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(null);
-
+  
   // News Modal state
   const [newsModalOpen, setNewsModalOpen] = useState(false);
   const [newsData, setNewsData] = useState(null);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState(null);
   const [newsTab, setNewsTab] = useState('monument'); // 'monument' or 'location'
-
+  
   // Search functionality state
   // --- Map chrome ---------------------------------------------------
   // The map controls used to be seven separate always-on panels pinned to
@@ -132,7 +131,7 @@ const HeritagePage = () => {
   const [filteredPlaces, setFilteredPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-
+  
   // API data state
   const [heritageSites, setHeritageSites] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -151,7 +150,7 @@ const HeritagePage = () => {
       ).length
     };
   }, [heritageSites]);
-
+  
   // Map style management
   const [currentMapStyle, setCurrentMapStyle] = useState('hybrid');
   const [mapStyleLoading, setMapStyleLoading] = useState(false);
@@ -194,7 +193,7 @@ const HeritagePage = () => {
     usePanelFullscreen(weatherModalCardRef);
   const { isExpanded: newsExpanded, togglePanelFullscreen: toggleNewsFullscreen } =
     usePanelFullscreen(newsModalCardRef);
-
+  
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -242,13 +241,13 @@ const HeritagePage = () => {
   // Map style switching function
   const switchMapStyle = async (styleName, zoomLevel = 14, siteCoordinates = null) => {
     if (!map.current || mapStyleLoading) return;
-
+    
     console.log(`🔄 Switching to ${styleName} map style...`);
     setMapStyleLoading(true);
-
+    
     let timeoutId = null;
     let styleLoadCompleted = false;
-
+    
     try {
       // SECURITY: style URLs used to embed VITE_MAPTILER_API_KEY, exposing the
       // key to every visitor. They now point at the server, which attaches the
@@ -260,26 +259,26 @@ const HeritagePage = () => {
         streets: `${MAP_STYLE_BASE}/streets`,
         historical: `${MAP_STYLE_BASE}/historical`
       };
-
+      
       if (!styleUrls[styleName]) {
         console.error('Unknown map style:', styleName);
         setMapStyleLoading(false);
         return;
       }
-
+      
       // Store current heritage sites data
       const currentHeritageSites = heritageSites;
-
+      
       // Handle style load completion
       const onStyleLoad = () => {
         if (styleLoadCompleted) return; // Prevent multiple executions
         styleLoadCompleted = true;
-
+        
         if (timeoutId) {
           clearTimeout(timeoutId);
           timeoutId = null;
         }
-
+        
         try {
           // Re-add terrain if not satellite or historical
           if (styleName !== 'satellite' && styleName !== 'historical') {
@@ -297,8 +296,8 @@ const HeritagePage = () => {
               // Continue without terrain
             }
           }
-
-          // Re-add heritage sites
+          
+            // Re-add heritage sites
           if (currentHeritageSites) {
             try {
               // Remove existing sources and layers if they exist
@@ -314,13 +313,13 @@ const HeritagePage = () => {
               if (map.current.getSource('heritage-sites-source')) {
                 map.current.removeSource('heritage-sites-source');
               }
-
+              
               // Add heritage sites source
               map.current.addSource('heritage-sites-source', {
                 type: 'geojson',
                 data: currentHeritageSites
               });
-
+              
               // Add circle markers first (as fallback)
               map.current.addLayer({
                 'id': 'heritage-sites-circles',
@@ -362,7 +361,7 @@ const HeritagePage = () => {
 
                   const img = new Image();
                   img.crossOrigin = 'anonymous';
-
+                  
                   img.onload = () => {
                     try {
                       // Create canvas with extra space for white outline
@@ -371,15 +370,15 @@ const HeritagePage = () => {
                       const baseSize = 28;
                       const padding = 4;
                       const totalSize = baseSize + (padding * 2);
-
+                      
                       canvas.width = totalSize;
                       canvas.height = totalSize;
                       ctx.clearRect(0, 0, totalSize, totalSize);
-
+                      
                       // Create white outline
                       const outlineWidth = 2;
                       ctx.globalCompositeOperation = 'source-over';
-
+                      
                       for (let x = -outlineWidth; x <= outlineWidth; x++) {
                         for (let y = -outlineWidth; y <= outlineWidth; y++) {
                           if (x !== 0 || y !== 0) {
@@ -391,21 +390,21 @@ const HeritagePage = () => {
                           }
                         }
                       }
-
+                      
                       // Draw the main icon on top
                       ctx.save();
                       ctx.globalCompositeOperation = 'source-over';
                       ctx.filter = 'contrast(1.1) brightness(1.05)';
                       ctx.drawImage(img, padding, padding, baseSize, baseSize);
                       ctx.restore();
-
+                      
                       const imageData = ctx.getImageData(0, 0, totalSize, totalSize);
                       const mapImage = {
                         width: totalSize,
                         height: totalSize,
                         data: imageData.data
                       };
-
+                      
                       map.current.addImage(iconId, mapImage);
                       console.log(`✅ Re-added icon for style switch: ${category}`);
                       resolve(true);
@@ -414,7 +413,7 @@ const HeritagePage = () => {
                       resolve(false);
                     }
                   };
-
+                  
                   img.onerror = () => resolve(false);
                   img.src = `/assets/${fileName}`;
                 });
@@ -432,7 +431,7 @@ const HeritagePage = () => {
               ]).then((results) => {
                 const loaded = results.filter(Boolean).length;
                 console.log(`🔄 Re-loaded ${loaded}/7 icons for ${styleName} style`);
-
+                
                 // Add icons layer if any icons were loaded
                 if (loaded > 0) {
                   map.current.addLayer({
@@ -462,7 +461,7 @@ const HeritagePage = () => {
                       'icon-allow-overlap': true
                     }
                   });
-
+                  
                   // Hide circles since we have icons
                   map.current.setLayoutProperty('heritage-sites-circles', 'visibility', 'none');
                   console.log(`🎯 Icons displayed in ${styleName} map style`);
@@ -472,7 +471,7 @@ const HeritagePage = () => {
               }).catch((error) => {
                 console.error('Error loading icons for style switch:', error);
               });
-
+              
               // Add text labels
               map.current.addLayer({
                 'id': 'heritage-sites-layer',
@@ -498,7 +497,7 @@ const HeritagePage = () => {
                   'text-halo-width': 2
                 }
               });
-
+              
               // Re-attach event listeners
               const handleSiteClick = async (e) => {
                 const properties = e.features[0].properties;
@@ -513,15 +512,15 @@ const HeritagePage = () => {
                   { flyTo: false }
                 );
               };
-
+              
               const handleMouseEnter = () => {
                 map.current.getCanvas().style.cursor = 'pointer';
               };
-
+              
               const handleMouseLeave = () => {
                 map.current.getCanvas().style.cursor = '';
               };
-
+              
               map.current.on('click', 'heritage-sites-icons', handleSiteClick);
               map.current.on('click', 'heritage-sites-circles', handleSiteClick);
               map.current.on('mouseenter', 'heritage-sites-icons', handleMouseEnter);
@@ -533,7 +532,7 @@ const HeritagePage = () => {
               // Continue without heritage sites
             }
           }
-
+          
           // Fly to site if coordinates provided
           if (siteCoordinates) {
             setTimeout(() => {
@@ -549,7 +548,7 @@ const HeritagePage = () => {
               }
             }, 500);
           }
-
+          
           setCurrentMapStyle(styleName);
           setMapStyleLoading(false);
           console.log(`✅ Map style switched to: ${styleName}`);
@@ -558,13 +557,13 @@ const HeritagePage = () => {
           setMapStyleLoading(false);
         }
       };
-
+      
       // Set up style load listener
       map.current.once('style.load', onStyleLoad);
-
+      
       // Switch map style
       map.current.setStyle(styleUrls[styleName]);
-
+      
       // Fallback timeout with proper cleanup
       timeoutId = setTimeout(() => {
         if (!styleLoadCompleted) {
@@ -572,16 +571,16 @@ const HeritagePage = () => {
           onStyleLoad();
         }
       }, 8000);
-
+      
     } catch (error) {
       console.error('Error switching map style:', error);
       setMapStyleLoading(false);
-
+      
       // Clear timeout if it exists
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-
+      
       // Only fallback to hybrid if we're not already trying hybrid and this isn't a repeated failure
       if (styleName !== 'hybrid' && !error.isRecursive) {
         console.log('⚡ Falling back to hybrid map style');
@@ -620,19 +619,19 @@ const HeritagePage = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('${API_URL}/api/heritage-sites/geojson');
-
+        const response = await fetch(`${API_BASE_URL}/api/heritage-sites/geojson`);
+        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+        
         const data = await response.json();
         setHeritageSites(data);
         console.log('✅ Heritage sites loaded from database:', data.features.length, 'sites');
       } catch (err) {
         setError(err.message);
         console.error('❌ Error fetching heritage sites:', err);
-
+        
         // Fallback to empty data structure
         setHeritageSites({
           type: 'FeatureCollection',
@@ -649,9 +648,9 @@ const HeritagePage = () => {
   // Search functionality
   const filterPlaces = (query) => {
     if (!query.trim() || !heritageSites?.features) return [];
-
+    
     const filtered = heritageSites.features
-      .filter(site =>
+      .filter(site => 
         site.properties.name.toLowerCase().includes(query.toLowerCase())
       )
       .slice(0, 5)
@@ -659,8 +658,8 @@ const HeritagePage = () => {
         name: site.properties.name,
         category: site.properties.category,
         coordinates: site.geometry.coordinates
-      }));
-
+    }));
+    
     return filtered;
   };
 
@@ -669,7 +668,7 @@ const HeritagePage = () => {
     const query = e.target.value;
     setSearchQuery(query);
     setHighlightedIndex(-1);
-
+    
     if (query.trim()) {
       const filtered = filterPlaces(query);
       setFilteredPlaces(filtered);
@@ -692,15 +691,15 @@ const HeritagePage = () => {
   const scrollToHighlightedItem = (index) => {
     const dropdownElement = document.querySelector('.dropdown-container');
     const highlightedElement = document.querySelector(`[data-dropdown-index="${index}"]`);
-
+    
     if (dropdownElement && highlightedElement) {
       const dropdownRect = dropdownElement.getBoundingClientRect();
       const highlightedRect = highlightedElement.getBoundingClientRect();
-
+      
       // Calculate if the item is outside the visible area
       const isAbove = highlightedRect.top < dropdownRect.top;
       const isBelow = highlightedRect.bottom > dropdownRect.bottom;
-
+      
       if (isAbove || isBelow) {
         highlightedElement.scrollIntoView({
           behavior: 'smooth',
@@ -775,12 +774,12 @@ const HeritagePage = () => {
     if (showDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDropdown]);
-
+  
   // Clear search when switching modes
   useEffect(() => {
     setSearchQuery('');
@@ -794,29 +793,29 @@ const HeritagePage = () => {
   const handleFlyTo = (e) => {
     e.preventDefault();
     console.log('Fly-to button clicked, mode:', searchMode);
-
+    
     let lat, lon;
-
+    
     if (searchMode === 'coordinates') {
       const latInput = document.getElementById('lat-input');
       const lonInput = document.getElementById('lon-input');
-
+      
       if (!latInput || !lonInput) {
         alert('Coordinate input fields not found');
         return;
       }
-
+      
       const latValue = latInput.value.trim();
       const lonValue = lonInput.value.trim();
-
+      
       if (!latValue || !lonValue) {
         alert('Please enter both latitude and longitude coordinates');
         return;
       }
-
+      
       lat = parseFloat(latValue);
       lon = parseFloat(lonValue);
-
+      
       if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
         alert('Please enter valid coordinates (Lat: -90 to 90, Lon: -180 to 180)');
         return;
@@ -837,7 +836,7 @@ const HeritagePage = () => {
             placeToUse = matchedPlaces[0];
             console.log('Using first match:', placeToUse.name);
           }
-
+          
           [lon, lat] = placeToUse.coordinates;
           setSelectedPlace(placeToUse);
           setSearchQuery(placeToUse.name);
@@ -850,21 +849,21 @@ const HeritagePage = () => {
         return;
       }
     }
-
+    
     console.log('Flying to coordinates:', lat, lon);
-
+    
     const executeflyTo = () => {
       try {
-        map.current.flyTo({
-          center: [lon, lat],
-          zoom: 14,
+        map.current.flyTo({ 
+          center: [lon, lat], 
+          zoom: 14, 
           pitch: 60,
           bearing: -15,
           essential: true,
           duration: 3000
         });
         console.log('FlyTo command executed successfully');
-
+        
         if (searchMode === 'places') {
           setShowDropdown(false);
         }
@@ -873,7 +872,7 @@ const HeritagePage = () => {
         alert('Error flying to location. Please try again.');
       }
     };
-
+    
     if (map.current && map.current.isStyleLoaded()) {
       executeflyTo();
     } else if (map.current) {
@@ -889,8 +888,8 @@ const HeritagePage = () => {
   const fetchDetails = async (siteName) => {
     try {
       console.log('🔍 Fetching details for:', siteName);
-      const response = await fetch(`${API_URL}/api/heritage-sites/${encodeURIComponent(siteName)}/details`);
-
+      const response = await fetch(`${API_BASE_URL}/api/heritage-sites/${encodeURIComponent(siteName)}/details`);
+      
       if (!response.ok) {
         if (response.status === 404) {
           console.log('⚠️ Site not found in database:', siteName);
@@ -903,7 +902,7 @@ const HeritagePage = () => {
         }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      
       const data = await response.json();
       console.log('✅ Site details loaded from database:', data);
       return data;
@@ -1016,18 +1015,18 @@ const HeritagePage = () => {
       console.error('No coordinates available for weather');
       return;
     }
-
+    
     setWeatherLoading(true);
     setWeatherError(null);
-
+    
     try {
       const [longitude, latitude] = sidebarData.coordinates;
       console.log(`🌤️ Fetching weather for ${sidebarData.name} at [${latitude}, ${longitude}]`);
-
+      
       const data = await fetchWeatherData(latitude, longitude);
       setWeatherData(data);
       setWeatherModalOpen(true);
-
+      
       console.log('✅ Weather data loaded successfully');
     } catch (error) {
       console.error('❌ Error fetching weather:', error);
@@ -1096,7 +1095,7 @@ const HeritagePage = () => {
     }
 
     console.log('Initializing map...');
-
+    
 
 
 
@@ -1108,7 +1107,7 @@ const HeritagePage = () => {
       try {
         console.log('Map container:', mapContainer.current);
         console.log('Creating MapLibre instance...');
-
+        
         map.current = new maplibregl.Map({
           container: mapContainer.current,
           style: `${MAP_STYLE_BASE}/hybrid`,
@@ -1125,13 +1124,13 @@ const HeritagePage = () => {
           doubleClickZoom: true,
           touchZoomRotate: true
         });
-
+        
         map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
         console.log('Map initialized successfully');
-
+        
         let retryCount = 0;
         const maxRetries = 3;
-
+        
         map.current.on('error', (e) => {
           console.error('Map error:', e.error);
           if (retryCount < maxRetries) {
@@ -1144,25 +1143,25 @@ const HeritagePage = () => {
             }, 1000 * retryCount);
           }
         });
-
+        
         map.current.on('sourcedataabort', () => {
           // Silently handle source data abort
         });
-
+        
         map.current.on('styledata', () => {
           console.log('Map style loaded successfully');
         });
-
+        
         map.current.on('sourcedata', (e) => {
           if (e.sourceId && e.isSourceLoaded) {
             console.log(`Source ${e.sourceId} loaded successfully`);
           }
         });
-
+        
         map.current.on('styleimagemissing', (e) => {
           console.error('Map style image missing:', e);
         });
-
+      
       } catch (error) {
         console.error('Error initializing map:', error);
       }
@@ -1177,17 +1176,17 @@ const HeritagePage = () => {
       map.current.on('load', () => {
         console.log('Map loaded successfully');
         mapReadyRef.current = true;
-
+        
         setTimeout(() => {
           console.log('Adding heritage sites to map...');
-
+          
           try {
             // Add terrain and 3D effects
             if (!map.current.getSource('maptiler-terrain')) {
-              map.current.addSource('maptiler-terrain', {
-                type: 'raster-dem',
-                url: `${MAP_ASSET_BASE}/tiles/terrain-rgb-v2/tiles.json`,
-                tileSize: 256
+              map.current.addSource('maptiler-terrain', { 
+                type: 'raster-dem', 
+                url: `${MAP_ASSET_BASE}/tiles/terrain-rgb-v2/tiles.json`, 
+                tileSize: 256 
               });
               map.current.setTerrain({ source: 'maptiler-terrain', exaggeration: 1.5 });
               console.log('Terrain added successfully');
@@ -1195,7 +1194,7 @@ const HeritagePage = () => {
           } catch (error) {
             console.error('Error adding terrain:', error);
           }
-
+  
           try {
             console.log('Map sources available:', Object.keys(map.current.getStyle()?.sources || {}));
 
@@ -1218,17 +1217,17 @@ const HeritagePage = () => {
               canvas.width = size;
               canvas.height = size;
               const ctx = canvas.getContext('2d');
-
+              
               // Draw a simple circle icon
               ctx.fillStyle = '#ff6b6b';
               ctx.beginPath();
-              ctx.arc(size / 2, size / 2, size / 2 - 2, 0, 2 * Math.PI);
+              ctx.arc(size/2, size/2, size/2 - 2, 0, 2 * Math.PI);
               ctx.fill();
-
+              
               ctx.strokeStyle = '#ffffff';
               ctx.lineWidth = 1;
               ctx.stroke();
-
+              
               return canvas;
             };
 
@@ -1247,7 +1246,7 @@ const HeritagePage = () => {
             const resizeImage = (img, maxSize = 64) => {
               const canvas = document.createElement('canvas');
               const ctx = canvas.getContext('2d');
-
+              
               // Calculate new size maintaining aspect ratio
               let { width, height } = img;
               if (width > height) {
@@ -1261,10 +1260,10 @@ const HeritagePage = () => {
                   height = maxSize;
                 }
               }
-
+              
               canvas.width = width;
               canvas.height = height;
-
+              
               // Draw resized image
               ctx.drawImage(img, 0, 0, width, height);
               return canvas;
@@ -1274,20 +1273,20 @@ const HeritagePage = () => {
             iconCategories.map(({ category, file, id }) => {
               return new Promise((resolve) => {
                 const iconUrl = `/assets/${file}`;
-
+                
                 console.log(`🔄 Loading icon: ${iconUrl} as ID: ${id}`);
-
+                
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
-
+                
                 img.onload = () => {
                   try {
                     console.log(`📏 Original image size: ${img.width}x${img.height}`);
-
+                    
                     // Resize the image to appropriate size
                     const resizedCanvas = resizeImage(img, 48); // 48px max size
                     console.log(`📏 Resized to: ${resizedCanvas.width}x${resizedCanvas.height}`);
-
+                    
                     if (!map.current.hasImage(id)) {
                       map.current.addImage(id, resizedCanvas);
                       console.log(`✅ Successfully loaded and resized icon: ${category} -> ${id}`);
@@ -1298,20 +1297,20 @@ const HeritagePage = () => {
                     resolve(true); // Still resolve as we have fallback
                   }
                 };
-
+                
                 img.onerror = (error) => {
                   console.warn(`❌ Failed to load image for ${category}:`, error);
                   resolve(true); // Still resolve as we have fallback
                 };
-
+                
                 img.src = iconUrl;
               });
             });
 
             // Add heritage sites source first
             if (!map.current.getSource('heritage-sites-source')) {
-              map.current.addSource('heritage-sites-source', {
-                'type': 'geojson',
+              map.current.addSource('heritage-sites-source', { 
+                'type': 'geojson', 
                 'data': heritageSites || { type: 'FeatureCollection', features: [] }
               });
               console.log('✅ Heritage sites source added');
@@ -1362,12 +1361,12 @@ const HeritagePage = () => {
             // Load icons immediately after basic setup
             setTimeout(() => {
               console.log('🔄 Starting safe icon loading...');
-
+              
               const loadIconSafely = (category, fileName, iconId) => {
                 return new Promise((resolve) => {
                   const img = new Image();
                   img.crossOrigin = 'anonymous';
-
+                  
                   img.onload = () => {
                     try {
                       // Create canvas with extra space for white outline
@@ -1376,17 +1375,17 @@ const HeritagePage = () => {
                       const baseSize = 28; // Actual icon size
                       const padding = 4; // Extra space for outline
                       const totalSize = baseSize + (padding * 2);
-
+                      
                       canvas.width = totalSize;
                       canvas.height = totalSize;
-
+                      
                       // Clear canvas
                       ctx.clearRect(0, 0, totalSize, totalSize);
-
+                      
                       // Create white outline by drawing the image multiple times with offset
                       const outlineWidth = 2;
                       ctx.globalCompositeOperation = 'source-over';
-
+                      
                       // Draw white outline (multiple passes for smooth effect)
                       for (let x = -outlineWidth; x <= outlineWidth; x++) {
                         for (let y = -outlineWidth; y <= outlineWidth; y++) {
@@ -1400,24 +1399,24 @@ const HeritagePage = () => {
                           }
                         }
                       }
-
+                      
                       // Draw the main icon on top
                       ctx.save();
                       ctx.globalCompositeOperation = 'source-over';
                       ctx.filter = 'contrast(1.1) brightness(1.05)';
                       ctx.drawImage(img, padding, padding, baseSize, baseSize);
                       ctx.restore();
-
+                      
                       // Create ImageData object (this is what MapLibre expects)
                       const imageData = ctx.getImageData(0, 0, totalSize, totalSize);
-
+                      
                       // Create proper image object for MapLibre
                       const mapImage = {
                         width: totalSize,
                         height: totalSize,
                         data: imageData.data
                       };
-
+                      
                       if (!map.current.hasImage(iconId)) {
                         map.current.addImage(iconId, mapImage);
                         console.log(`✅ Loaded with white outline: ${category} (${totalSize}x${totalSize})`);
@@ -1428,7 +1427,7 @@ const HeritagePage = () => {
                       resolve(false);
                     }
                   };
-
+                  
                   img.onerror = () => resolve(false);
                   img.src = `/assets/${fileName}`;
                 });
@@ -1446,7 +1445,7 @@ const HeritagePage = () => {
               ]).then((results) => {
                 const loaded = results.filter(Boolean).length;
                 console.log(`📊 Loaded ${loaded}/7 icons`);
-
+                
                 if (loaded > 0 && !map.current.getLayer('heritage-sites-icons')) {
                   map.current.addLayer({
                     'id': 'heritage-sites-icons',
@@ -1475,12 +1474,12 @@ const HeritagePage = () => {
                       'icon-allow-overlap': true
                     }
                   });
-
+                  
                   // Hide circles now that we have icons
                   if (map.current.getLayer('heritage-sites-circles')) {
                     map.current.setLayoutProperty('heritage-sites-circles', 'visibility', 'none');
                   }
-
+                  
                   // Ensure text labels are visible and properly positioned for icons
                   if (map.current.getLayer('heritage-sites-layer')) {
                     // Update text layer to work better with icons
@@ -1489,7 +1488,7 @@ const HeritagePage = () => {
                     map.current.setLayoutProperty('heritage-sites-layer', 'visibility', 'visible');
                     console.log('✅ Text labels repositioned for icons');
                   }
-
+                  
                   console.log('🎉 Heritage site icons loaded and displayed successfully!');
                 } else if (loaded === 0) {
                   console.log('⚠️ No icons could be loaded, keeping circle markers');
@@ -1504,11 +1503,11 @@ const HeritagePage = () => {
 
             // Add text labels
             if (!map.current.getLayer('heritage-sites-layer')) {
-              map.current.addLayer({
-                'id': 'heritage-sites-layer',
-                'type': 'symbol',
-                'source': 'heritage-sites-source',
-                'layout': {
+              map.current.addLayer({ 
+                'id': 'heritage-sites-layer', 
+                'type': 'symbol', 
+                'source': 'heritage-sites-source', 
+                'layout': { 
                   'text-field': ['get', 'name'],
                   'text-anchor': 'top',
                   'text-offset': [0, 1.5],
@@ -1521,12 +1520,12 @@ const HeritagePage = () => {
                   'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
                   'text-max-width': 10,
                   'text-line-height': 1.2
-                },
-                'paint': {
-                  'text-color': '#ffffff',
-                  'text-halo-color': '#000000',
+                }, 
+                'paint': { 
+                  'text-color': '#ffffff', 
+                  'text-halo-color': '#000000', 
                   'text-halo-width': 2
-                }
+                } 
               });
               console.log('Text labels layer added');
             }
@@ -1535,7 +1534,7 @@ const HeritagePage = () => {
             const handleSiteClick = async (e) => {
               const properties = e.features[0].properties;
               const coordinates = e.features[0].geometry.coordinates.slice();
-
+              
               console.log('Heritage site clicked:', properties.name);
 
               await openSiteInSidebar(
@@ -1565,7 +1564,7 @@ const HeritagePage = () => {
             map.current.on('mouseenter', 'heritage-sites-circles', handleMouseEnter);
             map.current.on('mouseleave', 'heritage-sites-icons', handleMouseLeave);
             map.current.on('mouseleave', 'heritage-sites-circles', handleMouseLeave);
-
+            
             console.log('✅ Event handlers attached to both icon and circle layers');
 
             // Initialize site counts
@@ -1588,7 +1587,7 @@ const HeritagePage = () => {
       const handleCloseViewer = () => {
         const viewerContainer = document.getElementById('viewer-container');
         const viewer = document.querySelector('.viewer');
-
+        
         if (viewerContainer) viewerContainer.style.display = 'none';
         if (viewer) viewer.innerHTML = '';
       };
@@ -1605,10 +1604,10 @@ const HeritagePage = () => {
       setTimeout(() => {
         console.log('Setting up event listeners...');
         setupCloseViewer();
-
+        
         const latInput = document.getElementById('lat-input');
         const lonInput = document.getElementById('lon-input');
-
+        
         if (latInput && lonInput) {
           if (!latInput.value && !lonInput.value) {
             latInput.placeholder = '18.52 (Mumbai)';
@@ -1706,20 +1705,20 @@ const HeritagePage = () => {
         <div className="heritage-shell-card">
           <h2 className="heritage-shell-title">Unable to Load Heritage Data</h2>
           <p className="heritage-shell-subtitle">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              marginTop: '20px',
-              padding: '10px 20px',
-              backgroundColor: '#007cba',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            Retry
-          </button>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            marginTop: '20px',
+            padding: '10px 20px',
+            backgroundColor: '#007cba',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          Retry
+        </button>
         </div>
       </div>
     );
@@ -1845,171 +1844,171 @@ const HeritagePage = () => {
 
       {/* Search / fly-to panel */}
       {searchOpen && (
-        <div className="fly-to-box heritage-panel heritage-panel--search gs-animate-scale">
-          <div className="heritage-panel__header">
-            <span className="heritage-panel__title"><span aria-hidden="true">🛫</span> Fly to location</span>
-            <button
-              type="button"
-              className="heritage-panel__close"
-              onClick={() => setSearchOpen(false)}
-              aria-label="Close search panel"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Mode Toggle */}
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ marginRight: '10px' }}>
-              <input
-                type="radio"
-                value="places"
-                checked={searchMode === 'places'}
-                onChange={(e) => setSearchMode(e.target.value)}
-                style={{ marginRight: '5px' }}
-              />
-              Search by Place
-            </label>
-            <label>
-              <input
-                type="radio"
-                value="coordinates"
-                checked={searchMode === 'coordinates'}
-                onChange={(e) => setSearchMode(e.target.value)}
-                style={{ marginRight: '5px' }}
-              />
-              Coordinates
-            </label>
-          </div>
-
-          {/* Coordinate Mode */}
-          {searchMode === 'coordinates' && (
-            <div>
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Latitude</label>
-                <input
-                  type="number"
-                  id="lat-input"
-                  placeholder="19.076"
-                  step="0.001"
-                  min="-90"
-                  max="90"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleFlyTo(e);
-                    }
-                  }}
-                  style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }}
-                />
-              </div>
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Longitude</label>
-                <input
-                  type="number"
-                  id="lon-input"
-                  placeholder="72.877"
-                  step="0.001"
-                  min="-180"
-                  max="180"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleFlyTo(e);
-                    }
-                  }}
-                  style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Place Search Mode */}
-          {searchMode === 'places' && (
-            <div style={{ position: 'relative', marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Search Heritage Site</label>
-              <input
-                type="text"
-                id="place-search-input"
-                placeholder="Type place name (e.g., Aja for Ajanta)"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  if (filteredPlaces.length > 0) {
-                    setShowDropdown(true);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '5px',
-                  border: '1px solid #ccc',
-                  borderRadius: '3px',
-                  borderBottomLeftRadius: showDropdown ? '0' : '3px',
-                  borderBottomRightRadius: showDropdown ? '0' : '3px'
-                }}
-              />
-
-              {/* Dropdown */}
-              {showDropdown && filteredPlaces.length > 0 && (
-                <div className="dropdown-container" style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #ccc',
-                  borderTop: 'none',
-                  borderBottomLeftRadius: '3px',
-                  borderBottomRightRadius: '3px',
-                  maxHeight: '150px',
-                  overflowY: 'auto',
-                  zIndex: 1000,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  scrollBehavior: 'smooth'
-                }}>
-                  {filteredPlaces.map((place, index) => (
-                    <div
-                      key={index}
-                      className="dropdown-item"
-                      data-dropdown-index={index}
-                      onClick={() => handlePlaceSelect(place)}
-                      style={{
-                        padding: '8px 10px',
-                        cursor: 'pointer',
-                        borderBottom: index < filteredPlaces.length - 1 ? '1px solid #eee' : 'none',
-                        backgroundColor: highlightedIndex === index ? '#007cba' : 'white',
-                        color: highlightedIndex === index ? 'white' : 'black'
-                      }}
-                    >
-                      <div style={{ fontWeight: '500', fontSize: '13px' }}>{place.name}</div>
-                      <div style={{ fontSize: '11px', color: highlightedIndex === index ? 'rgba(255,255,255,0.8)' : '#666' }}>
-                        {place.category}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
+      <div className="fly-to-box heritage-panel heritage-panel--search gs-animate-scale">
+        <div className="heritage-panel__header">
+          <span className="heritage-panel__title"><span aria-hidden="true">🛫</span> Fly to location</span>
           <button
-            onClick={handleFlyTo}
-            style={{
-              width: '100%',
-              padding: '8px 10px',
-              background: '#007cba',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
+            type="button"
+            className="heritage-panel__close"
+            onClick={() => setSearchOpen(false)}
+            aria-label="Close search panel"
           >
-            {searchMode === 'coordinates' ? '🛫 Fly to Coordinates' : '🛫 Fly to Place'}
+            ×
           </button>
         </div>
+        
+        {/* Mode Toggle */}
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ marginRight: '10px' }}>
+            <input
+              type="radio"
+              value="places"
+              checked={searchMode === 'places'}
+              onChange={(e) => setSearchMode(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            Search by Place
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="coordinates"
+              checked={searchMode === 'coordinates'}
+              onChange={(e) => setSearchMode(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            Coordinates
+          </label>
+        </div>
+
+        {/* Coordinate Mode */}
+        {searchMode === 'coordinates' && (
+          <div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Latitude</label>
+              <input
+                type="number"
+                id="lat-input"
+                placeholder="19.076"
+                step="0.001"
+                min="-90"
+                max="90"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleFlyTo(e);
+                  }
+                }}
+                style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Longitude</label>
+              <input
+                type="number"
+                id="lon-input"
+                placeholder="72.877"
+                step="0.001"
+                min="-180"
+                max="180"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleFlyTo(e);
+                  }
+                }}
+                style={{ width: '100%', padding: '5px', border: '1px solid #ccc', borderRadius: '3px' }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Place Search Mode */}
+        {searchMode === 'places' && (
+          <div style={{ position: 'relative', marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Search Heritage Site</label>
+            <input
+              type="text"
+              id="place-search-input"
+              placeholder="Type place name (e.g., Aja for Ajanta)"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (filteredPlaces.length > 0) {
+                  setShowDropdown(true);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '5px',
+                border: '1px solid #ccc',
+                borderRadius: '3px',
+                borderBottomLeftRadius: showDropdown ? '0' : '3px',
+                borderBottomRightRadius: showDropdown ? '0' : '3px'
+              }}
+            />
+            
+            {/* Dropdown */}
+            {showDropdown && filteredPlaces.length > 0 && (
+              <div className="dropdown-container" style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderTop: 'none',
+                borderBottomLeftRadius: '3px',
+                borderBottomRightRadius: '3px',
+                maxHeight: '150px',
+                overflowY: 'auto',
+                zIndex: 1000,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                scrollBehavior: 'smooth'
+              }}>
+                {filteredPlaces.map((place, index) => (
+                  <div
+                    key={index}
+                    className="dropdown-item"
+                    data-dropdown-index={index}
+                    onClick={() => handlePlaceSelect(place)}
+                    style={{
+                      padding: '8px 10px',
+                      cursor: 'pointer',
+                      borderBottom: index < filteredPlaces.length - 1 ? '1px solid #eee' : 'none',
+                      backgroundColor: highlightedIndex === index ? '#007cba' : 'white',
+                      color: highlightedIndex === index ? 'white' : 'black'
+                    }}
+                  >
+                    <div style={{ fontWeight: '500', fontSize: '13px' }}>{place.name}</div>
+                    <div style={{ fontSize: '11px', color: highlightedIndex === index ? 'rgba(255,255,255,0.8)' : '#666' }}>
+                      {place.category}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={handleFlyTo}
+          style={{
+            width: '100%',
+            padding: '8px 10px',
+            background: '#007cba',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          {searchMode === 'coordinates' ? '🛫 Fly to Coordinates' : '🛫 Fly to Place'}
+        </button>
+      </div>
       )}
 
       {/* Info panel (dock-toggled) */}
@@ -2048,124 +2047,124 @@ const HeritagePage = () => {
 
       {/* Legend (dock-toggled) */}
       {openPanel === 'legend' && (
-        <div className="legend heritage-panel heritage-panel--legend gs-animate-scale">
-          <div className="heritage-panel__header">
-            <span className="heritage-panel__title"><span aria-hidden="true">🗂️</span> Site categories</span>
-            <button
-              type="button"
-              className="heritage-panel__close"
-              onClick={() => setOpenPanel(null)}
-              aria-label="Close legend"
-            >
-              ×
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/UNESCO World Heritage.png"
-              alt="UNESCO"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ff6b6b', display: 'none' }}></div>
-            <span>UNESCO World Heritage</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/Historic Forts.png"
-              alt="Fort"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#4ecdc4', display: 'none' }}></div>
-            <span>Historic Forts</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/Rock-cut Caves.png"
-              alt="Cave"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#45b7d1', display: 'none' }}></div>
-            <span>Rock-cut Caves</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/Temples.png"
-              alt="Temple"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#f9ca24', display: 'none' }}></div>
-            <span>Temples</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/Monuments.png"
-              alt="Monument"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#6c5ce7', display: 'none' }}></div>
-            <span>Monuments</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/Palaces & Museums.png"
-              alt="Palace"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#a29bfe', display: 'none' }}></div>
-            <span>Palaces & Museums</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
-            <img
-              src="/assets/Historic Buildings.png"
-              alt="Building"
-              className="legend-icon-black-outline"
-              style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'inline-block';
-              }}
-            />
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#fd79a8', display: 'none' }}></div>
-            <span>Historic Buildings</span>
-          </div>
+      <div className="legend heritage-panel heritage-panel--legend gs-animate-scale">
+        <div className="heritage-panel__header">
+          <span className="heritage-panel__title"><span aria-hidden="true">🗂️</span> Site categories</span>
+          <button
+            type="button"
+            className="heritage-panel__close"
+            onClick={() => setOpenPanel(null)}
+            aria-label="Close legend"
+          >
+            ×
+          </button>
         </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/UNESCO World Heritage.png" 
+            alt="UNESCO"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ff6b6b', display: 'none' }}></div>
+          <span>UNESCO World Heritage</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Historic Forts.png" 
+            alt="Fort"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#4ecdc4', display: 'none' }}></div>
+          <span>Historic Forts</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Rock-cut Caves.png" 
+            alt="Cave"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#45b7d1', display: 'none' }}></div>
+          <span>Rock-cut Caves</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Temples.png" 
+            alt="Temple"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#f9ca24', display: 'none' }}></div>
+          <span>Temples</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Monuments.png" 
+            alt="Monument"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#6c5ce7', display: 'none' }}></div>
+          <span>Monuments</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Palaces & Museums.png" 
+            alt="Palace"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#a29bfe', display: 'none' }}></div>
+          <span>Palaces & Museums</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', fontSize: '12px' }}>
+          <img 
+            src="/assets/Historic Buildings.png" 
+            alt="Building"
+            className="legend-icon-black-outline"
+            style={{ width: '20px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'inline-block';
+            }}
+          />
+          <div style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#fd79a8', display: 'none' }}></div>
+          <span>Historic Buildings</span>
+        </div>
+      </div>
       )}
 
       {/* Sidebar for heritage site details */}
@@ -2269,233 +2268,233 @@ const HeritagePage = () => {
 
             {!sidebarLoading && (
               <>
-                <div className="heritage-section-title">Overview</div>
-                {/* Info Block */}
-                {sidebarData.info && (
-                  <SidebarBlock
-                    icon="ℹ️"
-                    title="Information"
-                    summary={sidebarData.info.summary}
-                    onClick={async () => {
-                      const hasStoryBook = await checkStoryBookAvailable(sidebarData.name);
-                      if (hasStoryBook) {
-                        const formattedName = sidebarData.name.toLowerCase().replace(/\s+/g, '-');
-                        navigateWithSelection(`/heritage-storybook/${formattedName}`);
-                      } else {
-                        setInfoModalOpen(true);
-                      }
-                    }}
-                  />
-                )}
-
-                {/* How to Reach Block */}
-                {sidebarData.howToReach && (
-                  <SidebarBlock
-                    icon="🧭"
-                    title="How to Reach"
-                    summary={sidebarData.howToReach.summary}
-                    onClick={() => setDirectionsModalOpen(true)}
-                  />
-                )}
-
-                {/* 360° View Block */}
-                {sidebarData.view360 && (
-                  <SidebarBlock
-                    icon="🌐"
-                    title="360° Street View"
-                    summary={sidebarData.view360.summary}
-                    onClick={() => {
-                      setStreetViewData({
-                        name: sidebarData.name,
-                        iframeUrl: sidebarData.view360.iframeUrl,
-                        full: sidebarData.view360.full
-                      });
-                      setStreetViewModalOpen(true);
-                    }}
-                  />
-                )}
-
-                {/* 3D Model Block */}
-                {sidebarData.model3d && (
-                  <SidebarBlock
-                    icon="🏗️"
-                    title="3D Model"
-                    summary={sidebarData.model3d.summary}
-                    onClick={() => {
-                      if (sidebarData.model3d.sketchfabId) {
-                        navigateWithSelection(`/sketchfab/${sidebarData.model3d.sketchfabId}`);
-                      } else {
-                        window.open(sidebarData.model3d.url, '_blank');
-                      }
-                    }}
-                  />
-                )}
-
-                {/* Heritage Quiz Block */}
-                <SidebarBlock
-                  icon="🎯"
-                  title="Heritage Quiz"
-                  summary="Test your knowledge about this monument"
-                  onClick={() => setQuizModalOpen(true)}
-                />
-
-                {/* Trip Planner Block */}
-                <SidebarBlock
-                  icon="🧳"
-                  title="Plan Trip"
-                  summary="Build a day-wise itinerary with budget and booking links"
-                  onClick={() => setTripPlannerModalOpen(true)}
-                />
-
-                <SidebarBlock
-                  icon="🤖"
-                  title="AI Chatbot"
-                  summary="Open the heritage assistant without leaving this monument context"
-                  onClick={() => {
-                    window.dispatchEvent(new Event('heritage-chatbot-open'));
-                    setChatbotPulse(true);
-                    setTimeout(() => setChatbotPulse(false), 1200);
-                  }}
-                />
-
-                <SidebarBlock
-                  icon="🚨"
-                  title="Safety Navigator"
-                  summary="Emergency mode, safe places, and route risk ranking"
-                  onClick={() =>
-                    navigateWithSelection('/safety-navigation', toSafetySiteState(sidebarData) || {})
+            <div className="heritage-section-title">Overview</div>
+            {/* Info Block */}
+            {sidebarData.info && (
+              <SidebarBlock
+                icon="ℹ️"
+                title="Information"
+                summary={sidebarData.info.summary}
+                onClick={async () => {
+                  const hasStoryBook = await checkStoryBookAvailable(sidebarData.name);
+                  if (hasStoryBook) {
+                    const formattedName = sidebarData.name.toLowerCase().replace(/\s+/g, '-');
+                    navigateWithSelection(`/heritage-storybook/${formattedName}`);
+                  } else {
+                    setInfoModalOpen(true);
                   }
+                }}
+              />
+            )}
+
+            {/* How to Reach Block */}
+            {sidebarData.howToReach && (
+              <SidebarBlock
+                icon="🧭"
+                title="How to Reach"
+                summary={sidebarData.howToReach.summary}
+                onClick={() => setDirectionsModalOpen(true)}
+              />
+            )}
+
+            {/* 360° View Block */}
+            {sidebarData.view360 && (
+              <SidebarBlock
+                icon="🌐"
+                title="360° Street View"
+                summary={sidebarData.view360.summary}
+                onClick={() => {
+                  setStreetViewData({
+                    name: sidebarData.name,
+                    iframeUrl: sidebarData.view360.iframeUrl,
+                    full: sidebarData.view360.full
+                  });
+                  setStreetViewModalOpen(true);
+                }}
+              />
+            )}
+
+            {/* 3D Model Block */}
+            {sidebarData.model3d && (
+              <SidebarBlock
+                icon="🏗️"
+                title="3D Model"
+                summary={sidebarData.model3d.summary}
+                onClick={() => {
+                  if (sidebarData.model3d.sketchfabId) {
+                    navigateWithSelection(`/sketchfab/${sidebarData.model3d.sketchfabId}`);
+                  } else {
+                    window.open(sidebarData.model3d.url, '_blank');
+                  }
+                }}
+              />
+            )}
+
+            {/* Heritage Quiz Block */}
+            <SidebarBlock
+              icon="🎯"
+              title="Heritage Quiz"
+              summary="Test your knowledge about this monument"
+              onClick={() => setQuizModalOpen(true)}
+            />
+
+            {/* Trip Planner Block */}
+            <SidebarBlock
+              icon="🧳"
+              title="Plan Trip"
+              summary="Build a day-wise itinerary with budget and booking links"
+              onClick={() => setTripPlannerModalOpen(true)}
+            />
+
+            <SidebarBlock
+              icon="🤖"
+              title="AI Chatbot"
+              summary="Open the heritage assistant without leaving this monument context"
+              onClick={() => {
+                window.dispatchEvent(new Event('heritage-chatbot-open'));
+                setChatbotPulse(true);
+                setTimeout(() => setChatbotPulse(false), 1200);
+              }}
+            />
+
+            <SidebarBlock
+              icon="🚨"
+              title="Safety Navigator"
+              summary="Emergency mode, safe places, and route risk ranking"
+              onClick={() =>
+                navigateWithSelection('/safety-navigation', toSafetySiteState(sidebarData) || {})
+              }
+            />
+
+            <div className="heritage-section-title">Map and Live Data</div>
+
+            {/* Map Viewing Options */}
+            <div style={{ 
+              marginTop: '20px', 
+              borderTop: '2px solid rgba(255,255,255,0.2)', 
+              paddingTop: '20px',
+              marginLeft: '12px',
+              marginRight: '12px'
+            }}>
+              <h4 style={{ 
+                color: '#fff', 
+                marginBottom: '15px', 
+                fontSize: '18px', 
+                fontWeight: '700', 
+                textAlign: 'center',
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                letterSpacing: '0.5px'
+              }}>🗺️ Map Views</h4>
+
+              {/* Satellite View */}
+              <SidebarBlock
+                icon="🛰️"
+                title="Satellite View"
+                summary="High-resolution satellite imagery of the site"
+                onClick={() => {
+                  if (sidebarData.coordinates) {
+                    switchMapStyle('satellite', 18, sidebarData.coordinates);
+                  }
+                }}
+                isActive={currentMapStyle === 'satellite'}
+                isLoading={mapStyleLoading && currentMapStyle !== 'satellite'}
+              />
+
+              {/* Topographic Map */}
+              <SidebarBlock
+                icon="⛰️"
+                title="Terrain View"
+                summary="Topographic map showing elevation and terrain"
+                onClick={() => {
+                  if (sidebarData.coordinates) {
+                    switchMapStyle('topo', 15, sidebarData.coordinates);
+                  }
+                }}
+                isActive={currentMapStyle === 'topo'}
+                isLoading={mapStyleLoading && currentMapStyle !== 'topo'}
+              />
+
+              {/* Historical Map */}
+              <SidebarBlock
+                icon="📜"
+                title="Historical Context"
+                summary="View site in historical map context"
+                onClick={() => {
+                  if (sidebarData.coordinates) {
+                    switchMapStyle('historical', 14, sidebarData.coordinates);
+                  }
+                }}
+                isActive={currentMapStyle === 'historical'}
+                isLoading={mapStyleLoading && currentMapStyle !== 'historical'}
+              />
+
+              {/* Navigation Map */}
+              <SidebarBlock
+                icon="🗺️"
+                title="Navigation View"
+                summary="Detailed street map for navigation"
+                onClick={() => {
+                  if (sidebarData.coordinates) {
+                    switchMapStyle('streets', 16, sidebarData.coordinates);
+                  }
+                }}
+                isActive={currentMapStyle === 'streets'}
+                isLoading={mapStyleLoading && currentMapStyle !== 'streets'}
+              />
+
+              {/* Hybrid View */}
+              <SidebarBlock
+                icon="🌍"
+                title="Hybrid Map"
+                summary="Satellite imagery with street labels"
+                onClick={() => {
+                  if (sidebarData.coordinates) {
+                    switchMapStyle('hybrid', 14, sidebarData.coordinates);
+                  }
+                }}
+                isActive={currentMapStyle === 'hybrid'}
+                isLoading={mapStyleLoading && currentMapStyle !== 'hybrid'}
+              />
+
+              {/* Location Context */}
+              <SidebarBlock
+                icon="📍"
+                title="Area Overview"
+                summary="See surrounding landmarks and context"
+                onClick={() => {
+                  if (sidebarData.coordinates && map.current) {
+                    map.current.flyTo({
+                      center: sidebarData.coordinates,
+                      zoom: 12,
+                      pitch: 30,
+                      bearing: 0,
+                      duration: 2000,
+                      essential: true
+                    });
+                  }
+                }}
+              />
+
+              {/* Weather Forecast */}
+              {sidebarData.coordinates && (
+                <SidebarBlock
+                  icon="🌤️"
+                  title="Weather Forecast"
+                  summary="Current conditions & 5-day forecast"
+                  onClick={handleWeatherClick}
+                  isLoading={weatherLoading}
                 />
+              )}
 
-                <div className="heritage-section-title">Map and Live Data</div>
-
-                {/* Map Viewing Options */}
-                <div style={{
-                  marginTop: '20px',
-                  borderTop: '2px solid rgba(255,255,255,0.2)',
-                  paddingTop: '20px',
-                  marginLeft: '12px',
-                  marginRight: '12px'
-                }}>
-                  <h4 style={{
-                    color: '#fff',
-                    marginBottom: '15px',
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    textAlign: 'center',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    letterSpacing: '0.5px'
-                  }}>🗺️ Map Views</h4>
-
-                  {/* Satellite View */}
-                  <SidebarBlock
-                    icon="🛰️"
-                    title="Satellite View"
-                    summary="High-resolution satellite imagery of the site"
-                    onClick={() => {
-                      if (sidebarData.coordinates) {
-                        switchMapStyle('satellite', 18, sidebarData.coordinates);
-                      }
-                    }}
-                    isActive={currentMapStyle === 'satellite'}
-                    isLoading={mapStyleLoading && currentMapStyle !== 'satellite'}
-                  />
-
-                  {/* Topographic Map */}
-                  <SidebarBlock
-                    icon="⛰️"
-                    title="Terrain View"
-                    summary="Topographic map showing elevation and terrain"
-                    onClick={() => {
-                      if (sidebarData.coordinates) {
-                        switchMapStyle('topo', 15, sidebarData.coordinates);
-                      }
-                    }}
-                    isActive={currentMapStyle === 'topo'}
-                    isLoading={mapStyleLoading && currentMapStyle !== 'topo'}
-                  />
-
-                  {/* Historical Map */}
-                  <SidebarBlock
-                    icon="📜"
-                    title="Historical Context"
-                    summary="View site in historical map context"
-                    onClick={() => {
-                      if (sidebarData.coordinates) {
-                        switchMapStyle('historical', 14, sidebarData.coordinates);
-                      }
-                    }}
-                    isActive={currentMapStyle === 'historical'}
-                    isLoading={mapStyleLoading && currentMapStyle !== 'historical'}
-                  />
-
-                  {/* Navigation Map */}
-                  <SidebarBlock
-                    icon="🗺️"
-                    title="Navigation View"
-                    summary="Detailed street map for navigation"
-                    onClick={() => {
-                      if (sidebarData.coordinates) {
-                        switchMapStyle('streets', 16, sidebarData.coordinates);
-                      }
-                    }}
-                    isActive={currentMapStyle === 'streets'}
-                    isLoading={mapStyleLoading && currentMapStyle !== 'streets'}
-                  />
-
-                  {/* Hybrid View */}
-                  <SidebarBlock
-                    icon="🌍"
-                    title="Hybrid Map"
-                    summary="Satellite imagery with street labels"
-                    onClick={() => {
-                      if (sidebarData.coordinates) {
-                        switchMapStyle('hybrid', 14, sidebarData.coordinates);
-                      }
-                    }}
-                    isActive={currentMapStyle === 'hybrid'}
-                    isLoading={mapStyleLoading && currentMapStyle !== 'hybrid'}
-                  />
-
-                  {/* Location Context */}
-                  <SidebarBlock
-                    icon="📍"
-                    title="Area Overview"
-                    summary="See surrounding landmarks and context"
-                    onClick={() => {
-                      if (sidebarData.coordinates && map.current) {
-                        map.current.flyTo({
-                          center: sidebarData.coordinates,
-                          zoom: 12,
-                          pitch: 30,
-                          bearing: 0,
-                          duration: 2000,
-                          essential: true
-                        });
-                      }
-                    }}
-                  />
-
-                  {/* Weather Forecast */}
-                  {sidebarData.coordinates && (
-                    <SidebarBlock
-                      icon="🌤️"
-                      title="Weather Forecast"
-                      summary="Current conditions & 5-day forecast"
-                      onClick={handleWeatherClick}
-                      isLoading={weatherLoading}
-                    />
-                  )}
-
-                  {/* Latest News */}
-                  <SidebarBlock
-                    icon="📰"
-                    title="Latest News"
-                    summary="Recent heritage & tourism updates"
-                    onClick={handleNewsClick}
-                    isLoading={newsLoading}
-                  />
-                </div>
+              {/* Latest News */}
+              <SidebarBlock
+                icon="📰"
+                title="Latest News"
+                summary="Recent heritage & tourism updates"
+                onClick={handleNewsClick}
+                isLoading={newsLoading}
+              />
+            </div>
               </>
             )}
           </div>
@@ -2658,60 +2657,60 @@ const HeritagePage = () => {
       {/* How to Reach Modal */}
       {directionsModalOpen && sidebarData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', backdropFilter: 'blur(5px)' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '20px',
-            width: '90%',
-            maxWidth: '900px',
-            maxHeight: '90vh',
-            overflow: 'hidden',
-            boxShadow: '0 25px 70px rgba(0,0,0,0.5)',
-            display: 'flex',
+          <div style={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+            borderRadius: '20px', 
+            width: '90%', 
+            maxWidth: '900px', 
+            maxHeight: '90vh', 
+            overflow: 'hidden', 
+            boxShadow: '0 25px 70px rgba(0,0,0,0.5)', 
+            display: 'flex', 
             flexDirection: 'column',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
             {/* Modal Header */}
-            <div style={{
-              padding: '28px 36px',
+            <div style={{ 
+              padding: '28px 36px', 
               background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))',
               backdropFilter: 'blur(20px)',
-              borderBottom: '1px solid rgba(255,255,255,0.2)',
-              display: 'flex',
-              justifyContent: 'space-between',
+              borderBottom: '1px solid rgba(255,255,255,0.2)', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
               alignItems: 'center',
               boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
             }}>
               <div>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: '32px',
-                  fontWeight: 'bold',
+                <h2 style={{ 
+                  margin: 0, 
+                  fontSize: '32px', 
+                  fontWeight: 'bold', 
                   color: '#fff',
                   textShadow: '0 2px 10px rgba(0,0,0,0.2)',
                   marginBottom: '8px'
                 }}>How to Reach {sidebarData.name}</h2>
-                <p style={{
-                  margin: 0,
-                  fontSize: '16px',
+                <p style={{ 
+                  margin: 0, 
+                  fontSize: '16px', 
                   color: 'rgba(255, 255, 255, 0.85)',
                   fontWeight: '500'
                 }}>Travel directions and transportation options</p>
               </div>
               <button
                 onClick={() => setDirectionsModalOpen(false)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: 'none',
-                  fontSize: '32px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.2)', 
+                  border: 'none', 
+                  fontSize: '32px', 
+                  color: '#fff', 
+                  cursor: 'pointer', 
+                  padding: '8px', 
+                  borderRadius: '50%', 
+                  width: '48px', 
+                  height: '48px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
                   transition: 'all 0.3s ease',
                   backdropFilter: 'blur(10px)',
                   fontWeight: 'bold'
@@ -2730,19 +2729,19 @@ const HeritagePage = () => {
             </div>
 
             {/* Modal Content */}
-            <div style={{
-              padding: '36px',
-              overflowY: 'auto',
+            <div style={{ 
+              padding: '36px', 
+              overflowY: 'auto', 
               flex: 1,
               scrollbarWidth: 'thin',
               scrollbarColor: 'rgba(255,255,255,0.3) transparent'
             }} className="modal-scroll">
               {/* Overview */}
               <div style={{ marginBottom: '36px' }}>
-                <h3 style={{
-                  fontSize: '26px',
-                  fontWeight: '700',
-                  color: '#fff',
+                <h3 style={{ 
+                  fontSize: '26px', 
+                  fontWeight: '700', 
+                  color: '#fff', 
                   marginBottom: '16px',
                   textShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   display: 'flex',
@@ -2752,9 +2751,9 @@ const HeritagePage = () => {
                   <span style={{ fontSize: '30px' }}>🗺️</span>
                   Overview
                 </h3>
-                <p style={{
-                  fontSize: '18px',
-                  lineHeight: '1.8',
+                <p style={{ 
+                  fontSize: '18px', 
+                  lineHeight: '1.8', 
                   color: 'rgba(255, 255, 255, 0.95)',
                   background: 'rgba(255, 255, 255, 0.1)',
                   padding: '20px',
@@ -2769,10 +2768,10 @@ const HeritagePage = () => {
               {/* By Air */}
               {sidebarData.howToReach?.byAir && (
                 <div style={{ marginBottom: '36px' }}>
-                  <h3 style={{
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    color: '#fff',
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
                     marginBottom: '16px',
                     textShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
@@ -2782,17 +2781,17 @@ const HeritagePage = () => {
                     <span style={{ fontSize: '28px' }}>✈️</span>
                     By Air
                   </h3>
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(135, 206, 250, 0.2) 0%, rgba(30, 144, 255, 0.15) 100%)',
-                    padding: '24px',
-                    borderRadius: '16px',
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(135, 206, 250, 0.2) 0%, rgba(30, 144, 255, 0.15) 100%)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
                     border: '1px solid rgba(135, 206, 250, 0.3)',
                     backdropFilter: 'blur(10px)',
                     boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
                     transition: 'transform 0.3s ease'
                   }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                     {sidebarData.howToReach.byAir.nearestAirport && (
                       <p style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '16px' }}>
                         <strong style={{ color: '#fff', fontSize: '17px' }}>Nearest Airport:</strong> {sidebarData.howToReach.byAir.nearestAirport}
@@ -2815,10 +2814,10 @@ const HeritagePage = () => {
               {/* By Rail */}
               {sidebarData.howToReach?.byRail && (
                 <div style={{ marginBottom: '36px' }}>
-                  <h3 style={{
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    color: '#fff',
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
                     marginBottom: '16px',
                     textShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
@@ -2828,17 +2827,17 @@ const HeritagePage = () => {
                     <span style={{ fontSize: '28px' }}>🚂</span>
                     By Train
                   </h3>
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(144, 238, 144, 0.2) 0%, rgba(34, 139, 34, 0.15) 100%)',
-                    padding: '24px',
-                    borderRadius: '16px',
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(144, 238, 144, 0.2) 0%, rgba(34, 139, 34, 0.15) 100%)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
                     border: '1px solid rgba(144, 238, 144, 0.3)',
                     backdropFilter: 'blur(10px)',
                     boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
                     transition: 'transform 0.3s ease'
                   }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                     {sidebarData.howToReach.byRail.nearestStation && (
                       <p style={{ marginBottom: '12px', color: 'rgba(255, 255, 255, 0.95)', fontSize: '16px' }}>
                         <strong style={{ color: '#fff', fontSize: '17px' }}>Nearest Railway Station:</strong> {sidebarData.howToReach.byRail.nearestStation}
@@ -2861,10 +2860,10 @@ const HeritagePage = () => {
               {/* By Road */}
               {sidebarData.howToReach?.byRoad && (
                 <div style={{ marginBottom: '36px' }}>
-                  <h3 style={{
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    color: '#fff',
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
                     marginBottom: '16px',
                     textShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
@@ -2874,45 +2873,45 @@ const HeritagePage = () => {
                     <span style={{ fontSize: '28px' }}>🚗</span>
                     By Road
                   </h3>
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(255, 179, 102, 0.2) 0%, rgba(255, 140, 0, 0.15) 100%)',
-                    padding: '24px',
-                    borderRadius: '16px',
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(255, 179, 102, 0.2) 0%, rgba(255, 140, 0, 0.15) 100%)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
                     border: '1px solid rgba(255, 179, 102, 0.3)',
                     backdropFilter: 'blur(10px)',
                     boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
                   }}>
                     {sidebarData.howToReach.byRoad.fromMajorCities && sidebarData.howToReach.byRoad.fromMajorCities.length > 0 && (
                       <>
-                        <h4 style={{
-                          fontSize: '20px',
-                          fontWeight: '700',
-                          color: '#fff',
+                        <h4 style={{ 
+                          fontSize: '20px', 
+                          fontWeight: '700', 
+                          color: '#fff', 
                           marginBottom: '20px',
                           textShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>From Major Cities</h4>
                         {sidebarData.howToReach.byRoad.fromMajorCities.map((route, index) => (
-                          <div key={index} style={{
-                            marginBottom: '20px',
-                            padding: '20px',
-                            background: 'rgba(255, 255, 255, 0.15)',
-                            borderRadius: '12px',
+                          <div key={index} style={{ 
+                            marginBottom: '20px', 
+                            padding: '20px', 
+                            background: 'rgba(255, 255, 255, 0.15)', 
+                            borderRadius: '12px', 
                             border: '1px solid rgba(255, 255, 255, 0.25)',
                             backdropFilter: 'blur(5px)',
                             transition: 'all 0.3s ease'
                           }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                              e.currentTarget.style.transform = 'translateX(8px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                              e.currentTarget.style.transform = 'translateX(0)';
-                            }}>
-                            <p style={{
-                              fontSize: '18px',
-                              fontWeight: '700',
-                              color: '#fff',
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            e.currentTarget.style.transform = 'translateX(8px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }}>
+                            <p style={{ 
+                              fontSize: '18px', 
+                              fontWeight: '700', 
+                              color: '#fff', 
                               marginBottom: '12px',
                               textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                             }}>From {route.city}</p>
@@ -2937,18 +2936,18 @@ const HeritagePage = () => {
                     )}
                     {sidebarData.howToReach.byRoad.localTransport && (
                       <>
-                        <h4 style={{
-                          fontSize: '20px',
-                          fontWeight: '700',
-                          color: '#fff',
+                        <h4 style={{ 
+                          fontSize: '20px', 
+                          fontWeight: '700', 
+                          color: '#fff', 
                           marginBottom: '12px',
                           marginTop: sidebarData.howToReach.byRoad.fromMajorCities?.length > 0 ? '24px' : '0',
                           textShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>Local Transport</h4>
-                        <p style={{
-                          marginBottom: 0,
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          fontSize: '15px',
+                        <p style={{ 
+                          marginBottom: 0, 
+                          color: 'rgba(255, 255, 255, 0.9)', 
+                          fontSize: '15px', 
                           lineHeight: '1.7',
                           padding: '16px',
                           background: 'rgba(255, 255, 255, 0.1)',
@@ -2963,18 +2962,18 @@ const HeritagePage = () => {
 
               {/* Location Information */}
               {sidebarData.location && (
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%)',
-                  padding: '28px',
+                <div style={{ 
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%)', 
+                  padding: '28px', 
                   borderRadius: '16px',
                   border: '1px solid rgba(255, 255, 255, 0.3)',
                   backdropFilter: 'blur(10px)',
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
                 }}>
-                  <h3 style={{
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    color: '#fff',
+                  <h3 style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
                     marginBottom: '20px',
                     textShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
@@ -2984,10 +2983,10 @@ const HeritagePage = () => {
                     <span style={{ fontSize: '28px' }}>📍</span>
                     Location
                   </h3>
-                  <p style={{
-                    fontSize: '18px',
-                    lineHeight: '1.6',
-                    color: 'rgba(255, 255, 255, 0.95)',
+                  <p style={{ 
+                    fontSize: '18px', 
+                    lineHeight: '1.6', 
+                    color: 'rgba(255, 255, 255, 0.95)', 
                     marginBottom: '16px',
                     fontWeight: '500'
                   }}>
@@ -2996,9 +2995,9 @@ const HeritagePage = () => {
                     {sidebarData.location.country}
                   </p>
                   {sidebarData.location.coordinates && (
-                    <p style={{
-                      fontSize: '16px',
-                      color: 'rgba(255, 255, 255, 0.9)',
+                    <p style={{ 
+                      fontSize: '16px', 
+                      color: 'rgba(255, 255, 255, 0.9)', 
                       marginBottom: 0,
                       background: 'rgba(255, 255, 255, 0.1)',
                       padding: '12px 16px',
@@ -3039,8 +3038,7 @@ const HeritagePage = () => {
       )}
 
       {/* Custom styles */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style dangerouslySetInnerHTML={{ __html: `
         .maplibregl-popup-content {
           background-color: #333 !important;
           color: #fff !important;
@@ -3578,13 +3576,13 @@ const HeritagePage = () => {
                   {(newsTab === 'monument'
                     ? newsData.monument.fallbackLabel
                     : newsData.location.fallbackLabel) && (
-                      <div className="h-notice">
-                        <span aria-hidden="true">&#8505;&#65039;</span>
-                        {newsTab === 'monument'
-                          ? newsData.monument.fallbackLabel
-                          : newsData.location.fallbackLabel}
-                      </div>
-                    )}
+                    <div className="h-notice">
+                      <span aria-hidden="true">&#8505;&#65039;</span>
+                      {newsTab === 'monument'
+                        ? newsData.monument.fallbackLabel
+                        : newsData.location.fallbackLabel}
+                    </div>
+                  )}
 
                   {(() => {
                     const articles =

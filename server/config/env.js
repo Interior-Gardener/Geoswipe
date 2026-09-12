@@ -84,6 +84,63 @@ function parseAllowedOrigins() {
 
 const allowedOrigins = parseAllowedOrigins();
 
+// Split the allowlist into exact origins and single-label wildcard patterns.
+// A pattern looks like "https://*.geoswipe.pages.dev".
+const exactOrigins = new Set(allowedOrigins.filter((entry) => !entry.includes('*')));
+const wildcardOrigins = allowedOrigins
+  .filter((entry) => entry.includes('*'))
+  .map((entry) => {
+    // Parse the pattern itself rather than treating it as text, so a malformed
+    // entry is ignored at boot instead of matching something unintended.
+    const withPlaceholder = entry.replace('*.', 'wildcard-placeholder.');
+    try {
+      const parsed = new URL(withPlaceholder);
+      const suffix = parsed.host.replace(/^wildcard-placeholder\./, '');
+      if (!suffix || !suffix.includes('.')) {
+        console.warn(`⚠️  Ignoring unusable ALLOWED_ORIGINS pattern: ${entry}`);
+        return null;
+      }
+      return { protocol: parsed.protocol, suffix };
+    } catch {
+      console.warn(`⚠️  Ignoring malformed ALLOWED_ORIGINS pattern: ${entry}`);
+      return null;
+    }
+  })
+  .filter(Boolean);
+
+/**
+ * Is this browser Origin permitted?
+ *
+ * A missing Origin is allowed: those are not browser requests (curl,
+ * server-to-server, health checks) and carry no ambient credentials to protect.
+ */
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (exactOrigins.has(origin)) return true;
+  if (wildcardOrigins.length === 0) return false;
+
+  let host;
+  let protocol;
+  try {
+    const parsed = new URL(origin);
+    host = parsed.host;
+    protocol = parsed.protocol;
+    // Reject anything carrying more than a bare origin - a real browser never
+    // sends one, and it is a classic way to smuggle a suffix past a check.
+    if (parsed.pathname !== '/' || parsed.search || parsed.hash) return false;
+  } catch {
+    return false;
+  }
+
+  return wildcardOrigins.some((pattern) => {
+    if (pattern.protocol !== protocol) return false;
+    if (!host.endsWith(`.${pattern.suffix}`)) return false;
+    // Exactly one label may replace the '*'.
+    const label = host.slice(0, -(pattern.suffix.length + 1));
+    return label.length > 0 && !label.includes('.');
+  });
+}
+
 // Report configuration state at boot WITHOUT ever printing a secret value.
 function reportConfiguration() {
   const configured = [];
@@ -118,5 +175,6 @@ module.exports = {
   secrets,
   keyPools,
   allowedOrigins,
+  isOriginAllowed,
   reportConfiguration
 };

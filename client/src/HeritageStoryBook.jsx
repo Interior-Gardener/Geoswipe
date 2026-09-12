@@ -7,6 +7,7 @@ import {
   normalizeMonumentSelection
 } from './utils/heritageNavigationState';
 import { fetchMonumentImage, primeMonumentImageCache } from './utils/heritageImageService';
+import { API_BASE_URL } from './utils/apiConfig';
 import './styles/storybook-reader.css';
 
 /** Used only when a site has no imagery of its own to illustrate a chapter. */
@@ -57,7 +58,7 @@ const HeritageStoryBook = () => {
       try {
         setLoading(true);
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/heritage/${encodeURIComponent(name)}`
+          `${API_BASE_URL}/api/heritage/${encodeURIComponent(name)}`
         );
 
         if (!response.ok) {

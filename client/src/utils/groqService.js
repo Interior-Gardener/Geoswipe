@@ -18,8 +18,7 @@ let lastQueryTime = null;
  */
 export async function fetchHeritageSitesContext() {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const response = await fetch(`${apiUrl}/api/heritage-sites`);
+    const response = await fetch(`${API_BASE_URL}/api/heritage-sites`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch heritage sites');

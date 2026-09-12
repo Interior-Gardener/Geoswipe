@@ -177,10 +177,29 @@ ALLOWED_ORIGINS=https://geoswipe.pages.dev
 
 Render redeploys automatically. Until you do this, every browser request is rejected by CORS and the app will look broken while the API is perfectly healthy.
 
-> If you add a custom domain later, put both in the list:
-> `ALLOWED_ORIGINS=https://geoswipe.pages.dev,https://geoswipe.yourdomain.com`
->
-> Cloudflare also gives every branch a preview URL (`https://abc123.geoswipe.pages.dev`). Those origins are **not** in the allowlist, so previews will not be able to call the API unless you add them.
+### Do you have to update this after every deploy? No.
+
+Cloudflare Pages gives you **three kinds of URL**:
+
+| URL | Changes per deploy? | Use it for |
+|---|---|---|
+| `https://geoswipe.pages.dev` | **No** — stable alias, always points at the current production deployment | This is your real site. Share this one. |
+| `https://main.geoswipe.pages.dev` | No — one per branch | Branch testing |
+| `https://b9b14a49.geoswipe.pages.dev` | **Yes** — unique, immutable, per deployment | Checking one specific build |
+
+So if you use the stable `https://geoswipe.pages.dev`, you set `ALLOWED_ORIGINS` **once** and never touch it again. Deploy as often as you like.
+
+The per-deployment hash URLs are the awkward case, which is why the server accepts a **single-label wildcard**:
+
+```
+ALLOWED_ORIGINS=https://geoswipe.pages.dev,https://*.geoswipe.pages.dev
+```
+
+That covers the stable alias, every branch alias, and every per-deployment hash URL — with no further edits, ever.
+
+The wildcard is matched on a parsed URL, and only one label may vary. `https://b9b14a49.geoswipe.pages.dev` matches; `https://geoswipe.pages.dev.evil.com`, `https://evil.com/#.geoswipe.pages.dev`, `https://a.b.geoswipe.pages.dev` and plain `http://` do not.
+
+> Custom domain later? Just add it: `ALLOWED_ORIGINS=https://geoswipe.pages.dev,https://*.geoswipe.pages.dev,https://geoswipe.yourdomain.com`
 
 ### 5.4 Verify the gesture assets shipped
 
@@ -264,7 +283,9 @@ MapTiler is the one that scales with real usage (tiles are fetched per map pan, 
 | Symptom | Cause | Fix |
 |---|---|---|
 | Render deploy fails: "no open ports detected" | `HOST` not set | Set `HOST=0.0.0.0` |
-| Site loads but every panel errors; API is healthy | CORS | `ALLOWED_ORIGINS` must contain your exact Pages origin, with `https://` and no trailing slash |
+| Site loads but every panel errors; API is healthy | CORS | `ALLOWED_ORIGINS` must contain your Pages origin, with `https://` and no trailing slash. Add `https://*.<project>.pages.dev` to cover per-deployment URLs |
+| `Unexpected token '<', "<!doctype "... is not valid JSON` | A fetch used a **relative** path (`/api/...`), so Cloudflare's SPA fallback answered it with `index.html` instead of the API answering | Every client API call must go through `API_BASE_URL` from `src/utils/apiConfig.js`. Never a relative `/api/...` path, and never a hardcoded host |
+| Heritage sites don't load, other pages fine | A hardcoded `http://localhost:3000` left in a fetch | Same fix — use `API_BASE_URL`. Check with `grep -rn "localhost:300" client/src` |
 | `npm ci` fails on Render/Cloudflare | `package.json` and `package-lock.json` out of sync | Run `npm install` locally, commit the updated lockfile |
 | Map is blank, everything else works | MapTiler keys | Check `/api/diagnostics`; a 403 means quota or a disabled key |
 | News panel empty | All NewsAPI keys spent, cold cache | Check logs for `all_keys_exhausted`; add a key |

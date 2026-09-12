@@ -153,6 +153,59 @@ The cursor path was also verified live in a browser on `/explore` with the globe
 
 ---
 
+## 5b. Post-deployment fixes
+
+Found while getting the first Render + Cloudflare deploy working.
+
+### Every client API call now goes through one base URL
+
+`HeritagePage.jsx` had `http://localhost:3000` **hardcoded** in two fetches (the
+geojson site list and per-site details). In production those simply could not
+resolve, so the heritage map came up empty.
+
+Changing them to a relative `/api/...` path does **not** fix it, and produces a
+confusing second failure: Cloudflare Pages' SPA fallback (`/* /index.html 200`)
+answers any unknown path with the HTML shell, so `response.json()` chokes on it:
+
+```
+SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+```
+
+Both now use `API_BASE_URL` from `utils/apiConfig.js`.
+
+The root cause was duplication: six files each declared their own
+`const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'`.
+They happened to agree, which is exactly why nobody noticed when HeritagePage
+drifted. There is now **one** definition, in `utils/apiConfig.js`, and every
+other file imports it. A `grep -rn "localhost:300" client/src` returns only that
+single dev fallback.
+
+### Dead files removed
+
+`client/src/pages/heritage/` contained an **empty** `HeritagePage.jsx` and an
+unused `useHeritageSites.js` that read a non-existent env var
+(`VITE_API_BASE_URL`) and fell back to the wrong port (3001). Nothing imported
+either. It is the kind of decoy that attracts a fix meant for the real file, so
+it is gone.
+
+### ALLOWED_ORIGINS no longer needs editing per deploy
+
+Cloudflare Pages gives each deployment its own hostname
+(`https://b9b14a49.geoswipe.pages.dev`) alongside the stable
+`https://geoswipe.pages.dev` alias. `ALLOWED_ORIGINS` now accepts a single-label
+wildcard:
+
+```
+ALLOWED_ORIGINS=https://geoswipe.pages.dev,https://*.geoswipe.pages.dev
+```
+
+Matching happens on a parsed URL in `server/config/env.js`, and only one label
+may vary. Verified against 15 cases including `geoswipe.pages.dev.evil.com`,
+`evil.com/#.geoswipe.pages.dev`, `evil.com/?x=.geoswipe.pages.dev`,
+`a.b.geoswipe.pages.dev`, protocol downgrade and port mismatch - all denied.
+
+---
+
 ## 6. What was NOT changed
 
 - No feature was removed, simplified, or degraded. Every route, game, panel and gesture behaves as before.

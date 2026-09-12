@@ -30,7 +30,7 @@ import {
   normalizeMonumentSelection
 } from './utils/heritageNavigationState';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from './utils/apiConfig';
 const DEFAULT_CENTER = [77.209, 28.6139];
 const DEFAULT_RADIUS = 3000;
 const EMERGENCY_RADIUS = 5500;

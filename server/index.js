@@ -1,5 +1,5 @@
 // server/index.js
-const { isProduction, secrets, keyPools, allowedOrigins, reportConfiguration } = require('./config/env');
+const { isProduction, secrets, keyPools, allowedOrigins, isOriginAllowed, reportConfiguration } = require('./config/env');
 const { securityHeaders, safeError, errorHandler } = require('./middleware/security');
 const { exactMatchRegex, containsRegex, sanitizeText } = require('./middleware/validation');
 
@@ -7,16 +7,16 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 
-// Shared origin check for both HTTP and WebSocket transports.
+// Shared origin check for both HTTP and WebSocket transports lives in
+// config/env.js, which also handles single-label wildcard entries such as
+// "https://*.geoswipe.pages.dev" (every Cloudflare Pages deployment gets its
+// own hostname, and chasing them by hand means editing this on every deploy).
+//
 // SECURITY: this replaces a blanket `origin: "*"`. In production only the
 // configured ALLOWED_ORIGINS may connect; in development the localhost dev
 // servers are allowed. Requests with no Origin header (curl, server-to-server,
-// the Python gesture client) are permitted - they are not browser requests and
-// carry no ambient credentials to protect.
-function isOriginAllowed(origin) {
-  if (!origin) return true;
-  return allowedOrigins.includes(origin);
-}
+// health checks) are permitted - they are not browser requests and carry no
+// ambient credentials to protect.
 
 function corsOriginCallback(origin, callback) {
   // Signal allow/deny rather than raising: a disallowed origin simply gets no

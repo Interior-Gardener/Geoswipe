@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import GestureButton from "./GestureButton";
 
 const TOTAL_ROUNDS = 10;
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { API_BASE_URL } from './utils/apiConfig';
 
 const FlagGuessGame = ({ selectedCountry, clearSelection, onExit }) => {
   const [currentCountry, setCurrentCountry] = useState(null);

@@ -87,7 +87,7 @@ Each key accepts either a single value (`OPENWEATHER_API_KEY`) or a
 comma-separated pool from several free accounts (`OPENWEATHER_API_KEYS`). The
 server rotates through a pool and steps past any key that hits its quota. See
 `server/.env.example` for the full list, and
-[ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) for how caching keeps usage
+[ARCHITECTURE_CHANGES.md](mdfiles/ARCHITECTURE_CHANGES.md) for how caching keeps usage
 inside the free tiers.
 
 **Never put a key in `client/.env.*`** — Vite compiles those into the browser

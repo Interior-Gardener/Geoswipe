@@ -10,7 +10,7 @@ import {
 } from './utils/heritageNavigationState';
 
 const TOTAL_QUESTIONS = 10;
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from './utils/apiConfig';
 
 const HeritageQuiz = ({ monumentName: propMonumentName, onClose, initialMode }) => {
   const { name: paramMonumentName } = useParams();

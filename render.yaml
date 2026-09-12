@@ -31,6 +31,9 @@ services:
       # --- Set these in the Render dashboard (Environment tab) --------------
       - key: MONGODB_URI
         sync: false
+      # e.g. https://geoswipe.pages.dev,https://*.geoswipe.pages.dev
+      # The wildcard covers every per-deployment Cloudflare Pages URL, so this
+      # does not need updating after each frontend deploy.
       - key: ALLOWED_ORIGINS
         sync: false
 

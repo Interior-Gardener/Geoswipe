@@ -1,0 +1,51 @@
+# Render blueprint for the GeoSwipe API.
+#
+# ONLY the Node/Express/Socket.IO backend runs here. The frontend is a static
+# site on Cloudflare Pages, and gesture detection runs in the user's browser -
+# the Python MediaPipe worker that used to need its own service (and blew past
+# Render's 512MB free tier) no longer exists.
+#
+# Secrets are deliberately NOT in this file. `sync: false` makes Render prompt
+# for each one in the dashboard, so no key is ever committed to git.
+
+services:
+  - type: web
+    name: geoswipe-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: node index.js
+    # Free instances sleep after 15 minutes of inactivity. Render pings this
+    # path to decide the service is up after a cold start.
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render assigns the port; the app must bind 0.0.0.0 or the health check
+      # can never reach it.
+      - key: HOST
+        value: 0.0.0.0
+
+      # --- Set these in the Render dashboard (Environment tab) --------------
+      - key: MONGODB_URI
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+      # Pooled free-tier keys, comma-separated. See server/.env.example.
+      - key: MAPTILER_API_KEYS
+        sync: false
+      - key: OPENWEATHER_API_KEYS
+        sync: false
+      - key: NEWSAPI_KEYS
+        sync: false
+      - key: UNSPLASH_ACCESS_KEYS
+        sync: false
+      - key: UNSPLASH_SECRET_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b

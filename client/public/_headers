@@ -1,0 +1,22 @@
+# Cloudflare Pages response headers.
+
+# Vite content-hashes everything in /assets, so those filenames change whenever
+# the content does - they can be cached permanently.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# MediaPipe hand-tracking runtime (~8MB model + WASM). These filenames are
+# stable rather than content-hashed, so this is a long-but-not-eternal cache:
+# a returning visitor never re-downloads the model, and a genuine model update
+# still propagates within a month.
+/mediapipe/*
+  Cache-Control: public, max-age=2592000
+
+# Baseline hardening for the document itself.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  # The app asks for camera access for gesture control; everything else stays
+  # denied. This must NOT be camera=() or gesture control breaks.
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(self)

@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "setup:mediapipe": "node scripts/setup-mediapipe.mjs",
+    "predev": "npm run setup:mediapipe",
     "dev": "vite",
+    "prebuild": "npm run setup:mediapipe",
     "dev:lan": "vite --host",
     "build": "vite build",
     "build:analyze": "vite build && npx vite-bundle-analyzer dist/stats.html",
@@ -15,6 +18,7 @@
     "chapters:manifest": "node scripts/chapters-manifest.mjs"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
     "framer-motion": "^12.38.0",
     "jspdf": "^4.2.1",
     "maplibre-gl": "^5.7.1",

@@ -15,12 +15,43 @@ function readSecret(name) {
   return value || null;
 }
 
+// Free-tier quotas are per ACCOUNT, so several accounts' keys pooled together
+// multiply the daily allowance. Plural `*_KEYS` holds a comma-separated list;
+// the singular name is still honoured so an existing .env keeps working.
+//
+// Order matters only for round-robin start position, not correctness.
+function readSecretList(pluralName, singularName) {
+  const raw = (process.env[pluralName] || '').trim();
+  const fromList = raw
+    ? raw.split(',').map((entry) => entry.trim()).filter(Boolean)
+    : [];
+
+  const single = readSecret(singularName);
+  if (single) {
+    fromList.push(single);
+  }
+
+  // De-duplicate: the same key listed twice would be treated as two separate
+  // quotas and the pool would "fail over" from a key onto itself.
+  return [...new Set(fromList)];
+}
+
+const keyPools = {
+  groq: readSecretList('GROQ_API_KEYS', 'GROQ_API_KEY'),
+  openWeather: readSecretList('OPENWEATHER_API_KEYS', 'OPENWEATHER_API_KEY'),
+  newsApi: readSecretList('NEWSAPI_KEYS', 'NEWSAPI_KEY'),
+  maptiler: readSecretList('MAPTILER_API_KEYS', 'MAPTILER_API_KEY'),
+  unsplashAccess: readSecretList('UNSPLASH_ACCESS_KEYS', 'UNSPLASH_ACCESS_KEY')
+};
+
+// Singular accessors remain the "first key in the pool" so code that only needs
+// *a* working key (diagnostics probes, the MapTiler URL signer) is unchanged.
 const secrets = {
-  groqApiKey: readSecret('GROQ_API_KEY'),
-  openWeatherApiKey: readSecret('OPENWEATHER_API_KEY'),
-  newsApiKey: readSecret('NEWSAPI_KEY'),
-  maptilerApiKey: readSecret('MAPTILER_API_KEY'),
-  unsplashAccessKey: readSecret('UNSPLASH_ACCESS_KEY'),
+  groqApiKey: keyPools.groq[0] || null,
+  openWeatherApiKey: keyPools.openWeather[0] || null,
+  newsApiKey: keyPools.newsApi[0] || null,
+  maptilerApiKey: keyPools.maptiler[0] || null,
+  unsplashAccessKey: keyPools.unsplashAccess[0] || null,
   mongodbUri: readSecret('MONGODB_URI')
 };
 
@@ -63,6 +94,16 @@ function reportConfiguration() {
   });
 
   console.log(`🔐 Secrets configured: ${configured.length ? configured.join(', ') : 'none'}`);
+
+  // Pool depth is the thing that decides whether a free tier holds up, so make
+  // it visible at boot rather than something to infer from a 429 later.
+  const poolSummary = Object.entries(keyPools)
+    .filter(([, list]) => list.length > 0)
+    .map(([name, list]) => `${name}x${list.length}`)
+    .join(', ');
+  if (poolSummary) {
+    console.log(`🔑 Key pools: ${poolSummary}`);
+  }
   if (missing.length) {
     console.warn(`⚠️  Secrets not configured (dependent features degrade gracefully): ${missing.join(', ')}`);
   }
@@ -75,6 +116,7 @@ function reportConfiguration() {
 module.exports = {
   isProduction,
   secrets,
+  keyPools,
   allowedOrigins,
   reportConfiguration
 };

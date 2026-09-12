@@ -1,25 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { API_BASE_URL, getGestureSessionId } from './utils/apiConfig';
+import { getGestureBus } from './utils/gestureBus';
 
-// Reuse the same socket connection pattern from EarthThreeJS
-const getSocket = (() => {
-  let socket = null;
-  return () => {
-    if (!socket) {
-      socket = io(API_BASE_URL, {
-        // Tags every socket from this tab so gesture frames/results stay private to it.
-        auth: { gestureSession: getGestureSessionId() },
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        transports: ['websocket', 'polling']
-      });
-    }
-    return socket;
-  };
-})();
+// Gesture and cursor events come from in-browser MediaPipe detection (see
+// components/CameraCapture.jsx). This component previously opened its own
+// Socket.IO connection solely to receive them from a server-side Python worker.
 
 const GestureButton = ({ 
   onClick, 
@@ -37,7 +21,7 @@ const GestureButton = ({
   useEffect(() => {
     if (!gestureEnabled) return;
 
-    const socket = getSocket();
+    const socket = getGestureBus();
     
     // Handle cursor position updates
     const handleCursor = (data) => {

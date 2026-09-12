@@ -1,5 +1,5 @@
 // server/index.js
-const { isProduction, secrets, allowedOrigins, reportConfiguration } = require('./config/env');
+const { isProduction, secrets, keyPools, allowedOrigins, reportConfiguration } = require('./config/env');
 const { securityHeaders, safeError, errorHandler } = require('./middleware/security');
 const { exactMatchRegex, containsRegex, sanitizeText } = require('./middleware/validation');
 
@@ -35,9 +35,10 @@ const io = require('socket.io')(http, {
   },
   pingTimeout: 60000,
   pingInterval: 25000,
-  // Video frames are capped far below this in the handler; keep the transport
-  // ceiling modest so a single socket cannot buffer huge payloads.
-  maxHttpBufferSize: 1e6,
+  // No socket payload here is large any more - webcam frames used to travel
+  // this channel and drove the old 1MB ceiling. Multiplayer messages are a few
+  // hundred bytes, so a tight ceiling now costs nothing and bounds abuse.
+  maxHttpBufferSize: 64 * 1024,
   transports: ['websocket', 'polling']
 });
 const cors = require("cors");
@@ -49,6 +50,8 @@ const QuizQuestion = require("./models/QuizQuestion");
 const { getFlagCountriesWithCache } = require('./services/flagImageService');
 const STATIC_COUNTRIES = require('./data/countries');
 const { resolveMonumentImageWithFallback } = require('./services/monumentImageService');
+const { createKeyPool } = require('./services/keyPool');
+const { getOrFetch } = require('./services/cache');
 
 // Trust the first proxy hop so rate limiting keys on the real client IP rather
 // than the proxy's, when deployed behind one.
@@ -507,41 +510,65 @@ app.get("/api/heritage-sites/:name/image", async (req, res) => {
 });
 
 // ===== NEWS API INTEGRATION WITH FALLBACK SYSTEM =====
+//
+// FREE-TIER STRATEGY: NewsAPI's free tier allows 100 requests/DAY - the
+// tightest budget in this app by a wide margin. The original implementation
+// made up to ~8 live calls for a single monument click (a 4-level fallback
+// chain, plus a second near-duplicate chain for the "location" panel) with no
+// server-side cache, so a handful of users exhausted the day's quota.
+//
+// Three changes fix that:
+//
+//   1. PER-TIER CACHING. Results are cached per fallback TIER, not per site.
+//      The city / state / India tiers are shared by every site in that city /
+//      state / country, so the marginal cost of the Nth monument in a state is
+//      one call (its own monument tier), not four.
+//   2. ONE CANONICAL QUERY PER TIER. The monument panel and the location panel
+//      used slightly different wording for the same city/state searches, which
+//      meant two upstream calls for effectively identical results. They now
+//      share a tier, so the location panel is usually free.
+//   3. EMPTY RESULTS ARE CACHED. "No articles for X" is worth remembering -
+//      otherwise a site with no coverage re-asks upstream on every single view.
+//
+// Layered under all of that, the key pool spreads load across several free
+// accounts and rotates on a 429 (see services/keyPool.js).
 const NEWSAPI_BASE_URL = 'https://newsapi.org/v2/everything';
-// SECURITY: this key was previously hardcoded here as a literal fallback and is
-// therefore permanently in git history - it must be rotated. It now resolves
-// only from server-side configuration, with no fallback and no VITE_* name.
-const NEWSAPI_KEY = secrets.newsApiKey;
 const NEWS_ARTICLE_LIMIT = 5; // Limit results for clean UI
 
-/**
- * Fetch news from NewsAPI with a given query
- * @param {string} query - Search query
- * @returns {Promise<Array>} - Array of articles or empty array
- */
+// 12 hours. NewsAPI's free tier already serves articles on a 24-hour delay, so
+// caching for half that costs no real freshness. Budget check: ~126 sites x 1
+// monument-tier call x 2 refreshes/day = ~252 calls/day worst case if every
+// single site is viewed twice daily, spread across the configured key pool.
+const NEWS_TTL_MS = 12 * 60 * 60 * 1000;
+
+// Stay under the provider's 100/day rather than discovering the ceiling by
+// being rejected - a hard 429 can get an account flagged, a soft cap cannot.
+const NEWSAPI_DAILY_SOFT_CAP = 90;
+
+// Safety alerts describe live hazards (floods, curfews, closures), so they get
+// a much shorter TTL than heritage news. The number of distinct places queried
+// in Safety Navigation is small, so this stays cheap despite refreshing 8x/day.
+const SAFETY_ALERT_TTL_MS = 3 * 60 * 60 * 1000;
+
+const newsKeys = createKeyPool('newsapi', keyPools.newsApi, {
+  dailyLimitPerKey: NEWSAPI_DAILY_SOFT_CAP
+});
+
 // Remembered so the same misconfiguration isn't logged on every single query.
 let newsApiFailureLogged = false;
 
-async function fetchNewsWithQuery(query) {
-  // Without a configured key, degrade to "no articles" rather than firing an
-  // unauthenticated request at NewsAPI.
-  if (!NEWSAPI_KEY) {
-    if (!newsApiFailureLogged) {
-      console.error('[news] NEWSAPI_KEY is not set in server/.env - news features will return no articles.');
-      newsApiFailureLogged = true;
-    }
-    return [];
-  }
-
+/**
+ * One upstream NewsAPI attempt with a specific key.
+ * Returns the keyPool contract: { value } or { quotaExhausted: true }.
+ */
+async function fetchNewsWithKey(query, apiKey) {
   try {
-    console.log(`📰 Trying query: ${query}`);
-
     const response = await fetch(`${NEWSAPI_BASE_URL}?${new URLSearchParams({
       q: query,
       language: 'en',
       sortBy: 'publishedAt',
       pageSize: '10',
-      apiKey: NEWSAPI_KEY
+      apiKey
     })}`, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -551,122 +578,169 @@ async function fetchNewsWithQuery(query) {
       // cause (a wrong key in the NEWSAPI_KEY slot) invisible.
       const body = await response.text().catch(() => '');
       let detail = body.slice(0, 300);
+      let parsedCode = '';
       try {
         const parsed = JSON.parse(body);
+        parsedCode = parsed.code || '';
         detail = `${parsed.code || ''} ${parsed.message || ''}`.trim() || detail;
       } catch { /* keep raw body */ }
 
       console.error(`[news] NewsAPI ${response.status} for query "${query}": ${detail}`);
 
-      if ((response.status === 401 || response.status === 403) && !newsApiFailureLogged) {
-        console.error(
-          '[news] NewsAPI rejected the credential. Check NEWSAPI_KEY in server/.env - ' +
-          'it must be a NewsAPI key (get one at https://newsapi.org/account), ' +
-          'not a key belonging to another provider.'
-        );
-        newsApiFailureLogged = true;
+      // Quota/throttle: rotate to the next account's key.
+      if (response.status === 429 || parsedCode === 'rateLimited') {
+        return { quotaExhausted: true };
       }
-      if (response.status === 429 && !newsApiFailureLogged) {
-        console.error('[news] NewsAPI rate limit / quota exhausted for this key.');
-        newsApiFailureLogged = true;
+
+      if (response.status === 401 || response.status === 403) {
+        if (!newsApiFailureLogged) {
+          console.error(
+            '[news] NewsAPI rejected the credential. Check NEWSAPI_KEY / NEWSAPI_KEYS in ' +
+            'server/.env - it must be a NewsAPI key (get one at https://newsapi.org/account), ' +
+            'not a key belonging to another provider.'
+          );
+          newsApiFailureLogged = true;
+        }
+        // A dead key should be stepped over, same as an exhausted one.
+        return { quotaExhausted: true };
       }
-      return [];
+
+      return { value: undefined };
     }
 
     const data = await response.json();
 
     if (data.status === 'error') {
       console.error(`[news] NewsAPI error response: ${data.code || ''} ${data.message || ''}`);
-      return [];
+      if (data.code === 'rateLimited') {
+        return { quotaExhausted: true };
+      }
+      return { value: undefined };
     }
 
-    if (data.status === 'ok' && data.articles && data.articles.length > 0) {
-      return data.articles;
+    if (data.status === 'ok' && Array.isArray(data.articles)) {
+      return { value: data.articles };
     }
 
-    console.log(`[news] NewsAPI returned 0 articles for query "${query}"`);
-    return [];
+    return { value: [] };
   } catch (err) {
     console.error(`[news] Request to NewsAPI failed for query "${query}": ${err.message || err}`);
-    return [];
+    return { value: undefined };
   }
 }
 
 /**
- * Multi-level fallback news fetching
- * Level 1: Monument name + city
+ * Fetch one cache TIER. Every caller that wants the same tier (a city, a state,
+ * all of India) shares one cache entry and therefore one upstream call.
+ *
+ * @param {string} tierKey  stable cache identity, e.g. "city:agra"
+ * @param {string} query    the NewsAPI query to run on a cache miss
+ * @returns {Promise<Array>} articles (possibly empty)
+ */
+async function fetchNewsTier(tierKey, query, ttlMs = NEWS_TTL_MS) {
+  if (!newsKeys.hasKeys()) {
+    if (!newsApiFailureLogged) {
+      console.error('[news] No NewsAPI key configured (NEWSAPI_KEY / NEWSAPI_KEYS) - news will be empty.');
+      newsApiFailureLogged = true;
+    }
+    return [];
+  }
+
+  const articles = await getOrFetch('news', tierKey, ttlMs, async () => {
+    console.log(`📰 [miss] fetching news tier "${tierKey}"`);
+
+    const result = await newsKeys.run((apiKey) => fetchNewsWithKey(query, apiKey));
+
+    if (!result.ok) {
+      if (result.reason === 'all_keys_exhausted') {
+        console.warn('[news] every NewsAPI key is exhausted for today - serving cached news only.');
+      }
+      // undefined => do not cache a failure; the cache serves stale if it has any.
+      return undefined;
+    }
+
+    // An empty array IS cached deliberately: a confirmed "nothing published
+    // about this" should not be re-asked on every page view.
+    return result.value;
+  });
+
+  return Array.isArray(articles) ? articles : [];
+}
+
+// Tier identities. Normalised so "New Delhi" and "new delhi " share an entry.
+function tierId(kind, value) {
+  return `${kind}:${String(value || '').trim().toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+// One canonical query per tier, so the monument panel and the location panel
+// reuse each other's cached results instead of issuing near-duplicate searches.
+function cityNewsQuery(city) {
+  return `"${city}" AND (tourism OR heritage OR travel OR culture OR monument OR development)`;
+}
+
+function stateNewsQuery(state) {
+  return `"${state}" AND (tourism OR heritage OR travel OR monument)`;
+}
+
+const INDIA_TIER_KEY = 'india';
+const INDIA_NEWS_QUERY = 'India heritage tourism OR "Indian monuments" OR "historical sites India"';
+
+/**
+ * Multi-level fallback news fetching for the MONUMENT panel.
+ * Level 1: Monument name (+ city terms)
  * Level 2: City tourism/heritage
  * Level 3: State tourism/heritage
  * Level 4: India heritage tourism
+ *
+ * Levels 2-4 hit shared tiers, so they are usually already cached by another
+ * site in the same city/state.
+ *
  * @returns {Object} - { articles, fallbackLevel, fallbackLabel }
  */
 async function fetchNewsWithFallback(monumentName, city, state) {
-  // Level 1: Monument + City (simplified query using OR)
-  const level1Query = city 
+  const level1Query = city
     ? `${monumentName} OR "${city} tourism" OR "${city} heritage"`
     : `${monumentName} OR "India heritage"`;
-  
-  let articles = await fetchNewsWithQuery(level1Query);
-  
+
+  let articles = await fetchNewsTier(tierId('monument', monumentName), level1Query);
+
   if (articles.length > 0) {
-    console.log(`✅ Level 1 success: ${articles.length} articles for monument`);
-    return {
-      articles: articles,
-      fallbackLevel: 1,
-      fallbackLabel: null
-    };
+    return { articles, fallbackLevel: 1, fallbackLabel: null };
   }
 
-  // Level 2: City tourism/heritage (fallback)
   if (city) {
-    const level2Query = `"${city}" AND (tourism OR heritage OR travel OR culture OR monument)`;
-    articles = await fetchNewsWithQuery(level2Query);
-    
+    articles = await fetchNewsTier(tierId('city', city), cityNewsQuery(city));
     if (articles.length > 0) {
-      console.log(`✅ Level 2 success: ${articles.length} articles for ${city}`);
       return {
-        articles: articles,
+        articles,
         fallbackLevel: 2,
         fallbackLabel: `Showing tourism news for ${city}`
       };
     }
   }
 
-  // Level 3: State tourism (fallback)
   if (state) {
-    const level3Query = `"${state}" AND (tourism OR heritage OR travel OR monument)`;
-    articles = await fetchNewsWithQuery(level3Query);
-    
+    articles = await fetchNewsTier(tierId('state', state), stateNewsQuery(state));
     if (articles.length > 0) {
-      console.log(`✅ Level 3 success: ${articles.length} articles for ${state}`);
       return {
-        articles: articles,
+        articles,
         fallbackLevel: 3,
         fallbackLabel: `Showing heritage news for ${state}`
       };
     }
   }
 
-  // Level 4: India heritage (final fallback)
-  const level4Query = 'India heritage tourism OR "Indian monuments" OR "historical sites India"';
-  articles = await fetchNewsWithQuery(level4Query);
-  
+  articles = await fetchNewsTier(INDIA_TIER_KEY, INDIA_NEWS_QUERY);
   if (articles.length > 0) {
-    console.log(`✅ Level 4 success: ${articles.length} articles for India heritage`);
     return {
-      articles: articles,
+      articles,
       fallbackLevel: 4,
       fallbackLabel: 'Showing heritage news from India'
     };
   }
 
-  // No results at any level
-  console.log(`❌ No news found at any fallback level`);
-  return {
-    articles: [],
-    fallbackLevel: 0,
-    fallbackLabel: null
-  };
+  console.log('❌ No news found at any fallback level');
+  return { articles: [], fallbackLevel: 0, fallbackLabel: null };
 }
 
 // Helper: Format articles and add time ago
@@ -699,8 +773,8 @@ function formatNewsArticles(articles) {
       timeAgo: timeAgo
     };
   }).filter(article => {
-    return article.title && 
-           article.title !== '[Removed]' && 
+    return article.title &&
+           article.title !== '[Removed]' &&
            article.url &&
            !article.url.includes('removed.com');
   }).slice(0, NEWS_ARTICLE_LIMIT); // Limit to 5 articles
@@ -711,12 +785,12 @@ app.get("/api/news/:siteName", async (req, res) => {
   try {
     const siteName = decodeURIComponent(req.params.siteName);
     console.log(`📰 Fetching news for: ${siteName}`);
-    
+
     // Find the heritage site to get location details
-    const site = await HeritageSite.findOne({ 
-      name: { $regex: exactMatchRegex(siteName) } 
+    const site = await HeritageSite.findOne({
+      name: { $regex: exactMatchRegex(siteName) }
     });
-    
+
     if (!site) {
       return res.status(404).json({ error: "Heritage site not found" });
     }
@@ -726,24 +800,22 @@ app.get("/api/news/:siteName", async (req, res) => {
 
     console.log(`📍 Location: ${city}, ${state}`);
 
-    // Fetch monument news with fallback
+    // Monument panel: monument -> city -> state -> India.
     const monumentResult = await fetchNewsWithFallback(siteName, city, state);
     const monumentArticles = formatNewsArticles(monumentResult.articles);
 
-    // Fetch location news (city-focused, separate from monument)
+    // Location panel: city -> state -> India. These are the SAME cache tiers the
+    // monument fallback uses, so this panel normally costs zero extra upstream
+    // calls - it was previously a second, independent chain of live requests.
     let locationArticles = [];
     let locationFallbackLabel = null;
-    
+
     if (city) {
-      const cityQuery = `"${city}" AND (tourism OR heritage OR travel OR news OR development)`;
-      const cityArticles = await fetchNewsWithQuery(cityQuery);
-      
+      const cityArticles = await fetchNewsTier(tierId('city', city), cityNewsQuery(city));
       if (cityArticles.length > 0) {
         locationArticles = formatNewsArticles(cityArticles);
       } else if (state) {
-        // Fallback to state news
-        const stateQuery = `"${state}" AND (tourism OR heritage OR travel OR news)`;
-        const stateArticles = await fetchNewsWithQuery(stateQuery);
+        const stateArticles = await fetchNewsTier(tierId('state', state), stateNewsQuery(state));
         locationArticles = formatNewsArticles(stateArticles);
         if (stateArticles.length > 0) {
           locationFallbackLabel = `Showing news for ${state}`;
@@ -751,10 +823,8 @@ app.get("/api/news/:siteName", async (req, res) => {
       }
     }
 
-    // If still no location news, use India news
     if (locationArticles.length === 0) {
-      const indiaQuery = 'India tourism OR "India travel" OR "Indian heritage"';
-      const indiaArticles = await fetchNewsWithQuery(indiaQuery);
+      const indiaArticles = await fetchNewsTier(INDIA_TIER_KEY, INDIA_NEWS_QUERY);
       locationArticles = formatNewsArticles(indiaArticles);
       if (indiaArticles.length > 0) {
         locationFallbackLabel = 'Showing heritage news from India';
@@ -762,6 +832,10 @@ app.get("/api/news/:siteName", async (req, res) => {
     }
 
     console.log(`✅ Final: ${monumentArticles.length} monument articles, ${locationArticles.length} location articles`);
+
+    // Let the browser hold this too - a revisit inside the window never reaches
+    // the server, let alone NewsAPI.
+    res.setHeader('Cache-Control', 'public, max-age=3600');
 
     res.json({
       success: true,
@@ -783,11 +857,11 @@ app.get("/api/news/:siteName", async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Error fetching news:', err);
-    
+
     if (err.message && err.message.includes('rate limit')) {
       return res.status(429).json({ error: "News API rate limit exceeded. Please try again later." });
     }
-    
+
     res.status(500).json({ error: "Failed to fetch news" });
   }
 });
@@ -797,6 +871,7 @@ app.get("/api/news/:siteName", async (req, res) => {
 // through /api/maps/* instead.
 const MAPTILER_API_KEY = secrets.maptilerApiKey || '';
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
+const SAFE_PLACES_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SAFETY_DEFAULT_RADIUS = 3000;
 
 function parseCoordinate(value) {
@@ -1034,7 +1109,24 @@ app.get('/api/safety/nearby-safe-places', async (req, res) => {
   }
 
   try {
-    const places = await fetchSafePlacesFromOverpass(lat, lon, radius, limit);
+    // Overpass' public instance rate-limits per IP, and every user of a deployed
+    // GeoSwipe shares ONE server IP - so without caching, a handful of Safety
+    // Navigation users can get the whole app throttled. Hospitals and police
+    // stations do not move, so a week-long TTL costs nothing in accuracy.
+    const places = await getOrFetch(
+      'safe-places',
+      `${lat.toFixed(2)},${lon.toFixed(2)}:r${radius}:l${limit}`,
+      SAFE_PLACES_TTL_MS,
+      async () => {
+        try {
+          return await fetchSafePlacesFromOverpass(lat, lon, radius, limit);
+        } catch (overpassError) {
+          console.warn('Overpass lookup failed:', overpassError.message || overpassError);
+          // undefined => don't cache the failure; serve stale if we have it.
+          return undefined;
+        }
+      }
+    ) || [];
 
     if (!places.length) {
       return res.json({
@@ -1135,19 +1227,21 @@ app.get('/api/safety/alerts', async (req, res) => {
   const riskTerms =
     '(flood OR cyclone OR landslide OR storm OR accident OR protest OR curfew OR evacuation OR advisory OR "road closed")';
 
-  const queries = [];
-  if (city) queries.push(`"${city}" AND ${riskTerms}`);
-  if (state) queries.push(`"${state}" AND ${riskTerms}`);
-  if (country) queries.push(`"${country}" AND ${riskTerms}`);
-  if (!queries.length) queries.push(`India AND ${riskTerms}`);
+  // Tiered like heritage news: every user asking about the same city shares one
+  // cache entry, so this endpoint costs ~0 NewsAPI calls in steady state
+  // instead of up to 3 live calls per page load.
+  const tiers = [];
+  if (city) tiers.push({ key: tierId('safety-city', city), query: `"${city}" AND ${riskTerms}` });
+  if (state) tiers.push({ key: tierId('safety-state', state), query: `"${state}" AND ${riskTerms}` });
+  if (country) tiers.push({ key: tierId('safety-country', country), query: `"${country}" AND ${riskTerms}` });
+  if (!tiers.length) tiers.push({ key: 'safety-country:india', query: `India AND ${riskTerms}` });
 
   try {
     const alerts = [];
     const seenUrls = new Set();
 
-    for (const query of queries.slice(0, 3)) {
-      // Reuse existing NewsAPI helper for consistency with current backend stack.
-      const articles = await fetchNewsWithQuery(query);
+    for (const tier of tiers.slice(0, 3)) {
+      const articles = await fetchNewsTier(tier.key, tier.query, SAFETY_ALERT_TTL_MS);
       for (const article of articles) {
         if (!article?.url || seenUrls.has(article.url)) {
           continue;
@@ -1201,8 +1295,6 @@ const socketConnections = new Set(); // Track connections for cleanup only
 // Ceiling on concurrently tracked rooms; each room holds question state, so
 // unbounded creation was a cheap memory-exhaustion vector.
 const MAX_ACTIVE_ROOMS = 500;
-let frameCount = 0; // Track frames received
-let lastFrameLogTime = Date.now();
 
 // ===== MULTIPLAYER GAME SYSTEM =====
 const TOTAL_ROUNDS = 10;
@@ -1365,27 +1457,6 @@ setInterval(() => {
   }
 }, 60000); // Check every minute
 
-// ===== GESTURE PIPELINE =====
-//
-// SECURITY: this pipeline previously used `socket.broadcast.emit`, which sent
-// every browser's webcam frame to EVERY other connected socket - any client
-// that connected could passively watch all users' cameras. Frames now travel
-// only to registered gesture workers, and detection results travel only back to
-// the originating browser tab.
-//
-// Tabs are identified by a per-tab session id supplied in the socket handshake.
-// A tab opens several sockets (one per gesture-aware component), so results are
-// addressed to the tab's room rather than to a single socket.
-const GESTURE_WORKER_ROOM = 'gesture-workers';
-const GESTURE_WORKER_TOKEN = (process.env.GESTURE_WORKER_TOKEN || '').trim();
-// Opt-in for CAMERA_MODE=local single-user setups only. See forwardDetection.
-const GESTURE_ALLOW_BROADCAST =
-  String(process.env.GESTURE_ALLOW_BROADCAST || 'false').toLowerCase() === 'true';
-
-function gestureSessionRoom(sessionId) {
-  return `gs:${sessionId}`;
-}
-
 // Lightweight per-socket token bucket for high-frequency socket events.
 function createRateLimiter(maxEvents, windowMs) {
   const buckets = new Map();
@@ -1401,9 +1472,6 @@ function createRateLimiter(maxEvents, windowMs) {
   };
 }
 
-// ~60fps of frames, plus headroom, per socket.
-const allowFrame = createRateLimiter(120, 1000);
-const allowGestureResult = createRateLimiter(240, 1000);
 const allowRoomAction = createRateLimiter(30, 10000);
 
 io.on('connection', (socket) => {
@@ -1411,148 +1479,6 @@ io.on('connection', (socket) => {
 
   // Add to connection tracking
   socketConnections.add(socket.id);
-
-  // A browser tab declares its session id at handshake time; every socket from
-  // that tab shares it, so gesture results reach all of the tab's components.
-  const handshakeSession = sanitizeText(socket.handshake?.auth?.gestureSession, 64);
-  const sessionId = handshakeSession && /^[A-Za-z0-9_-]{8,64}$/.test(handshakeSession)
-    ? handshakeSession
-    : null;
-
-  if (sessionId) {
-    socket.join(gestureSessionRoom(sessionId));
-  }
-
-  // The Python detector registers itself as a worker. When
-  // GESTURE_WORKER_TOKEN is configured, registration requires it - that stops
-  // an arbitrary client from registering as a worker to receive camera frames.
-  socket.on('register-gesture-worker', (data, ack) => {
-    const providedToken = typeof data?.token === 'string' ? data.token.trim() : '';
-
-    if (GESTURE_WORKER_TOKEN && providedToken !== GESTURE_WORKER_TOKEN) {
-      console.warn(`⛔ Rejected gesture-worker registration from ${socket.id}: bad token`);
-      if (typeof ack === 'function') ack({ ok: false, error: 'unauthorized' });
-      return;
-    }
-
-    if (!GESTURE_WORKER_TOKEN && isProduction) {
-      console.warn('⛔ Refusing gesture-worker registration: GESTURE_WORKER_TOKEN is required in production.');
-      if (typeof ack === 'function') ack({ ok: false, error: 'worker registration disabled' });
-      return;
-    }
-
-    socket.data.isGestureWorker = true;
-    socket.join(GESTURE_WORKER_ROOM);
-    console.log(`🧠 Gesture worker registered: ${socket.id}`);
-    if (typeof ack === 'function') ack({ ok: true });
-  });
-
-  // Detection results. Only a registered worker may produce these, and they are
-  // delivered solely to the tab whose frame was analysed.
-  const forwardDetection = (eventName, data) => {
-    if (!socket.data.isGestureWorker) {
-      return;
-    }
-    if (!data || typeof data !== 'object') {
-      return;
-    }
-    if (!allowGestureResult(socket.id)) {
-      return;
-    }
-
-    const { session, ...payload } = data;
-    const target = sanitizeText(session, 64);
-
-    if (target && /^[A-Za-z0-9_-]{8,64}$/.test(target)) {
-      io.to(gestureSessionRoom(target)).emit(eventName, payload);
-      return;
-    }
-
-    // No addressable session. This happens only in CAMERA_MODE=local, where the
-    // detector uses its own webcam and there is no originating tab. Broadcasting
-    // hand-position data is opt-in and off by default; webcam FRAMES are never
-    // broadcast under any setting.
-    if (GESTURE_ALLOW_BROADCAST) {
-      socket.broadcast.emit(eventName, payload);
-    }
-  };
-
-  socket.on('gesture', (data) => {
-    try {
-      forwardDetection('gesture', data);
-    } catch (error) {
-      console.error('❌ Error handling gesture:', error);
-    }
-  });
-
-  socket.on('cursor', (data) => {
-    try {
-      forwardDetection('cursor', data);
-    } catch (error) {
-      console.error('❌ Error handling cursor:', error);
-    }
-  });
-
-  // Video frames from the browser, destined for gesture detection.
-  socket.on('video_frame', (data) => {
-    try {
-      // Validate payload structure
-      if (!data || typeof data !== 'object') {
-        return;
-      }
-
-      if (!data.frame || typeof data.frame !== 'string') {
-        return;
-      }
-
-      // Validate base64 format (data URL)
-      if (!data.frame.startsWith('data:image/')) {
-        return;
-      }
-
-      // Size check to prevent DoS (max ~500 KB)
-      if (data.frame.length > 500000) {
-        return;
-      }
-
-      // Per-socket flood protection.
-      if (!allowFrame(socket.id)) {
-        return;
-      }
-
-      // A frame with no session cannot have its result routed back, and must
-      // not be broadcast - drop it.
-      if (!sessionId) {
-        return;
-      }
-
-      // Log frame reception periodically (every 50 frames)
-      frameCount++;
-      if (frameCount === 1) {
-        console.log('📸 First video frame received from browser');
-        console.log(`   - Frame size: ${(data.frame.length / 1024).toFixed(1)} KB`);
-        console.log('   - Forwarding to gesture worker...');
-      }
-
-      if (frameCount % 50 === 0) {
-        const elapsed = (Date.now() - lastFrameLogTime) / 1000;
-        const fps = 50 / elapsed;
-        console.log(`📊 Frames received: ${frameCount} | FPS: ${fps.toFixed(1)}`);
-        lastFrameLogTime = Date.now();
-      }
-
-      // Deliver ONLY to registered gesture workers, tagged with the session so
-      // the worker can address its answer back to this tab.
-      io.to(GESTURE_WORKER_ROOM).emit('process_frame', {
-        frame: data.frame,
-        timestamp: data.timestamp || Date.now(),
-        session: sessionId
-      });
-    } catch (error) {
-      console.error('❌ Error handling video frame:', error);
-      // Don't crash - just log and continue
-    }
-  });
 
   // ===== MULTIPLAYER GAME EVENTS =====
   

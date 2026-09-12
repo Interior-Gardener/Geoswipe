@@ -17,7 +17,7 @@ locally via `npm start` (root) which uses `concurrently`:
 |---|---|---|
 | **Client** | `client/` | React 19 + Vite 7, MapLibre GL, Three.js, socket.io-client, framer-motion |
 | **Server** | `server/` | Express 5, Socket.IO, Mongoose (MongoDB Atlas), 22 REST routes + 9 socket events |
-| **Gesture detector** | `gesture-control/` | Python + MediaPipe, joins the same Socket.IO server |
+| **Gesture detector** | *(in the browser)* | MediaPipe Tasks-Vision in the client tab — no separate process |
 
 **There is no authentication, session or user model anywhere.** Everything is
 anonymous. Do not assume otherwise.
@@ -46,15 +46,17 @@ Vite compiles `VITE_*` into the browser bundle.
 
 | File | Contents | Committed? |
 |---|---|---|
-| `server/.env` | All secrets + `ALLOWED_ORIGINS`, `GESTURE_WORKER_TOKEN`, `GROQ_MODEL` | Never |
+| `server/.env` | All secrets + `ALLOWED_ORIGINS`, `GROQ_MODEL` | Never |
 | `client/.env.development` | `VITE_API_URL` + non-secret flags only | Never (holds nothing secret) |
-| `gesture-control/.env` | `SOCKET_SERVER_URL`, `GESTURE_WORKER_TOKEN`, `SAVE_DEBUG_FRAME` | Never |
 | `*.env.example` | Names only | Yes |
 
 Server-side names: `MONGODB_URI`, `GROQ_API_KEY`, `GROQ_MODEL`,
-`OPENWEATHER_API_KEY`, `NEWSAPI_KEY`, `MAPTILER_API_KEY`,
-`UNSPLASH_ACCESS_KEY`, `UNSPLASH_SECRET_KEY`, `ALLOWED_ORIGINS`,
-`GESTURE_WORKER_TOKEN`, `GESTURE_ALLOW_BROADCAST`, `PORT`, `HOST`, `NODE_ENV`.
+`OPENWEATHER_API_KEY(S)`, `NEWSAPI_KEY(S)`, `MAPTILER_API_KEY(S)`,
+`UNSPLASH_ACCESS_KEY(S)`, `UNSPLASH_SECRET_KEY`, `ALLOWED_ORIGINS`,
+`PORT`, `HOST`, `NODE_ENV`.
+
+The plural `*_KEYS` forms take a comma-separated pool of keys from several free
+accounts; see `server/services/keyPool.js`.
 
 ### Proxy endpoints (browser → server → upstream)
 | Browser calls | Upstream | Key used |
@@ -105,12 +107,10 @@ broadcast to every socket, no auth, no headers, 33 dependency vulns.
   secrets, and the bundle no longer references any keyed third-party host.
 - **Webcam privacy (critical).** `video_frame` used
   `socket.broadcast.emit('process_frame')` — every connected client received
-  every user's camera feed. Frames now go **only** to a token-registered
-  gesture worker; results route **only** back to the originating browser tab
-  (per-tab session id in the socket handshake).
-  `GESTURE_WORKER_TOKEN` required in production.
-  `GESTURE_ALLOW_BROADCAST` (default false) exists solely for single-user
-  `CAMERA_MODE=local`; **frames are never broadcast under any setting.**
+  every user's camera feed. This was first fixed by routing frames only to a
+  token-registered worker. **It is now moot: frames never leave the browser
+  at all** (see §14) — the pipeline, the token and the session routing were all
+  deleted along with the Python worker.
 - **CORS** — real allowlist on HTTP *and* WebSocket; production requires
   `ALLOWED_ORIGINS`, no wildcard fallback.
 - **NoSQL regex injection** — 9 unescaped `new RegExp(userInput)` sites
@@ -530,3 +530,71 @@ client/scripts/chapters-manifest.mjs     regenerates it (npm run chapters:manife
 - Unused bindings are `_`-prefixed (lint is configured for this).
 - Verify with a real browser + `/api/diagnostics` before claiming something works.
 - Run `npm run build` and `npx eslint src` in `client/` after changes.
+
+---
+
+## 14. Session 3 — free-tier deployment architecture
+
+Full detail in [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md); deploy steps
+in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md). Summary of what changed and why:
+
+### The problem
+A previous Render deploy failed twice over. The Python gesture worker did not
+fit in a 512MB free instance, and every third-party API call went live to the
+provider — NewsAPI's 100/day free tier could be exhausted by about a dozen
+visitors, because one monument click cost up to eight calls.
+
+### Gesture detection moved into the browser
+`gesture-control/` is **deleted**. Hand tracking runs client-side via
+`@mediapipe/tasks-vision`:
+
+- `client/src/utils/gestureClassifier.js` — the pose geometry ported from
+  `detect.py`, plus the stabiliser (5 stable frames, 1s click cooldown, 20fps
+  inference cap). Verified against the original Python on 20,000 generated
+  poses: **0 mismatches** across all ten gesture classes.
+- `client/src/utils/gestureBus.js` — in-page pub/sub with the same `on`/`off`/
+  `emit` surface the components already used, so `GlobalGestureCursor`,
+  `GestureButton`, `LandingPage` and `EarthThreeJS` changed only where they
+  obtain the event source. Handler logic is untouched.
+- `client/scripts/setup-mediapipe.mjs` — self-hosts the WASM runtime and the
+  ~8MB model under `public/mediapipe/` (runs on `predev`/`prebuild`), so there
+  is no runtime CDN dependency.
+
+Removed from the server: `register-gesture-worker`, `video_frame`,
+`process_frame`, worker/session rooms, `forwardDetection`, frame rate limiters
+(163 lines), plus `GESTURE_WORKER_TOKEN` and `GESTURE_ALLOW_BROADCAST`. Socket
+`maxHttpBufferSize` dropped 1MB → 64KB. `client/src/globe.jsx` was deleted —
+dead prototype, imported nowhere, listening for an event no server emitted.
+
+### Caching makes API cost independent of user count
+`server/services/cache.js` (new) — two-tier cache (memory + `ApiCache`
+collection), generalised from `monumentImageService.js`. Caches results **per
+heritage site / per news tier**, not per request, so all users share one
+upstream call. Serves stale data when a fetch fails, de-duplicates concurrent
+misses, and caches confirmed-empty results.
+
+Applied to: NewsAPI (12h, per fallback tier — city/state/India tiers are shared
+across every site in that place), OpenWeather (4h, by rounded coordinate),
+MapTiler style documents (24h), Overpass safe places (7 days, **8.7s → 2ms**),
+safety alerts (3h).
+
+### Key pooling
+`server/services/keyPool.js` (new) — round-robin across several free accounts'
+keys, with soft daily caps below each provider's real limit and automatic
+rotation on 429/401/403. Configured with comma-separated `*_KEYS` variables;
+the old singular names still work and are merged in.
+
+### Deployment config
+`render.yaml` (backend), `client/public/_redirects` + `_headers` (Cloudflare
+Pages). `package-lock.json` was un-ignored in `.gitignore` — both hosts build
+with `npm ci`, which requires a committed lockfile.
+
+### Still outstanding
+- **§3 credential rotation is still not done** and now matters more, since the
+  app is going public.
+- `maplibre-gl` has a critical advisory (GHSA-jrc7-96c5-q579); the fix is a
+  major version bump that needs its own testing pass.
+- Gesture control was **not** verified against a real camera — the test browser
+  blocks camera access. The classifier, stabiliser and bus are covered by
+  differential and behavioural tests; the on-camera check is steps 9-11 of the
+  deployment guide's post-deploy list.

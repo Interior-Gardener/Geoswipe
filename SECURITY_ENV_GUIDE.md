@@ -18,7 +18,6 @@ browser reaches keyed services through server proxy endpoints.
 |---|---|---|
 | `server/.env` | Every credential: DB URI, Groq, MapTiler, OpenWeather, NewsAPI, Unsplash, gesture worker token | Never |
 | `client/.env.development` | Public config only: `VITE_API_URL` and feature flags | Never (though it holds nothing secret) |
-| `gesture-control/.env` | Socket URL + `GESTURE_WORKER_TOKEN` | Never |
 | `*.env.example` | Variable NAMES only, no values | Yes |
 
 ## Proxy endpoints
@@ -49,19 +48,19 @@ becoming an SSRF pivot.
 
 ## Gesture pipeline
 
-Webcam frames from the browser are delivered **only** to a registered gesture
-worker, and detection results are delivered **only** back to the originating
-browser tab (identified by a per-tab session id sent in the socket handshake).
+**Webcam frames never leave the browser.** Hand tracking runs in the user's own
+tab (MediaPipe Tasks-Vision), and detection results are delivered to the page's
+own components through an in-memory event bus — they never touch the network.
 
-The Python detector registers itself with `GESTURE_WORKER_TOKEN`, which must
-match between `server/.env` and `gesture-control/.env`. In production the token
-is mandatory: without it, registration is refused, because an unauthenticated
-worker registration would let any client receive users' camera frames.
+This removed a whole class of risk rather than mitigating it. The previous
+design streamed base64 webcam frames over a WebSocket to the server, which
+relayed them to a Python worker; that required a shared `GESTURE_WORKER_TOKEN`,
+per-tab session routing, and frame rate limiting purely to stop one user's
+camera feed reaching another client. None of that machinery exists any more,
+because there is nothing to route.
 
-`GESTURE_ALLOW_BROADCAST` (default `false`) exists only for single-user
-`CAMERA_MODE=local` setups, where the detector uses its own webcam and there is
-no originating tab. It permits broadcasting hand-position data only — webcam
-frames are never broadcast under any setting.
+`GESTURE_WORKER_TOKEN` and `GESTURE_ALLOW_BROADCAST` no longer exist. Delete
+them from any deployed environment.
 
 ## CORS
 
@@ -72,8 +71,8 @@ origin** — set it explicitly at deploy time. There is no wildcard fallback.
 ## Production checklist
 
 - [ ] `ALLOWED_ORIGINS` set to the real front-end origin(s)
-- [ ] `GESTURE_WORKER_TOKEN` set, and matching in the detector's environment
 - [ ] `NODE_ENV=production`
+- [ ] `HOST=0.0.0.0` (required on Render/any container host)
 - [ ] `HOST` left at `127.0.0.1` unless the process must accept external traffic
       directly (behind a reverse proxy, use `0.0.0.0` inside the container only)
 - [ ] All API keys are freshly rotated (see below) and set only in `server/.env`
@@ -101,17 +100,13 @@ history and in any bundle previously served.
 ## Local setup
 
 ```bash
-cp .env.example server/.env          # then fill in real values
+cp server/.env.example server/.env   # then fill in real values
 cp client/.env.example client/.env.development
-cp gesture-control/.env.example gesture-control/.env
 ```
 
-Generate a worker token and put the same value in `server/.env` and
-`gesture-control/.env`:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
+Keys may be supplied singly (`NEWSAPI_KEY`) or as a comma-separated pool from
+several free accounts (`NEWSAPI_KEYS`). Pooled keys are used round-robin and a
+key that hits its quota is skipped until the next UTC day.
 
 Never commit any `.env` file. `.gitignore` covers `.env` and `.env.*` at any
 depth, with `.env.example` explicitly re-included.

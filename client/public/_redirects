@@ -1,0 +1,8 @@
+# Cloudflare Pages SPA fallback.
+#
+# GeoSwipe uses client-side routing (react-router), so a hard refresh or a
+# shared link to /heritage, /explore, /trip-planner etc. must still be served
+# index.html rather than a 404 - React then renders the right route.
+#
+# The 200 (not 301/302) keeps the URL the user typed intact.
+/*    /index.html   200

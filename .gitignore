@@ -131,7 +131,12 @@ coverage/
 # node package logs
 npm-debug.log*
 yarn-debug.log*
-package-lock.json
+
+# NOTE: package-lock.json is deliberately NOT ignored. Render and Cloudflare
+# Pages both build with `npm ci`, which REQUIRES a committed lockfile and fails
+# if it is missing or out of sync with package.json. (The lockfiles were already
+# tracked, so the previous ignore rule here had no effect on them - but it would
+# have silently excluded a fresh one.)
 yarn.lock
 
 # ---------------------------------------------------------------------------
@@ -154,3 +159,9 @@ server/populate-heritage-sites_only_*
 # Debug webcam captures from the gesture detector (never commit an image of a user)
 gesture-control/debug_frame_received.jpg
 *debug_frame*.jpg
+
+# MediaPipe hand-tracking runtime: the WASM files are copied out of
+# node_modules and the ~8MB model is downloaded, both by
+# client/scripts/setup-mediapipe.mjs (runs on predev/prebuild). Generated
+# artefacts, not source - keep them out of git.
+client/public/mediapipe/

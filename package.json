@@ -4,8 +4,7 @@
   "scripts": {
     "start:client": "cd client && npm run dev",
     "start:server": "cd server && node index.js",
-    "start:gesture": "cd gesture-control && .\\geovenv\\Scripts\\python.exe detect.py",
-    "start": "concurrently --names \"CLIENT,SERVER,GESTURE\" --prefix-colors \"cyan,green,yellow\" \"npm run start:client\" \"npm run start:server\" \"npm run start:gesture\"",
+    "start": "concurrently --names \"CLIENT,SERVER\" --prefix-colors \"cyan,green\" \"npm run start:client\" \"npm run start:server\"",
     "kill-ports": "npx kill-port 3000 4173 5173 5174 5175"
   },
   "devDependencies": {

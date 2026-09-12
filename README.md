@@ -67,23 +67,31 @@ cd ..
 cd server
 npm install
 cd ..
-
-# Install Python dependencies for gesture control
-cd gesture-control
-python -m venv geovenv
-# On Windows:
-geovenv\Scripts\activate
-# On macOS/Linux:
-# source geovenv/bin/activate
-pip install -r requirements.txt
-cd ..
 ```
 
+> **No Python setup.** Gesture recognition runs in the browser via MediaPipe
+> Tasks-Vision. The WASM runtime and hand-landmark model are fetched
+> automatically by `client/scripts/setup-mediapipe.mjs` the first time you run
+> `npm run dev` or `npm run build` in `client/`.
+
 ### 3️⃣ Environment Setup
-Create necessary environment files:
-- Add your **MapTiler API key** for map services
-- Configure **MongoDB connection** in server
-- Set up **port configurations** if needed
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env.development
+```
+Then fill in `server/.env`:
+- **MongoDB connection** (`MONGODB_URI`)
+- **API keys** — MapTiler, OpenWeather, NewsAPI, Unsplash, Groq
+
+Each key accepts either a single value (`OPENWEATHER_API_KEY`) or a
+comma-separated pool from several free accounts (`OPENWEATHER_API_KEYS`). The
+server rotates through a pool and steps past any key that hits its quota. See
+`server/.env.example` for the full list, and
+[ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) for how caching keeps usage
+inside the free tiers.
+
+**Never put a key in `client/.env.*`** — Vite compiles those into the browser
+bundle.
 
 ### 4️⃣ Launch the Application
 
@@ -93,8 +101,7 @@ npm start
 ```
 This will start:
 - ✅ Client on `http://localhost:5173`
-- ✅ Server on `http://localhost:3001`
-- ✅ Gesture control system
+- ✅ Server on `http://localhost:3000`
 
 #### Option B: Run Components Separately
 ```bash
@@ -105,18 +112,16 @@ npm run dev
 # Terminal 2: Start the client
 cd client
 npm run dev
-
-# Terminal 3: Start gesture control (optional)
-cd gesture-control
-geovenv\Scripts\activate  # Windows
-# source geovenv/bin/activate  # macOS/Linux
-python detect.py
 ```
+
+Gesture control needs no process of its own — it runs in the browser tab as
+soon as you allow camera access.
 
 ### 5️⃣ Access the Application
 - **Main App**: http://localhost:5173
-- **Server API**: http://localhost:3001
-- **Gesture Control**: Runs in background with webcam access
+- **Server API**: http://localhost:3000
+- **Integration health**: http://localhost:3000/api/diagnostics
+- **Gesture Control**: in-browser; allow camera access when prompted
 
 ---
 
@@ -138,10 +143,6 @@ Geoswipe/
 │   ├── index.js                   # Main server file
 │   ├── models/                    # MongoDB models
 │   └── package.json
-├── gesture-control/        # Python gesture recognition
-│   ├── detect.py                  # Main gesture detection script
-│   ├── requirements.txt
-│   └── geovenv/                   # Python virtual environment
 └── package.json           # Root project configuration
 ```
 

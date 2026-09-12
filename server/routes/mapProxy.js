@@ -18,13 +18,31 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 
-const { secrets } = require('../config/env');
+const { keyPools } = require('../config/env');
 const { safeError, relaxCspForMedia } = require('../middleware/security');
+const { createKeyPool } = require('../services/keyPool');
+const { getOrFetch } = require('../services/cache');
 
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
 const MAPTILER_ORIGIN = 'https://api.maptiler.com';
 const UPSTREAM_TIMEOUT_MS = 15000;
+
+// MapTiler's free tier is 100,000 requests/month per account (~3,300/day), and
+// map tiles are by far this app's highest-volume third-party call. Pooling
+// several free accounts multiplies that ceiling; the soft cap retires a key
+// before MapTiler has to start refusing it.
+const MAPTILER_DAILY_SOFT_CAP = 3000;
+const maptilerKeys = createKeyPool('maptiler', keyPools.maptiler, {
+  dailyLimitPerKey: MAPTILER_DAILY_SOFT_CAP
+});
+
+// Style documents are static configuration that changes on MapTiler's release
+// schedule, not per user - yet they were re-fetched on every single map init.
+// Caching the raw document for a day removes one upstream call per page load.
+// The RAW document is cached and rewritten per-request, because the rewrite
+// depends on the request's own public base URL.
+const MAP_STYLE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // Only these named styles may be requested. The caller supplies the key of this
 // map, never any part of the upstream path.
@@ -136,6 +154,12 @@ function publicBaseUrl(req) {
   return host ? `${proto}://${host}` : '';
 }
 
+// MapTiler signals an exhausted/blocked key with 429 (rate) or 403 (quota or
+// key disabled). Either way the right move is to try the next account's key.
+function isQuotaStatus(status) {
+  return status === 429 || status === 403;
+}
+
 async function fetchUpstream(url) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
@@ -156,41 +180,61 @@ const router = express.Router();
 
 // GET /api/maps/style/:styleName -> key-free, rewritten MapLibre style document
 router.get('/style/:styleName', mapLimiter, async (req, res) => {
-  if (!secrets.maptilerApiKey) {
+  if (!maptilerKeys.hasKeys()) {
     return safeError(res, 503, 'Map service is not configured on this server.');
   }
 
-  const upstreamPath = ALLOWED_STYLES[req.params.styleName];
+  const styleName = req.params.styleName;
+  const upstreamPath = ALLOWED_STYLES[styleName];
   if (!upstreamPath) {
     return safeError(res, 404, 'Unknown map style.');
   }
 
-  try {
-    const upstream = await fetchUpstream(
-      `${MAPTILER_ORIGIN}/${upstreamPath}?key=${encodeURIComponent(secrets.maptilerApiKey)}`
-    );
+  const style = await getOrFetch('maptiler-style', styleName, MAP_STYLE_TTL_MS, async () => {
+    const result = await maptilerKeys.run(async (apiKey) => {
+      try {
+        const upstream = await fetchUpstream(
+          `${MAPTILER_ORIGIN}/${upstreamPath}?key=${encodeURIComponent(apiKey)}`
+        );
 
-    if (!upstream.ok) {
-      console.error(`MapTiler style upstream responded ${upstream.status}`);
-      return safeError(res, 502, 'Failed to load map style.');
+        if (isQuotaStatus(upstream.status)) {
+          return { quotaExhausted: true };
+        }
+
+        if (!upstream.ok) {
+          console.error(`MapTiler style upstream responded ${upstream.status}`);
+          return { value: undefined };
+        }
+
+        return { value: await upstream.json() };
+      } catch (err) {
+        console.error('[maps] style request failed:', err.message || err);
+        return { value: undefined };
+      }
+    });
+
+    if (!result.ok) {
+      if (result.reason === 'all_keys_exhausted') {
+        console.warn('[maps] every MapTiler key is exhausted - serving cached styles only.');
+      }
+      return undefined;
     }
 
-    const style = await upstream.json();
+    return result.value;
+  });
 
-    relaxCspForMedia(res);
-    res.setHeader('Cache-Control', 'public, max-age=600');
-    return res.json(rewriteMapTilerUrls(style, publicBaseUrl(req)));
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      return safeError(res, 504, 'Map style request timed out.');
-    }
-    return safeError(res, 502, 'Failed to load map style.', err);
+  if (style === undefined) {
+    return safeError(res, 502, 'Failed to load map style.');
   }
+
+  relaxCspForMedia(res);
+  res.setHeader('Cache-Control', 'public, max-age=600');
+  return res.json(rewriteMapTilerUrls(style, publicBaseUrl(req)));
 });
 
 // GET /api/maps/asset/<upstream path> -> proxied tile/sprite/glyph/TileJSON
 router.get('/asset/*splat', mapLimiter, async (req, res) => {
-  if (!secrets.maptilerApiKey) {
+  if (!maptilerKeys.hasKeys()) {
     return safeError(res, 503, 'Map service is not configured on this server.');
   }
 
@@ -202,47 +246,81 @@ router.get('/asset/*splat', mapLimiter, async (req, res) => {
     return safeError(res, 400, 'Invalid map asset path.');
   }
 
-  const params = new URLSearchParams();
+  const baseParams = new URLSearchParams();
   Object.entries(req.query).forEach(([name, value]) => {
     if (name.toLowerCase() === 'key') return;
-    if (typeof value === 'string') params.append(name, value);
+    if (typeof value === 'string') baseParams.append(name, value);
   });
-  params.set('key', secrets.maptilerApiKey);
 
-  // Fixed origin + validated path: the caller cannot steer this elsewhere.
-  const target = `${MAPTILER_ORIGIN}/${rawPath.split('/').map(encodePathSegment).join('/')}?${params.toString()}`;
+  const safePath = rawPath.split('/').map(encodePathSegment).join('/');
 
-  try {
-    const upstream = await fetchUpstream(target);
+  // Tiles are binary and high-volume, so they are NOT cached server-side (that
+  // is what the 24h browser Cache-Control below is for). The key pool still
+  // applies: an exhausted account rotates to the next instead of breaking maps.
+  const result = await maptilerKeys.run(async (apiKey) => {
+    const params = new URLSearchParams(baseParams);
+    params.set('key', apiKey);
 
-    if (!upstream.ok) {
-      if (upstream.status !== 404) {
-        console.error(`[maps] asset ${upstream.status} for "${rawPath}"`);
+    // Fixed origin + validated path: the caller cannot steer this elsewhere.
+    const target = `${MAPTILER_ORIGIN}/${safePath}?${params.toString()}`;
+
+    try {
+      const upstream = await fetchUpstream(target);
+
+      if (isQuotaStatus(upstream.status)) {
+        return { quotaExhausted: true };
       }
-      return res.status(upstream.status === 404 ? 404 : 502).end();
-    }
 
-    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-    relaxCspForMedia(res);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+      if (!upstream.ok) {
+        if (upstream.status !== 404) {
+          console.error(`[maps] asset ${upstream.status} for "${rawPath}"`);
+        }
+        return { value: { status: upstream.status === 404 ? 404 : 502 } };
+      }
 
-    // TileJSON and other JSON documents embed further keyed MapTiler URLs, so
-    // they must be rewritten too - otherwise the key reaches the browser here.
-    if (contentType.includes('json')) {
-      const document = await upstream.json();
-      res.setHeader('Content-Type', 'application/json');
-      return res.json(rewriteMapTilerUrls(document, publicBaseUrl(req)));
-    }
+      const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
 
-    res.setHeader('Content-Type', contentType);
-    return res.send(Buffer.from(await upstream.arrayBuffer()));
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      return res.status(504).end();
+      // TileJSON and other JSON documents embed further keyed MapTiler URLs, so
+      // they must be rewritten too - otherwise the key reaches the browser here.
+      if (contentType.includes('json')) {
+        return { value: { json: await upstream.json() } };
+      }
+
+      return {
+        value: { contentType, body: Buffer.from(await upstream.arrayBuffer()) }
+      };
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return { value: { status: 504 } };
+      }
+      console.error('[maps] asset proxy failed:', err.message || err);
+      return { value: { status: 502 } };
     }
-    console.error('[maps] asset proxy failed:', err.message || err);
-    return res.status(502).end();
+  });
+
+  if (!result.ok) {
+    if (result.reason === 'all_keys_exhausted') {
+      console.warn('[maps] every MapTiler key is exhausted for today.');
+    }
+    return res.status(503).end();
   }
+
+  const payload = result.value;
+
+  if (payload.status) {
+    return res.status(payload.status).end();
+  }
+
+  relaxCspForMedia(res);
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+
+  if (payload.json) {
+    res.setHeader('Content-Type', 'application/json');
+    return res.json(rewriteMapTilerUrls(payload.json, publicBaseUrl(req)));
+  }
+
+  res.setHeader('Content-Type', payload.contentType);
+  return res.send(payload.body);
 });
 
 module.exports = router;

@@ -140,7 +140,6 @@ function AppShell() {
             enabled={true}
             showPreview={showCameraPreview}
             targetFPS={30}
-            quality={0.7}
             width={640}
             height={480}
           />

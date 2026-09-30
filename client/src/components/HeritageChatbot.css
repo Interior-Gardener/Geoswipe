@@ -7,7 +7,9 @@
   position: fixed;
   bottom: clamp(16px, 3vw, 26px);
   right: clamp(16px, 3vw, 26px);
-  z-index: var(--gs-z-modal);
+  /* Above the monument sidebar (--gs-z-sidebar). At --gs-z-modal it opened
+     BEHIND the sidebar whenever a monument was selected. */
+  z-index: var(--gs-z-assistant);
   display: flex;
   flex-direction: column;
   align-items: flex-end;

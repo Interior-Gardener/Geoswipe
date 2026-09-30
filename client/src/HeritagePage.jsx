@@ -1951,40 +1951,18 @@ const HeritagePage = () => {
             
             {/* Dropdown */}
             {showDropdown && filteredPlaces.length > 0 && (
-              <div className="dropdown-container" style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                backgroundColor: 'white',
-                border: '1px solid #ccc',
-                borderTop: 'none',
-                borderBottomLeftRadius: '3px',
-                borderBottomRightRadius: '3px',
-                maxHeight: '150px',
-                overflowY: 'auto',
-                zIndex: 1000,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                scrollBehavior: 'smooth'
-              }}>
+              <div className="dropdown-container heritage-search-dropdown" role="listbox">
                 {filteredPlaces.map((place, index) => (
                   <div
                     key={index}
-                    className="dropdown-item"
+                    className={`dropdown-item${highlightedIndex === index ? ' is-highlighted' : ''}`}
                     data-dropdown-index={index}
+                    role="option"
+                    aria-selected={highlightedIndex === index}
                     onClick={() => handlePlaceSelect(place)}
-                    style={{
-                      padding: '8px 10px',
-                      cursor: 'pointer',
-                      borderBottom: index < filteredPlaces.length - 1 ? '1px solid #eee' : 'none',
-                      backgroundColor: highlightedIndex === index ? '#007cba' : 'white',
-                      color: highlightedIndex === index ? 'white' : 'black'
-                    }}
                   >
-                    <div style={{ fontWeight: '500', fontSize: '13px' }}>{place.name}</div>
-                    <div style={{ fontSize: '11px', color: highlightedIndex === index ? 'rgba(255,255,255,0.8)' : '#666' }}>
-                      {place.category}
-                    </div>
+                    <div className="dropdown-item__name">{place.name}</div>
+                    <div className="dropdown-item__meta">{place.category}</div>
                   </div>
                 ))}
               </div>
@@ -3069,9 +3047,6 @@ const HeritagePage = () => {
         }
         .fly-to-box button:hover {
           background: #005fa3 !important;
-        }
-        .dropdown-item:hover:not([style*="background-color: #007cba"]) {
-          background-color: #f5f5f5 !important;
         }
         .fly-to-box input:focus {
           outline: none;

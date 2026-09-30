@@ -161,6 +161,10 @@
   --gs-z-toast: 1200;
   --gs-z-tooltip: 1400;
   --gs-z-cursor: 2000;
+  /* The monument sidebar is a full-height panel that must cover map controls,
+     and the AI assistant must in turn open ABOVE the sidebar. */
+  --gs-z-sidebar: 2000;
+  --gs-z-assistant: 2100;
 
   /* --- Layout ------------------------------------------------------- */
   --gs-header-h: 64px;
@@ -171,6 +175,15 @@
      edge, otherwise its trailing button ends up underneath the nav whenever the
      page container is wide enough to reach it. Pair it with gs-nav-clear(). */
   --gs-nav-reserve: 156px;
+  /* Height of the fixed global nav and the first free row beneath it
+     (12px top gutter + 50px nav + 8px gap). Controls that stack under the nav
+     used top: 62px, which left them flush against it with no gap at all. */
+  --gs-nav-h: 50px;
+  --gs-below-nav: 70px;
+  /* Vertical space, measured from the top of the viewport's free area, that the
+     OPEN camera preview claims at the bottom-right (preview + its 96px offset
+     + gaps + the nav row + a panel close bar). Right-rail panels subtract it. */
+  --gs-camera-reserve: 541px;
 
   color-scheme: dark;
 }
@@ -1279,12 +1292,72 @@ canvas {
   border-radius: var(--gs-radius-md);
 }
 
-/* Keep the toggle clear of the chatbot launcher. */
-.gs-camera-toggle { position: fixed; bottom: 22px; left: 22px; z-index: var(--gs-z-dock); }
+/* Bottom-right, directly under the preview it opens. It used to sit at the
+   bottom-left, exactly on top of the game toolbar's Back / Fullscreen buttons.
+   The AI assistant launcher also lives bottom-right, but it only exists in
+   Heritage Mode, where the camera is never mounted. */
+.gs-camera-toggle { position: fixed; bottom: 22px; right: 22px; z-index: var(--gs-z-dock); }
+
+.gs-camera__privacy {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-space-2);
+  font-size: var(--gs-text-2xs);
+  color: var(--gs-text-muted);
+  white-space: nowrap;
+}
+
+/* Short screens: a 320x240 preview plus the right-rail controls do not fit
+   one above the other, so the preview shrinks. */
+@media (max-height: 760px) and (min-width: 641px) {
+  .gs-camera__preview video { width: 224px; height: auto; }
+  :root { --gs-camera-reserve: 474px; }
+}
 
 @media (max-width: 640px) {
-  .gs-camera { bottom: 84px; right: 12px; }
-  .gs-camera-toggle { bottom: 16px; left: 16px; }
+  .gs-camera { bottom: 78px; right: 12px; left: auto; max-width: calc(100vw - 24px); }
+  .gs-camera__preview video { width: 160px; height: auto; }
+  .gs-camera-toggle { bottom: 14px; right: 12px; }
+  :root { --gs-camera-reserve: 410px; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 17b. CAMERA PRIVACY NOTICE                                          */
+/* ------------------------------------------------------------------ */
+
+.gs-privacy-notice {
+  position: fixed;
+  top: var(--gs-below-nav);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--gs-z-toast);
+  width: min(440px, calc(100vw - 24px));
+  display: flex;
+  gap: var(--gs-space-3);
+  align-items: flex-start;
+  padding: var(--gs-space-4);
+  border-radius: var(--gs-radius-lg);
+  background: var(--gs-surface-solid);
+  border: 1px solid var(--gs-accent-border);
+  box-shadow: var(--gs-shadow-lg);
+  color: var(--gs-text);
+  font-family: var(--gs-font);
+  animation: gs-privacy-in var(--gs-dur-base) var(--gs-ease-out);
+}
+
+@keyframes gs-privacy-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.gs-privacy-notice__icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.gs-privacy-notice__body { min-width: 0; display: flex; flex-direction: column; gap: var(--gs-space-2); }
+.gs-privacy-notice__title { margin: 0; font-size: var(--gs-text-sm); font-weight: 700; }
+.gs-privacy-notice__text { margin: 0; font-size: var(--gs-text-xs); line-height: 1.5; color: var(--gs-text-muted); }
+.gs-privacy-notice__actions { display: flex; justify-content: flex-end; }
+
+@media (max-width: 640px) {
+  .gs-privacy-notice { top: calc(var(--gs-below-nav) - 4px); padding: var(--gs-space-3); }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1340,8 +1413,90 @@ canvas {
 .gs-game-btn:active { transform: translateY(0) scale(0.98); }
 
 @media (max-width: 640px) {
-  .gs-game-toolbar { bottom: 14px; left: 12px; right: 12px; max-width: none; }
+  /* Leave room on the right for the camera toggle. */
+  .gs-game-toolbar { bottom: 14px; left: 12px; right: 72px; max-width: none; }
   .gs-game-btn { padding: 0.625rem 0.875rem; min-height: 42px; font-size: var(--gs-text-xs); flex: 1 1 auto; }
+}
+
+/* "How to Play" card on game pages. It was pinned bottom-right at z-index
+   1000, directly over the camera preview. It now sits bottom-LEFT, above the
+   game toolbar, where nothing else lives. */
+.gs-game-help {
+  position: absolute;
+  bottom: 84px;
+  left: 22px;
+  z-index: var(--gs-z-dock);
+  max-width: 260px;
+  padding: var(--gs-space-3) var(--gs-space-4);
+  border-radius: var(--gs-radius-md);
+  background: var(--gs-glass);
+  backdrop-filter: var(--gs-glass-blur);
+  -webkit-backdrop-filter: var(--gs-glass-blur);
+  border: 1px solid var(--gs-accent-border);
+  box-shadow: var(--gs-shadow-md);
+  color: var(--gs-text);
+  font-size: var(--gs-text-xs);
+  line-height: 1.55;
+  pointer-events: none;
+}
+.gs-game-help__title { font-weight: 700; color: var(--gs-accent); margin-bottom: var(--gs-space-2); }
+.gs-game-help__hint { display: flex; flex-direction: column; margin-top: var(--gs-space-2); color: var(--gs-text-muted); font-size: var(--gs-text-2xs); }
+
+/* Short screens (most laptops once browser chrome is subtracted): the full card
+   would climb into the question/flag panel in the top-left. Collapse it to a
+   single-line gesture hint centred at the bottom, level with the toolbar -
+   a row that never grows upwards. The numbered steps are the least essential
+   part; the game panel itself makes them obvious. */
+@media (max-height: 760px) and (min-width: 900px) {
+  .gs-game-help {
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: none;
+    padding: 0.625rem 1rem;
+    border-radius: var(--gs-radius-pill);
+    white-space: nowrap;
+  }
+  .gs-game-help__title,
+  .gs-game-help__steps { display: none; }
+  .gs-game-help__hint { flex-direction: row; gap: var(--gs-space-4); margin-top: 0; font-size: var(--gs-text-xs); }
+}
+
+/* Short AND too narrow for a centred chip beside the toolbar, or very short
+   overall: there is no free space, so leave the guidance to the nav's "?". */
+@media (max-height: 760px) and (max-width: 899px),
+       (max-height: 540px) {
+  .gs-game-help { display: none; }
+}
+
+/* On phones the game toolbar wraps and the screen is already full; the same
+   guidance is always one tap away in the nav's "?" guide. */
+@media (max-width: 640px) {
+  .gs-game-help { display: none; }
+}
+
+/* Game question/flag panel on phones. Its inline position (top: 20px;
+   left: 20px; ~322px wide) put it underneath both the global nav and the globe
+   customization panel. Here it spans the width and starts below the nav and
+   the collapsed "Open Controls" bar (see EarthThreeJS, which collapses that
+   panel on narrow screens), scrolling internally if the content is tall.
+   !important is needed only because the position is set inline. */
+@media (max-width: 640px) {
+  .gs-game-panel {
+    top: calc(var(--gs-below-nav) + 42px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-height: calc(100vh - var(--gs-below-nav) - 42px - 84px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* The preview is user-opened; on a phone it has to sit above the full-width
+     game panel or opening it would appear to do nothing... */
+  .gs-camera.is-visible { z-index: 1001; }
+  /* ...and the panel shortens (and scrolls) so the two never actually touch:
+     112px panel top + 8px gap + the preview's 78px offset and ~214px height. */
+  body:has(.gs-camera.is-visible) .gs-game-panel { max-height: calc(100vh - 412px); }
 }
 
 /* ------------------------------------------------------------------ */

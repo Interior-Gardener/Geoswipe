@@ -20,6 +20,18 @@ import { createGestureStabilizer } from '../utils/gestureClassifier';
 const WASM_PATH = '/mediapipe/wasm';
 const MODEL_PATH = '/mediapipe/hand_landmarker.task';
 
+const PRIVACY_ACK_KEY = 'geoswipe:camera-privacy:ack:v1';
+
+// localStorage can throw (private mode, blocked site data); treat that as
+// "not acknowledged" so the notice still shows rather than crashing.
+function readPrivacyAck() {
+  try {
+    return window.localStorage.getItem(PRIVACY_ACK_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 // The landmarker is a singleton: the model is ~8MB and initialising it twice
 // would both double memory and re-download it.
 let landmarkerPromise = null;
@@ -79,6 +91,16 @@ const CameraCapture = ({
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [modelStatus, setModelStatus] = useState('loading');
   const [fps, setFps] = useState(0);
+  const [privacyAck, setPrivacyAck] = useState(readPrivacyAck);
+
+  const acknowledgePrivacy = useCallback(() => {
+    setPrivacyAck(true);
+    try {
+      window.localStorage.setItem(PRIVACY_ACK_KEY, '1');
+    } catch {
+      // Not persisted; the notice simply shows again next visit.
+    }
+  }, []);
 
   const fpsCounterRef = useRef({ frames: 0, lastTime: Date.now() });
 
@@ -266,6 +288,28 @@ const CameraCapture = ({
       : 'Loading gesture model…';
 
   return (
+    <>
+    {/* Shown the first time the camera starts. The browser's own permission
+        prompt says nothing about what happens to the video, so say it here. */}
+    {!privacyAck && (
+      <div className="gs-privacy-notice" role="status" aria-live="polite">
+        <span className="gs-privacy-notice__icon" aria-hidden="true">🔒</span>
+        <div className="gs-privacy-notice__body">
+          <p className="gs-privacy-notice__title">Your camera stays on your device</p>
+          <p className="gs-privacy-notice__text">
+            GeoSwipe uses your camera only to recognise hand gestures, and that
+            happens entirely inside this browser tab. Nothing is recorded, stored,
+            or sent anywhere — camera frames never leave your browser.
+          </p>
+          <div className="gs-privacy-notice__actions">
+            <button type="button" className="gs-btn gs-btn--primary gs-btn--sm" onClick={acknowledgePrivacy}>
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className={`gs-camera${showPreview ? ' is-visible' : ''}`}>
       {/* Telemetry is debugging detail: only surface it while the preview is
           open. It previously sat on screen permanently, on every page. */}
@@ -278,6 +322,9 @@ const CameraCapture = ({
           <span className="gs-camera__row">
             <span className={`gs-camera__dot is-${modelStatus === 'ready' ? 'ok' : modelStatus === 'error' ? 'bad' : 'wait'}`} />
             {modelLabel}
+          </span>
+          <span className="gs-camera__privacy">
+            <span aria-hidden="true">🔒</span> Frames never leave this browser
           </span>
         </div>
       )}
@@ -301,6 +348,7 @@ const CameraCapture = ({
         )}
       </div>
     </div>
+    </>
   );
 };
 

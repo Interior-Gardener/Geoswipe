@@ -104,8 +104,9 @@
 
 /* Placement */
 .earth-overlay-btn--back { top: 16px; left: 16px; }
-/* Sits to the right of the fixed camera-preview toggle (bottom-left). */
-.earth-overlay-btn--instructions { bottom: 22px; left: 86px; }
+/* Bottom-left corner. It used to be offset to clear the camera-preview toggle,
+   which now lives bottom-right. */
+.earth-overlay-btn--instructions { bottom: 22px; left: 22px; }
 
 /* ------------------------------------------------------------------ */
 /* Responsive                                                          */
@@ -207,10 +208,29 @@
 
 .earth-modal__card strong { color: var(--gs-text); font-weight: 650; }
 
+/* Game pages put their question/flag panel in the top-left corner. Below about
+   1000px the centred title reaches into it, so the decorative title steps
+   aside there; the panel is the real heading on those pages. */
+@media (max-width: 1000px) {
+  body:has(.gs-game-panel) .earth-title { display: none; }
+}
+
 @media (max-width: 640px) {
-  .earth-title { font-size: 9px; padding: 0.3125rem 0.75rem; }
+  /* Decorative, and on a phone there is no room between the Back button and
+     the global nav - it ran underneath both. */
+  .earth-title { display: none; }
   .earth-overlay-btn--back { top: 12px; left: 12px; }
-  .earth-overlay-btn--instructions { bottom: 22px; left: 72px; }
+  /* Icon-only, aligned with the centred CTA row, so the two never collide. */
+  .earth-overlay-btn--instructions {
+    bottom: 14px;
+    left: 12px;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .earth-overlay-btn--instructions .earth-overlay-btn__label { display: none; }
 }
 
 /* ==========================================================================
@@ -226,7 +246,9 @@
 .dg.ac.earth-gui-host,
 .earth-gui-host {
   position: fixed !important;
-  top: 62px !important;
+  /* Below the global nav with a real gap - 62px left it flush against the nav,
+     and the nav's dropdown menu opened straight over the panel. */
+  top: var(--gs-below-nav) !important;
   right: 12px !important;
   left: auto !important;
   width: auto !important;
@@ -276,6 +298,13 @@
   scrollbar-color: var(--gs-border-strong) transparent;
 }
 .earth-gui > ul.closed { max-height: 0 !important; overflow: hidden !important; }
+
+/* While the camera preview is open it owns the lower right rail, directly under
+   this panel. Cap the controls list to the space above it (the list scrolls)
+   instead of letting the two overlap on shorter screens. */
+body:has(.gs-camera.is-visible) .earth-gui > ul:not(.closed) {
+  max-height: max(96px, calc(100vh - var(--gs-camera-reserve)));
+}
 
 .earth-gui li:not(.folder):not(.title) {
   background: transparent !important;
@@ -425,6 +454,12 @@
   overflow: hidden !important;
 }
 
+/* ...and the collapsed folder itself must clip. Its zero-height rows still
+   leaked ~9px of overflow, which made the whole list scrollable by that much -
+   enough to cut the last folder header ("Atmosphere Effects") under the Close
+   Controls bar. Open folders are unaffected: their content is in flow. */
+.earth-gui .closed { overflow: hidden !important; }
+
 /* Checkboxes */
 .earth-gui .c input[type='checkbox'] { accent-color: var(--gs-accent); width: 15px; height: 15px; cursor: pointer; }
 
@@ -465,10 +500,14 @@
 
 /* Responsive --------------------------------------------------------- */
 @media (max-width: 820px) {
-  .earth-gui-host { top: 54px !important; right: 8px !important; }
+  /* 54px put the panel 8px INSIDE the global nav, over its buttons. */
+  .earth-gui-host { top: var(--gs-below-nav) !important; right: 8px !important; }
   .dg.main.earth-gui,
   .earth-gui { width: min(240px, calc(100vw - 20px)) !important; }
-  .earth-gui > ul { max-height: 42vh; }
+  /* 42vh alone was shorter than the default (mostly collapsed) list on short
+     windows, clipping the last header. Never less than the collapsed list,
+     never taller than the space below the nav. */
+  .earth-gui > ul { max-height: min(max(42vh, 240px), calc(100vh - 200px)); }
   .earth-gui .property-name { width: 46% !important; }
   .earth-gui .c { width: 50% !important; }
 }

@@ -3,6 +3,55 @@ import './LandingPage.css';
 import { useNavigate } from 'react-router-dom';
 import { getGestureBus } from './utils/gestureBus';
 
+const TEAM = [
+  {
+    name: 'Kushal Soni',
+    email: 'sonikushal237@gmail.com',
+    github: 'https://github.com/kushal-s0',
+    linkedin: 'https://www.linkedin.com/in/kushaldsoni/'
+  },
+  {
+    name: 'Kartik Verma',
+    email: 'kartikverma2204@gmail.com',
+    github: 'https://github.com/Interior-Gardener',
+    linkedin: 'https://www.linkedin.com/in/kartikverma2204/'
+  },
+  {
+    name: 'Bhavana Suthar',
+    email: 'bhavnasuthar150@gmail.com',
+    github: 'https://github.com/bhavna382',
+    linkedin: 'https://www.linkedin.com/in/bhavna-s-073986345/'
+  },
+  {
+    name: 'Shreeya Sati',
+    email: 'shreeyasati@gmail.com',
+    // Preserved from the previous markup, where the displayed address and the
+    // mailto target differed. Confirm which is correct.
+    mailto: 'shreeya.sati@somaiya.edu',
+    github: 'https://github.com/shreeya-238',
+    linkedin: 'https://www.linkedin.com/in/shreeya-sati-659781345/'
+  }
+];
+
+const MailIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-10 6L2 7" />
+  </svg>
+);
+
+const GitHubIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+  </svg>
+);
+
+const LinkedInIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z" />
+  </svg>
+);
+
 // Gesture and cursor events come from in-browser MediaPipe detection (see
 // components/CameraCapture.jsx). This component previously opened its own
 // Socket.IO connection solely to receive them from a server-side Python worker.
@@ -312,98 +361,46 @@ const LandingPage = () => {
           <p className="contact-text">
             Have questions or feedback? We'd love to hear from you!
           </p>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-            gap: '2rem', 
-            marginTop: '2rem',
-            maxWidth: '1000px',
-            margin: '2rem auto'
-          }}>
-            {/* Kushal */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
-              transition: 'all 0.3s ease'
-            }}>
-              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Kushal Soni</h3>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
-                📧 <a href="mailto:sonikushal237@gmail.com" style={{ color: '#00d4ff', textDecoration: 'none' }}>sonikushal237@gmail.com</a>
-              </p>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <a href="https://github.com/kushal-s0" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                  </svg>
+          <ul className="team-grid">
+            {TEAM.map((member) => (
+              <li key={member.name} className="team-card">
+                <h3 className="team-card__name">{member.name}</h3>
+                <a className="team-card__email" href={`mailto:${member.mailto || member.email}`}>
+                  {member.email}
                 </a>
-              </p>
-            </div>
-
-            {/* Kartik */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
-              transition: 'all 0.3s ease'
-            }}>
-              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Kartik Verma</h3>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
-                📧 <a href="mailto:kartikverma2204number1@gmail.com" style={{ color: '#00d4ff', textDecoration: 'none' }}>kartikverma2204number1@gmail.com</a>
-              </p>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <a href="https://github.com/Interior-Gardener" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                  </svg>
-                </a>
-              </p>
-            </div>
-
-            {/* Bhavana */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
-              transition: 'all 0.3s ease'
-            }}>
-              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Bhavana Suthar</h3>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
-                📧 <a href="mailto:bhavnasuthar150@gmail.com" style={{ color: '#00d4ff', textDecoration: 'none' }}>bhavnasuthar150@gmail.com</a>
-              </p>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <a href="https://github.com/bhavna382" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                  </svg>
-                </a>
-              </p>
-            </div>
-
-            {/* Shreeya */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
-              transition: 'all 0.3s ease'
-            }}>
-              <h3 style={{ color: '#00d4ff', marginBottom: '1rem', fontSize: '1.3rem' }}>Shreeya Sati</h3>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
-                📧 <a href="mailto:shreeya.sati@somaiya.edu" style={{ color: '#00d4ff', textDecoration: 'none' }}>shreeyasati@gmail.com</a>
-              </p>
-              <p style={{ color: '#b0bec5', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <a href="https://github.com/shreeya-238" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                  <svg width="30" height="30" viewBox="0 0 16 16" fill="#00d4ff" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                  </svg>
-                </a>
-              </p>
-            </div>
-          </div>
+                <div className="team-card__links">
+                  <a
+                    className="team-link"
+                    href={`mailto:${member.mailto || member.email}`}
+                    aria-label={`Email ${member.name}`}
+                  >
+                    <MailIcon />
+                    <span>Email</span>
+                  </a>
+                  <a
+                    className="team-link"
+                    href={member.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${member.name} on GitHub`}
+                  >
+                    <GitHubIcon />
+                    <span>GitHub</span>
+                  </a>
+                  <a
+                    className="team-link"
+                    href={member.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${member.name} on LinkedIn`}
+                  >
+                    <LinkedInIcon />
+                    <span>LinkedIn</span>
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>

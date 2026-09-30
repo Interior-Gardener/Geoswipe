@@ -234,10 +234,29 @@ const HowToReachPage = () => {
               {reach.byRoad.fromMajorCities?.length > 0 && (
                 <>
                   <h3 className="htr-sub">From major cities</h3>
+                  {/* The database stores these as objects ({city, distance, route,
+                      duration}); rendering one directly as a child threw "Objects
+                      are not valid as a React child" and blanked the whole app for
+                      every site with road routes. Plain strings still render as
+                      chips. */}
                   <ul className="htr-cities">
-                    {reach.byRoad.fromMajorCities.map((city, index) => (
-                      <li className="htr-city" key={`${city}-${index}`}>{city}</li>
-                    ))}
+                    {reach.byRoad.fromMajorCities.map((entry, index) => {
+                      if (!entry || typeof entry !== 'object') {
+                        return (
+                          <li className="htr-city" key={`${entry}-${index}`}>{String(entry ?? '')}</li>
+                        );
+                      }
+                      const details = [entry.distance, entry.duration].filter(Boolean).join(' · ');
+                      return (
+                        <li className="htr-route" key={entry._id || `${entry.city}-${index}`}>
+                          <span className="htr-route__head">
+                            <strong className="htr-route__city">{entry.city || 'Route'}</strong>
+                            {details && <span className="htr-route__meta">{details}</span>}
+                          </span>
+                          {entry.route && <span className="htr-route__path">{entry.route}</span>}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </>
               )}

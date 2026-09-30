@@ -312,6 +312,7 @@ const MultiplayerFlagPage = () => {
       {/* Multiplayer Flag Game Overlay */}
       <div
         ref={gamePanelRef}
+        className="gs-game-panel"
         style={{
           position: "absolute",
           top: "20px",
@@ -329,93 +330,34 @@ const MultiplayerFlagPage = () => {
         />
       </div>
 
-      {/* Gesture Instructions */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "130px",
-          right: "20px",
-          zIndex: 1000,
-          background: "rgba(0, 20, 40, 0.9)",
-          padding: "12px 16px",
-          borderRadius: "8px",
-          color: "rgba(255, 255, 255, 0.9)",
-          fontSize: "12px",
-          fontFamily: "'Orbitron', sans-serif",
-          border: "1px solid rgba(0, 212, 255, 0.3)",
-          backdropFilter: "blur(10px)",
-          maxWidth: "250px",
-        }}
-      >
-        <div style={{ fontWeight: "bold", color: "#00d4ff", marginBottom: "8px" }}>
-          🎮 How to Play
-        </div>
-        <div style={{ lineHeight: "1.5" }}>
+      {/* Gesture instructions - bottom-left, clear of the camera preview */}
+      <div className="gs-game-help" aria-label="How to play">
+        <div className="gs-game-help__title">🎮 How to Play</div>
+        <div className="gs-game-help__steps">
           1️⃣ Look at the flag<br/>
           2️⃣ Find the country on globe<br/>
-          3️⃣ Click to answer<br/>
-          <br/>
-          <span style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "11px" }}>
-            ✋ Open palm: Move cursor<br/>
-            👌 OK sign: Click
-          </span>
+          3️⃣ Click to answer
         </div>
+        <span className="gs-game-help__hint">
+          <span>✋ Open palm: Move cursor</span>
+          <span>👌 OK sign: Click</span>
+        </span>
       </div>
 
-      {/* Back Button */}
-      <GestureButton
-        onClick={togglePanelFullscreen}
-        style={{
-          position: "absolute",
-          bottom: "70px",
-          left: "260px",
-          zIndex: 1000,
-          background: "linear-gradient(135deg, rgba(80, 120, 220, 0.9), rgba(60, 90, 190, 0.9))",
-          color: "#f0f7ff",
-          border: "2px solid rgba(190, 220, 255, 0.55)",
-          padding: "18px 20px",
-          borderRadius: "12px",
-          fontSize: "16px",
-          fontWeight: "bold",
-          fontFamily: "'Orbitron', sans-serif",
-          cursor: "pointer",
-          backdropFilter: "blur(15px)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.28)",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <span style={{ fontSize: "16px" }}>{isExpanded ? "🡼" : "⛶"}</span>
-        {isExpanded ? "Exit Fullscreen" : "Fullscreen"}
-      </GestureButton>
+      {/* Game controls - one wrapping toolbar instead of pixel-pinned buttons
+          (left: 90px / 260px overflowed narrow screens and collided with the
+          camera toggle). */}
+      <div className="gs-game-toolbar">
+        <GestureButton className="gs-game-btn" onClick={handleExitToPrevious}>
+          <span aria-hidden="true">←</span> Leave
+        </GestureButton>
 
-      <GestureButton
-        onClick={handleExitToPrevious}
-        style={{
-          position: "absolute",
-          bottom: "70px",
-          left: "90px",
-          zIndex: 1000,
-          background: "linear-gradient(135deg, rgba(0, 40, 80, 0.9), rgba(0, 20, 40, 0.9))",
-          color: "#00d4ff",
-          border: "2px solid rgba(0, 212, 255, 0.4)",
-          padding: "18px 26px",
-          borderRadius: "12px",
-          fontSize: "20px",
-          fontWeight: "bold",
-          fontFamily: "'Orbitron', sans-serif",
-          cursor: "pointer",
-          backdropFilter: "blur(15px)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <span style={{ fontSize: "18px" }}>⬅️</span>
-        Leave
-      </GestureButton>
+        <GestureButton className="gs-game-btn" onClick={togglePanelFullscreen}>
+          <span aria-hidden="true">{isExpanded ? '⤡' : '⛶'}</span>
+          {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+        </GestureButton>
+      </div>
+
     </div>
   );
 };

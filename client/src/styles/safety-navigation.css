@@ -9,6 +9,9 @@
 /* Layout is a full-bleed map with floating glass panels over it - not a grid.
    The map element is first in the DOM and fills the viewport. */
 .safety-page-root {
+  /* Rail width is shared with the map controls below, so they always land in
+     the visible strip of map between the two rails. */
+  --safety-rail-w: min(360px, calc(50vw - 24px));
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -38,6 +41,9 @@
   justify-content: space-between;
   gap: var(--gs-space-4);
   padding: var(--gs-space-3) var(--gs-space-4);
+  /* The fixed global nav sits over this bar's right end; reserve its width so
+     "Back to Heritage Map" / "Locate Me" are never underneath it. */
+  padding-right: calc(var(--gs-nav-reserve) + var(--gs-space-2));
   border-radius: var(--gs-radius-lg);
   background: var(--gs-glass);
   backdrop-filter: var(--gs-glass-blur);
@@ -65,9 +71,10 @@
 .safety-left-panel,
 .safety-right-panel {
   position: absolute;
-  top: 74px;
+  /* The top bar ends at 78px; 74px tucked both rails 4px underneath it. */
+  top: 86px;
   bottom: 14px;
-  width: min(360px, calc(50vw - 24px));
+  width: var(--safety-rail-w);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -366,8 +373,17 @@
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 1180px) {
-  .safety-left-panel,
-  .safety-right-panel { width: min(320px, calc(50vw - 20px)); }
+  .safety-page-root { --safety-rail-w: min(320px, calc(50vw - 20px)); }
+}
+
+/* MapLibre's zoom / compass control defaults to the top-right corner, where it
+   sat underneath the global nav and the right rail. Put it at the top-right of
+   the map that is actually visible between the rails. */
+@media (min-width: 901px) {
+  .safety-map-canvas .maplibregl-ctrl-top-right {
+    top: 86px;
+    right: calc(var(--safety-rail-w) + 12px + 8px);
+  }
 }
 
 /* Below this width two floating rails leave no usable map, so the page
@@ -400,6 +416,10 @@
     top: auto; left: auto; right: auto;
     order: 1;
     flex-wrap: wrap;
+    /* Stacked layout: drop the bar below the fixed nav rather than reserving
+       its width, which would squeeze both buttons into a narrow column. */
+    margin-top: calc(var(--gs-nav-h) + 4px);
+    padding-right: var(--gs-space-4);
   }
 
   .safety-left-panel { order: 3; }

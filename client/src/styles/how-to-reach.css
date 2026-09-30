@@ -246,6 +246,22 @@
   font-weight: 620;
 }
 
+/* Structured route entries take the full row rather than a chip. */
+.htr-route {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--gs-space-2) var(--gs-space-3);
+  border-radius: var(--gs-radius-sm);
+  border-left: 3px solid var(--_accent);
+  background: var(--_accent-soft);
+}
+.htr-route__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--gs-space-2); }
+.htr-route__city { color: var(--gs-text); font-size: var(--gs-text-sm); }
+.htr-route__meta { color: var(--_accent); font-size: var(--gs-text-xs); font-weight: 620; }
+.htr-route__path { color: var(--gs-text-muted); font-size: var(--gs-text-xs); line-height: 1.45; overflow-wrap: anywhere; }
+
 /* ------------------------------------------------------------------ */
 /* Location                                                            */
 /* ------------------------------------------------------------------ */

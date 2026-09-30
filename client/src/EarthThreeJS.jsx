@@ -10,6 +10,13 @@ const DEBUG_UI = String(import.meta.env.VITE_DEBUG_MODE).toLowerCase() === 'true
 import Stats from 'three/examples/jsm/libs/stats.module';
 import earcut from 'earcut';
 import { getGestureBus } from './utils/gestureBus';
+// The globe builds its title, back button, instructions modal and customization
+// panel as DOM nodes styled by explore.css. It must be imported HERE, not only
+// by ExplorePage: the game pages (/quiz, /flag-game, multiplayer) render this
+// component too, and on a direct load or refresh of those routes the Explore
+// chunk - and therefore its CSS - was never loaded, leaving every overlay
+// unstyled and stacked on top of the nav.
+import './styles/explore.css';
 
 // Gesture and cursor events come from in-browser MediaPipe detection (see
 // components/CameraCapture.jsx). This component previously opened its own
@@ -368,7 +375,11 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
     if (!hideInstructions) {
       // Create Instructions Button
       const instructionsButton = document.createElement('button');
-      instructionsButton.innerHTML = '📖 Controls & Instructions';
+      // Label in its own span so phones can show the icon alone - at full width
+      // the button sat directly on top of the centred "Start Games" button.
+      instructionsButton.innerHTML =
+        '<span aria-hidden="true">📖</span><span class="earth-overlay-btn__label">Controls &amp; Instructions</span>';
+      instructionsButton.setAttribute('aria-label', 'Controls & Instructions');
       instructionsButton.id = 'instructions-button';
       instructionsButton.className = 'earth-overlay-btn earth-overlay-btn--instructions';
       
@@ -1165,6 +1176,11 @@ const EarthThreeJS = ({ setSelectedCountry, hideInstructions = false, _hideContr
       gui.domElement.classList.add('earth-gui');
       if (gui.domElement.parentElement) {
         gui.domElement.parentElement.classList.add('earth-gui-host');
+      }
+      // On a phone the expanded panel covers most of the globe and, in game
+      // modes, the question panel. Start collapsed there; it is one tap to open.
+      if (window.matchMedia('(max-width: 640px)').matches) {
+        gui.close();
       }
 
       const lightingFolder = gui.addFolder('🌞 Lighting Controls');

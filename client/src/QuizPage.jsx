@@ -24,6 +24,7 @@ const QuizPage = () => {
       {/* 📋 QuizDisplay overlay */}
       <div
         ref={quizPanelRef}
+        className="gs-game-panel"
         style={{
           position: "absolute",
           top: "20px",
@@ -39,33 +40,17 @@ const QuizPage = () => {
         <CountryQuiz selectedCountry={selectedCountry}  clearSelection={() => setSelectedCountry(null)}/>
       </div>
 
-      {/* 📝 Gesture Instructions for Quiz Mode */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "130px",
-          right: "20px",
-          zIndex: 1000,
-          background: "rgba(0, 20, 40, 0.9)",
-          padding: "12px 16px",
-          borderRadius: "8px",
-          color: "rgba(255, 255, 255, 0.9)",
-          fontSize: "12px",
-          fontFamily: "'Orbitron', sans-serif",
-          border: "1px solid rgba(0, 212, 255, 0.3)",
-          backdropFilter: "blur(10px)",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-          maxWidth: "250px",
-        }}
-      >
-        <div style={{ fontWeight: "bold", color: "#00d4ff", marginBottom: "8px" }}>
-          🎮 Gesture Controls
-        </div>
-        <div style={{ lineHeight: "1.4" }}>
-          ✋ Open palm: Move cursor<br/>
-          👌 OK sign: Click buttons<br/>
+      {/* Gesture instructions - bottom-left, clear of the camera preview. This was
+          pinned bottom-right at z-index 1000, directly over the preview. */}
+      <div className="gs-game-help" aria-label="Gesture controls">
+        <div className="gs-game-help__title">🎮 Gesture Controls</div>
+        <div className="gs-game-help__steps">
           🌍 Click countries to answer
         </div>
+        <span className="gs-game-help__hint">
+          <span>✋ Open palm: Move cursor</span>
+          <span>👌 OK sign: Click buttons</span>
+        </span>
       </div>
 
       {/* 🔙 Back Button */}

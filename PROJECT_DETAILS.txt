@@ -1,0 +1,351 @@
+===============================================================================
+                                  GEOSWIPE
+              Interactive Heritage & Geography Explorer (Web App)
+===============================================================================
+
+Live site   : https://geoswipe.pages.dev/
+Demo video  : https://drive.google.com/file/d/13jWqWI3qgzt3HObZ80NEqZqjEjKYIqeV/view
+Research    : FINAL_GEOSWIPE_RESEARCH_PAPER_19_08_2026.pdf / .docx (project root)
+License     : ISC
+
+
+-------------------------------------------------------------------------------
+1. WHAT IS THIS PROJECT?
+-------------------------------------------------------------------------------
+
+GeoSwipe is an interactive educational web application for learning world
+geography and exploring Indian cultural heritage. It combines:
+
+  - a 3D rotating Earth globe you can click to explore countries,
+  - an interactive map of ~126 Indian heritage sites (UNESCO sites, forts,
+    caves, temples, palaces, museums),
+  - geography and heritage quiz games (single-player and real-time
+    multiplayer),
+  - illustrated, narrated heritage "storybooks",
+  - an AI chatbot, an AI trip planner, and a safety-navigation tool,
+  - hands-free HAND GESTURE CONTROL using the webcam.
+
+The goal is to make geography and heritage education engaging and accessible
+by turning it into an interactive, game-like, touch-free experience.
+
+There are no user accounts or logins - the app is fully anonymous.
+
+
+-------------------------------------------------------------------------------
+2. MAIN FEATURES
+-------------------------------------------------------------------------------
+
+2.1 Landing Page  ( / )
+    Entry point with navigation to all modes, a welcome guide, and a
+    game-selection modal. Light/dark theme support.
+
+2.2 Explore Mode - 3D Earth Globe  ( /explore )
+    - Three.js + three-globe rendering of Earth with custom GLSL shaders.
+    - Click / select countries with highlighting and smooth camera animation.
+    - Earth customization panel (dat.GUI).
+    - Launches the geography games. Targets 60 FPS.
+
+2.3 Geography Games
+    - Country Quiz            ( /quiz )
+    - Flag Guessing Game      ( /flag-game )
+    - Multiplayer Flag Game   ( /multiplayer/flag-game )
+    - Multiplayer Quiz        ( /multiplayer/quiz )
+    Multiplayer uses Socket.IO rooms: players join a room, answer questions
+    in real time, and scores are synced by the server.
+
+2.4 Heritage Mode - Interactive Map  ( /heritage )
+    - MapLibre GL map of Indian heritage sites with custom category icons.
+    - Map styles: satellite, hybrid, topo, streets, dark, historical.
+    - Categories: UNESCO World Heritage, Historic Fort, Rock-cut Cave, Temple,
+      Monument, Palace, Museum, Historic Building.
+    - Monument sidebar with: summary/history/architecture/significance,
+      images (Unsplash -> Wikipedia fallback), live weather + 5-day forecast,
+      latest news about the site, 360-degree view, 3D models (Sketchfab),
+      visitor info (timings, entry fee, best time to visit).
+
+2.5 How To Reach  ( /how-to-reach/:name )
+    Travel guide per site: by air, by rail, by road.
+
+2.6 Heritage StoryBook  ( /heritage-storybook/:name )
+    Page-flip book (react-pageflip) with typewriter-style narration text and
+    chapter audio. Hand-authored chapters (5 chapters each, with MP3 audio)
+    exist for: Ajanta Caves, Gateway of India, Raigad Fort, Shaniwar Wada,
+    Taj Mahal, Trimbakeshwar Temple. Captions for audio can be generated with
+    audio-to-captions.py (OpenAI Whisper).
+
+2.7 Heritage Quizzes
+    - Single player  ( /heritage-quiz, /heritage-quiz/:name )
+    - Multiplayer    ( /multiplayer/heritage-quiz, .../:name )
+    Questions per monument or for "all India".
+
+2.8 AI Trip Planner  ( /trip-planner, /trip-planner/:name )
+    Generates an itinerary with cost estimates and booking links using an LLM
+    (Groq), factoring in weather. Plans can be exported as PDF (jsPDF).
+
+2.9 Safety Navigation  ( /safety-navigation )
+    Safer route suggestions with a safety score, nearby safe places
+    (hospitals, police, etc.), alerts, emergency contacts, and AI safety
+    guidance.
+
+2.10 Heritage Chatbot (Heritage Assistant)
+    Floating AI chat assistant (Groq LLM) that answers questions about
+    monuments, Indian heritage and travel.
+
+2.11 Gesture Control
+    - Uses the webcam + Google MediaPipe Tasks-Vision hand-landmark model,
+      running ENTIRELY IN THE BROWSER (no video frames ever leave the device).
+    - A gesture classifier turns hand landmarks into poses (e.g. open palm =
+      move cursor, pinch/fist style gestures = click), with stabilisation
+      (pose must hold 5 frames) and a 1-second click cooldown; inference
+      capped at 20 FPS.
+    - A global on-screen gesture cursor and gesture-aware buttons let the
+      user navigate the app hands-free.
+    - (Earlier versions used a separate Python + OpenCV + MediaPipe process on
+      the server; this was replaced for privacy, bandwidth and hosting cost.)
+
+2.12 3D Model Viewer  ( /sketchfab/:uid )
+    Embedded Sketchfab viewer for 3D models of monuments.
+
+
+-------------------------------------------------------------------------------
+3. TECHNOLOGY STACK
+-------------------------------------------------------------------------------
+
+FRONTEND (client/)
+  - React 19, React Router 7
+  - Vite 7 (build tool / dev server)
+  - Three.js + three-globe (3D Earth), GLSL shaders
+  - MapLibre GL JS (maps, tiles via MapTiler)
+  - @mediapipe/tasks-vision (in-browser hand tracking)
+  - Socket.IO client (multiplayer)
+  - Framer Motion (animations), react-pageflip (storybook), jsPDF (PDF export)
+  - dat.GUI (globe controls)
+  - ESLint, TypeScript (type-check only)
+
+BACKEND (server/)
+  - Node.js (>= 18), Express 5
+  - Socket.IO (real-time multiplayer rooms)
+  - MongoDB Atlas + Mongoose (database)
+  - compression, cors, express-rate-limit, dotenv
+
+EXTERNAL SERVICES / APIs (all called from the server, never from the browser)
+  - Groq             : LLM for chatbot, trip planner, safety guidance
+  - MapTiler         : map styles, tiles, sprites, glyphs
+  - OpenWeatherMap   : current weather + forecast
+  - NewsAPI          : news about heritage sites
+  - Unsplash         : monument images (Wikipedia as fallback)
+  - Sketchfab        : 3D models
+  - flagcdn.com      : country flag images
+
+TOOLS / SCRIPTS
+  - audio-to-captions.py : Python + OpenAI Whisper, generates timestamped
+                           captions for storybook audio.
+  - client/scripts/setup-mediapipe.mjs : downloads/self-hosts MediaPipe WASM
+                           and the hand-landmark model (runs before dev/build).
+  - client/scripts/chapters-manifest.mjs : rebuilds storybook chapter index.
+
+HOSTING / DEPLOYMENT
+  - Frontend : Cloudflare Pages (static site)  -> geoswipe.pages.dev
+  - Backend  : Render (free web service, Singapore region) - see render.yaml
+  - Database : MongoDB Atlas
+
+
+-------------------------------------------------------------------------------
+4. SYSTEM ARCHITECTURE
+-------------------------------------------------------------------------------
+
+   +---------------------------------------------------------------+
+   |  BROWSER (React app on Cloudflare Pages)                      |
+   |   - UI, 3D globe, map, games, storybook                       |
+   |   - MediaPipe gesture detection (local webcam, on-device)     |
+   +---------------------------+-----------------------------------+
+                               | REST (/api/*)  +  WebSocket (Socket.IO)
+                               v
+   +---------------------------------------------------------------+
+   |  NODE / EXPRESS SERVER (Render)                               |
+   |   - REST API + proxy routes for all keyed third-party APIs    |
+   |   - Socket.IO multiplayer rooms                               |
+   |   - Two-tier cache (memory + MongoDB)                         |
+   |   - Security headers, CORS allowlist, rate limiting           |
+   +-----------+----------------------------------+----------------+
+               |                                  |
+               v                                  v
+   +-----------------------+        +------------------------------+
+   |  MongoDB Atlas        |        |  Groq / MapTiler / Weather / |
+   |  sites, quiz, cache   |        |  NewsAPI / Unsplash          |
+   +-----------------------+        +------------------------------+
+
+Key design points:
+  - API keys live ONLY in server/.env; the browser calls server proxies.
+  - Weather/news/images are cached PER HERITAGE SITE, so API usage depends on
+    the number of sites (~126), not the number of users - this keeps the app
+    inside free-tier quotas.
+  - API key pools: each service accepts several comma-separated keys and the
+    server rotates to the next key when one hits its quota (HTTP 429).
+
+
+-------------------------------------------------------------------------------
+5. DATABASE MODELS (server/models/)
+-------------------------------------------------------------------------------
+
+  HeritageSite   - name, category, location (GeoJSON coordinates, city, state,
+                   country), info (summary/history/architecture/significance),
+                   howToReach, media, view360, model3d, visitor_info.
+                   Uses 2dsphere geospatial index.
+  Country        - country data for geography games.
+  QuizQuestion   - heritage quiz questions.
+  FlagImage      - cached flag image data.
+  MonumentImage  - cached monument images.
+  ApiCache       - generic cache for weather/news/etc.
+
+
+-------------------------------------------------------------------------------
+6. API ENDPOINTS (server)
+-------------------------------------------------------------------------------
+
+Heritage
+  GET  /api/heritage-sites
+  GET  /api/heritage-sites/geojson
+  GET  /api/heritage-sites/:name/details
+  GET  /api/heritage-sites/:name/image
+  GET  /api/heritage/:name
+  GET  /api/heritage/category/:category
+  GET  /api/news/:siteName
+
+Games / Quiz
+  GET  /api/country-question
+  GET  /api/random-flag-country
+  GET  /api/quiz/monument/:name
+  GET  /api/quiz/all-india
+  GET  /api/quiz/available-monuments
+  GET  /api/quiz/session/:mode
+
+Safety
+  GET  /api/safety/nearby-safe-places
+  GET  /api/safety/routes
+  GET  /api/safety/alerts
+
+Proxies
+  POST /api/ai/chat           (profiles: heritage, safety, tripPlanner)
+  GET  /api/ai/status
+  GET  /api/weather/current
+  GET  /api/weather/forecast
+  GET  /api/maps/style/:styleName
+  GET  /api/maps/asset/*
+
+Health
+  GET  /health
+  GET  /api/diagnostics       (health of all integrations)
+  GET  /api/start
+
+Socket.IO events (multiplayer)
+  join-room, submit-answer, leave-room, get-room-info, disconnect, error
+
+
+-------------------------------------------------------------------------------
+7. FOLDER STRUCTURE
+-------------------------------------------------------------------------------
+
+geoswipe9sep/
+  client/                   React frontend
+    public/
+      audio/                Storybook chapter narration (MP3)
+      chapters/             Storybook chapter text (JSON)
+      assets/               GeoJSON, images, icons
+    src/
+      App.jsx               Routes
+      LandingPage.jsx       Home
+      ExplorePage.jsx       3D globe (EarthThreeJS.jsx)
+      HeritagePage.jsx      Heritage map
+      HeritageStoryBook.jsx Storybook reader
+      *Quiz*.jsx, *Flag*.jsx, Multiplayer*.jsx   Games
+      TripPlannerPage.jsx, SafetyNavigationPage.jsx, HowToReachPage.jsx
+      components/           Chatbot, camera capture, nav, trip planner, etc.
+      context/              Theme + heritage selection state
+      earth/                Globe helpers
+      hooks/                Fullscreen hooks
+      utils/                API services, gesture classifier, safety scoring,
+                            PDF export, weather/news services
+      styles/               CSS design system and page styles
+    scripts/                MediaPipe setup, chapter manifest
+  server/                   Node/Express backend
+    index.js                Server entry (REST + Socket.IO)
+    config/                 Environment config
+    middleware/             Security headers, input validation
+    models/                 Mongoose schemas
+    routes/                 AI, weather, map proxies, diagnostics
+    services/               Cache, key pool, image providers
+    data/                   Country data
+  mdfiles/                  Project documentation (architecture, deployment,
+                            multiplayer, security, cost analysis, etc.)
+  audio-to-captions.py      Whisper caption generator
+  render.yaml               Render deployment blueprint
+  package.json              Root scripts (runs client + server together)
+  FINAL_GEOSWIPE_RESEARCH_PAPER_19_08_2026.pdf/.docx   Research paper
+
+
+-------------------------------------------------------------------------------
+8. HOW TO RUN LOCALLY
+-------------------------------------------------------------------------------
+
+Prerequisites: Node.js >= 18, a MongoDB database (local or Atlas), Git.
+(Python is only needed for the optional audio-to-captions.py script.)
+
+  1. Install dependencies
+       npm install
+       cd client && npm install && cd ..
+       cd server && npm install && cd ..
+
+  2. Environment files
+       copy server/.env.example  -> server/.env
+       copy client/.env.example  -> client/.env.development
+     Fill server/.env with: MONGODB_URI, GROQ_API_KEY, MAPTILER_API_KEY,
+     OPENWEATHER_API_KEY, NEWSAPI_KEY, UNSPLASH_ACCESS_KEY, UNSPLASH_SECRET_KEY,
+     ALLOWED_ORIGINS. (Never put secrets in client env files - VITE_*
+     variables are public.)
+
+  3. Start everything
+       npm start
+     Client -> http://localhost:5173
+     Server -> http://localhost:3000
+     Health -> http://localhost:3000/api/diagnostics
+
+  Other commands
+     npm run start:client / npm run start:server   (run one side only)
+     cd client && npm run build                    (production build)
+     cd client && npm run lint                     (lint)
+     cd server && npm run dev                      (server with nodemon)
+
+
+-------------------------------------------------------------------------------
+9. SECURITY & PERFORMANCE HIGHLIGHTS
+-------------------------------------------------------------------------------
+
+  - All API keys kept server-side; browser only uses proxy endpoints.
+  - CORS allowlist for HTTP and WebSocket (wildcard support for Cloudflare
+    Pages preview URLs).
+  - Security headers: CSP, X-Frame-Options, nosniff, Referrer-Policy,
+    Permissions-Policy, HSTS in production.
+  - Rate limits per route (AI, weather, maps) and per socket; room ceiling.
+  - NoSQL regex-injection protection via escaped input helpers.
+  - Generic error messages (no internal details leaked).
+  - Webcam privacy: gesture detection is fully on-device.
+  - Two-tier caching + request de-duplication to stay within free API quotas.
+  - Lazy loading of MediaPipe; globe tuned for 60 FPS.
+
+
+-------------------------------------------------------------------------------
+10. FUTURE SCOPE
+-------------------------------------------------------------------------------
+
+  - Progressive Web App (PWA) support
+  - Better mobile gesture controls
+  - More map themes and storybooks for more monuments
+  - Advanced search & filtering
+  - User accounts, progress tracking and analytics
+
+
+-------------------------------------------------------------------------------
+More detail: see README.md and the mdfiles/ folder (PROJECT_ABSTRACT.md,
+PROJECT_CONTEXT.md, MULTIPLAYER_ARCHITECTURE.md, DEPLOYMENT_GUIDE.md, etc.).
+===============================================================================

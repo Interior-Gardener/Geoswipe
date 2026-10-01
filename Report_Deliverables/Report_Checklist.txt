@@ -1,0 +1,72 @@
+GEOSWIPE REPORT + PAPER - CHECKLIST OF ITEMS TO FILL IN OR VERIFY
+=================================================================
+(Placeholders in the report are bold, yellow-highlighted "[INSERT: ...]" or
+"[ASSUMED ...]" text - search for "[INSERT" and "[ASSUMED" in Word.)
+
+A. MUST FILL IN (report)
+  [ ] Roll numbers of all four students (cover, approval page, declaration).
+  [ ] Dates on Certificate, Project Approval and Declaration pages.
+  [ ] Signatures: guide, HOD, Principal, external and internal examiners,
+      students (print and sign).
+  [ ] University of Mumbai emblem (cover, dashed box) - replace with image.
+  [ ] Somaiya Vidyavihar logo (cover, dashed box) - replace with image.
+  [ ] Test T13 (Table 6.3): record result of a manual gesture test with a
+      real webcam and real hands.
+  [ ] "Published Papers" page - attach paper copy / acceptance proof.
+  [ ] "Certificates" page - attach students' certificates.
+  [ ] "Plagiarism Report" page - attach report (tool, date, similarity %).
+  [ ] After editing, right-click the Contents / List of Figures / List of
+      Tables -> Update Field -> Update entire table (they are live fields).
+
+B. ASSUMPTIONS MADE (verify or correct)
+  - Guide's name written as "Prof. Pradnya Patil" (from your existing
+    research paper; you typed "pradhya patil").
+  - Full title used: "GeoSwipe: Interactive Earth and Indian Heritage
+    Exploration using Hand Gestures" (you gave only "Geoswipe").
+  - Minimum client hardware in Table 3.1 is marked [ASSUMED] (not tested).
+  - Measuring client location/network (Mumbai, residential broadband) is
+    marked [ASSUMED] in Section 7.1.
+  - Student e-mail IDs in the IEEE paper were taken from your earlier paper.
+  - Page size A4 for the report; US Letter for the IEEE paper.
+
+C. WHERE THE NUMBERS COME FROM (no results were invented)
+  - Cache cold/warm times, NewsAPI 5 vs ~32 calls, 20,000-pose 0-mismatch
+    test, CORS 15 cases: your team's own measurements in
+    mdfiles/ARCHITECTURE_CHANGES.md (12 Sept 2026).
+  - Live latency, diagnostics (9/10), bundle sizes, page-load FCP and all
+    screenshots: measured by me against https://geoswipe.pages.dev and
+    https://geoswipe-api.onrender.com on 30 Sept 2026.
+  - Gesture accuracy/stabiliser/latency numbers: a SYNTHETIC benchmark that
+    runs your unmodified client/src/utils/gestureClassifier.js on generated
+    hand poses (no human participants) - stated as such in the report.
+  - Dataset counts (126 sites, 780 questions, 235 countries), LOC, commit
+    history: computed from the repository.
+  - Cost options (Rs 0 / ~500-1,000 / ~14,000+ per month):
+    mdfiles/GEOSWIPE_COST_ANALYSIS.md.
+
+D. REFERENCES TO VERIFY
+  - [1]-[15] come from your earlier research paper. I added full bibliographic
+    details for [9] (book chapter in "The Universal Access Handbook", CRC
+    Press, 2009) - please confirm.
+  - Added references (real, well-known works) - please confirm formatting:
+    [16] MediaPipe Hands (arXiv:2006.10214), [17] MediaPipe framework
+    (arXiv:1906.08172), [18] Brooke SUS (1996), [19] Boehm COCOMO (1981),
+    [20] RFC 6455 WebSocket (2011), [21] Sinnott, haversine (1984).
+  - Table 2.1 summarises each paper qualitatively from its title/abstract;
+    check the "Results" and "Limitations" cells against the full texts.
+  - The IEEE paper uses its own numbering [1]-[20] (same works).
+
+E. FORMAT CHECK DONE
+  - Times New Roman throughout (verified in document XML); chapter headings
+    16 pt, sub-headings 14 pt, body 12 pt, 1.5 line spacing, justified.
+    Tables use 10 pt (9.5 pt for the literature table) to fit columns.
+  - Margins: left 1.5", top/right/bottom 1".
+  - Page numbers: cover unnumbered; front matter i-xii (lower roman);
+    Chapter 1 starts at page 1 (arabic).
+  - Length: Introduction -> Conclusion = 66 pages (pages 1-66); with
+    references and placeholder pages = 71 arabic pages; whole file = 84
+    pages including cover and 12 front-matter pages.
+  - 36 figures (caption below, numbered by chapter) and 31 tables (caption
+    above); every figure and table is referenced in the text (checked by
+    the build script). Single spelling "fulfilment" used.
+  - IEEE paper: two-column, 6 pages exactly, 12 figures, 5 tables, 20 refs.
